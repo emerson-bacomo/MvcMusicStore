@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using MvcMusic.Data;
 using MvcMusic.Models;
 
-namespace MvcMusic.Views
+namespace MvcMusic.Controllers
 {
     public class ProductsController : Controller
     {
