@@ -1,0 +1,94 @@
+@model MvcMusic.Models.Product
+@{
+    var isEdit = Model?.Id != 0;
+}
+
+<div class="nc-card nc-form-card">
+    <div class="nc-card-body">
+    <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" novalidate>
+        @if (isEdit) { <input type="hidden" asp-for="Id" /> }
+
+        <div asp-validation-summary="All" class="nc-validation-summary" style="@(ViewData.ModelState.IsValid ? "display:none" : "")"></div>
+
+        <!-- Basic Info -->
+        <div class="nc-form-section">
+            <h3 class="nc-form-section-title">Basic Information</h3>
+            <div class="nc-form-group">
+                <label class="nc-label" asp-for="Name">Instrument Name</label>
+                <input asp-for="Name" class="nc-input" placeholder="e.g. Squier Sonic Stratocaster" />
+                <span asp-validation-for="Name" class="nc-validation-error"></span>
+            </div>
+            
+            <div class="nc-form-grid">
+                <div class="nc-form-group">
+                    <label class="nc-label" asp-for="Brand">Brand</label>
+                    <input asp-for="Brand" class="nc-input" placeholder="e.g. Fender" />
+                    <span asp-validation-for="Brand" class="nc-validation-error"></span>
+                </div>
+                <div class="nc-form-group">
+                    <label class="nc-label" asp-for="Category">Category</label>
+                    <input asp-for="Category" class="nc-input" placeholder="e.g. Guitar" />
+                    <span asp-validation-for="Category" class="nc-validation-error"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing & Stock -->
+        <div class="nc-form-section">
+            <h3 class="nc-form-section-title">Pricing & Inventory</h3>
+            <div class="nc-form-grid">
+                <div class="nc-form-group">
+                    <label class="nc-label" asp-for="Price">Price (PHP)</label>
+                    <div style="position:relative;">
+                        <span style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--nc-text-muted);">₱</span>
+                        <input asp-for="Price" class="nc-input" style="padding-left:2rem;" />
+                    </div>
+                    <span asp-validation-for="Price" class="nc-validation-error"></span>
+                </div>
+                <div class="nc-form-group">
+                    <label class="nc-label" asp-for="Stock">Initial Stock</label>
+                    <input asp-for="Stock" class="nc-input" type="number" />
+                    <span asp-validation-for="Stock" class="nc-validation-error"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media & Features -->
+        <div class="nc-form-section">
+            <h3 class="nc-form-section-title">Media & Presentation</h3>
+            <div class="nc-form-group">
+                <label class="nc-label" asp-for="Image">Image URL</label>
+                <input asp-for="Image" class="nc-input" placeholder="https://..." />
+                <span asp-validation-for="Image" class="nc-validation-error"></span>
+            </div>
+            <div class="nc-form-group">
+                <label class="nc-label" asp-for="Description">Description</label>
+                <textarea asp-for="Description" class="nc-input" rows="3" placeholder="Tell us about this instrument..."></textarea>
+                <span asp-validation-for="Description" class="nc-validation-error"></span>
+            </div>
+
+            <div class="nc-form-grid" style="margin-top:1.5rem;">
+                <label class="nc-form-check">
+                    <input asp-for="IsBanner" type="checkbox" />
+                    <div>
+                        <div style="font-weight:600; font-size:0.9rem; color:var(--nc-text-primary);">Feature as Banner</div>
+                        <div style="color:var(--nc-text-secondary); font-size:0.75rem;">Show on landing page spotlight</div>
+                    </div>
+                </label>
+                <div class="nc-form-group">
+                    <label class="nc-label" asp-for="BannerDescription">Banner Description</label>
+                    <input asp-for="BannerDescription" class="nc-input" placeholder="e.g. Best for beginners" />
+                    <span asp-validation-for="BannerDescription" class="nc-validation-error"></span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--nc-border);">
+            <a asp-action="Index" class="btn-nc-outline" style="padding: 0.7rem 1.5rem; border-radius: var(--nc-radius-sm);">Cancel</a>
+            <button type="submit" class="btn-nc-primary" style="padding: 0.7rem 2rem; border-radius: var(--nc-radius-sm); font-weight:700;">
+                <i class="fa fa-save me-1"></i> @(isEdit ? "Update Instrument" : "Save Instrument")
+            </button>
+        </div>
+    </form>
+</div>
+</div>

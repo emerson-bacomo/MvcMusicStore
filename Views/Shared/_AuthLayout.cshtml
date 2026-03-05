@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — NightCord</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* ── Refined Auth Layout Styles ────────────────────────────── */
+        .nc-auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--nc-bg-primary) 0%, #151a2636 50%, var(--nc-bg-primary) 100%);
+        }
+
+        /* Split Screen Container - Card Style */
+        .nc-auth-split {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1400px;
+            min-height: 500px;
+            background: var(--nc-bg-secondary);
+            border: 1px solid var(--nc-border);
+            border-radius: var(--nc-radius);
+            overflow: hidden;   
+            display: flex;
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Left Side: Visual */
+        .nc-auth-visual {
+            flex: 1.2;
+            position: relative;
+            background: #080a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 4rem;
+            overflow: hidden;
+        }
+        .nc-auth-visual img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+            mix-blend-mode: luminosity;
+        }
+
+        .nc-auth-visual::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(10, 12, 16, 0.95) 0%, transparent 70%);
+        }
+
+        .nc-auth-visual-content {
+            position: relative;
+            z-index: 2;
+        }
+        .nc-auth-visual-brand {
+            font-family: "Orbitron", sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 0.15em;
+            margin-bottom: 0.5rem;
+        }
+        .nc-auth-visual-tag {
+            color: var(--nc-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+        }
+
+        /* Right Side: Form */
+        .nc-auth-form-container {
+            width: 480px;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 18, 26, 0.8);
+            border-left: 1px solid var(--nc-border);
+            backdrop-filter: blur(20px);
+        }
+
+        .nc-auth-header { margin-bottom: 3rem; }
+        .nc-auth-title { font-size: 1.8rem; font-weight: 800; color: var(--nc-text-primary); margin-bottom: 0.5rem; }
+        .nc-auth-subtitle { color: var(--nc-text-secondary); font-size: 1rem; }
+
+        .nc-form-group { margin-bottom: 1.75rem !important; }
+
+        .nc-auth-divider {
+            text-align: center;
+            color: var(--nc-text-muted);
+            font-size: 0.8rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+        .nc-auth-divider::before, .nc-auth-divider::after {
+            content: ""; position: absolute; top: 50%; width: 35%; height: 1px; background: var(--nc-border);
+        }
+        .nc-auth-divider::before { left: 0; }
+        .nc-auth-divider::after { right: 0; }
+
+        .nc-auth-footer-links {
+            margin-top: auto;
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid var(--nc-border);
+        }
+
+        @@media (max-width: 1024px) {
+            .nc-auth-visual { display: none; }
+            .nc-auth-form-container { width: 100%; padding: 4rem 2.5rem; border-left: none; }
+            .nc-auth-split { max-width: 500px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nc-auth-wrapper">
+        @await Html.PartialAsync("_FloatingNotes", new ViewDataDictionary(ViewData) { { "NotesId", "authNotes" }, { "NoteCount", 12 } })
+        
+        <div class="nc-auth-split">
+            <!-- Visual Side -->
+            <div class="nc-auth-visual">
+                <img src="/images/auth_visual.png" alt="NightCord Visual" onerror="this.src='https://placehold.co/800x1200/1a1f2c/7babdd?text=NightCord'" />
+                <div class="nc-auth-visual-content">
+                    <div class="nc-auth-visual-brand">&#9834; NIGHTCORD</div>
+                    <div class="nc-auth-visual-tag">The Sound of the Night</div>
+                </div>
+            </div>
+
+            <!-- Form Side -->
+            <div class="nc-auth-form-container">
+                <div class="nc-auth-header">
+                    <h2 class="nc-auth-title">@ViewBag.FormTitle</h2>
+                    <p class="nc-auth-subtitle">@ViewBag.FormSubtitle</p>
+                </div>
+
+                @RenderBody()
+
+                <div class="nc-auth-footer-links">
+                    @RenderSection("FooterLinks", required: false)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

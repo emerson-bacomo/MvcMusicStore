@@ -1,8 +1,28 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using Microsoft.EntityFrameworkCore
+@using MvcMusic.Data
+@inject MvcMusicContext Db
+
+@{
+    ViewData["Title"] = "NightCord — Instruments That Speak";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var bannerProducts = await Db.Product.Where(p => p.IsBanner).ToListAsync();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!DOCTYPE html>
+<html>
+<body style="padding-top:0!important;">
+
+    <!-- Component: Hero Section -->
+    <partial name="Components/_Hero" />
+
+    <!-- Component: Featured Banners -->
+    @if (bannerProducts.Count > 1)
+    {
+        <partial name="Components/_FeaturedBanners" model="bannerProducts.Skip(1)" />
+    }
+
+    <!-- Component: Why NightCord Section -->
+    <partial name="Components/_WhyNightCord" />
+
+</body>
+</html>

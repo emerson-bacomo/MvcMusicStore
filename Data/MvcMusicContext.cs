@@ -8,7 +8,7 @@ using MvcMusic.Models;
 
 namespace MvcMusic.Data
 {
-    public class MvcMusicContext : IdentityDbContext
+    public class MvcMusicContext : IdentityDbContext<ApplicationUser>
     {
         public MvcMusicContext (DbContextOptions<MvcMusicContext> options)
             : base(options)

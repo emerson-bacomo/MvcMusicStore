@@ -1,0 +1,111 @@
+@model IEnumerable<MvcMusic.Models.Product>
+
+<style>
+    /* ── Featured Banners Scoped Styles ───────────────────────────── */
+    .nc-featured {
+        position: relative;
+        z-index: 2;
+        padding: 4rem 2rem;
+        max-width: 1280px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    .nc-section-title {
+        text-align: center;
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        color: var(--nc-text-primary);
+    }
+    .nc-section-subtitle {
+        text-align: center;
+        color: var(--nc-text-secondary);
+        margin-bottom: 2.5rem;
+        font-size: 0.9rem;
+    }
+
+    .nc-banner-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .nc-banner-card {
+        position: relative;
+        border-radius: var(--nc-radius);
+        overflow: hidden;
+        border: 1px solid var(--nc-border);
+        transition: var(--transition);
+        aspect-ratio: 4/3;
+        cursor: pointer;
+    }
+    .nc-banner-card:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--nc-shadow-glow);
+        border-color: var(--nc-primary);
+    }
+
+    .nc-banner-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .nc-banner-card:hover img { transform: scale(1.05); }
+
+    .nc-banner-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(10, 12, 16, 0.95) 0%, rgba(10, 12, 16, 0.4) 50%, transparent 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.25rem;
+    }
+    .nc-banner-tag {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(10, 12, 16, 0.7);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(123, 171, 221, 0.4);
+        border-radius: 100px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        z-index: 2;
+    }
+    .nc-banner-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--nc-text-primary);
+        line-height: 1.3;
+    }
+    .nc-banner-desc { font-size: 0.75rem; color: var(--nc-accent); font-weight: 600; margin-top: 0.2rem; }
+    .nc-banner-price { font-size: 0.85rem; color: var(--nc-text-secondary); margin-top: 0.25rem; }
+</style>
+
+<section class="nc-featured">
+    <p class="nc-section-subtitle">Handpicked for Musicians Like You</p>
+    <h2 class="nc-section-title">Featured Instruments</h2>
+    <p class="nc-section-subtitle" style="margin-top:0.5rem;">Click any instrument to explore</p>
+    
+    <div class="nc-banner-grid" style="margin-top:2rem;">
+        @foreach (var product in Model)
+        {
+            var detailUrl = Url.Action("Details", "Products", new { id = product.Id });
+            
+            <div class="nc-banner-card" onclick="window.location='@detailUrl'">
+                <img src="@product.Image" alt="@product.Name" onerror="this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
+                <span class="nc-banner-tag">@product.Category</span>
+                <div class="nc-banner-overlay">
+                    <div class="nc-banner-name">@product.Name</div>
+                    @if (!string.IsNullOrEmpty(product.BannerDescription))
+                    {
+                        <div class="nc-banner-desc">@product.BannerDescription</div>
+                    }
+                    <div class="nc-banner-price">₱ @product.Price.ToString("N2")</div>
+                </div>
+            </div>
+        }
+    </div>
+</section>

@@ -1,0 +1,132 @@
+@model MvcMusic.ViewModels.AdminCreateViewModel
+
+@{
+    ViewData["Title"] = "Create Admin";
+}
+
+<div class="nc-page">
+    <div class="nc-container" style="max-width:600px;">
+        <div class="nc-page-header">
+            <div>
+                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;">
+                    <i class="fa fa-user-shield me-1"></i> SuperAdmin Panel
+                </div>
+                <h1 class="nc-page-title">Create Admin Account</h1>
+            </div>
+            <a asp-action="Index" class="btn-nc-outline" style="padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">
+                <i class="fa fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+
+        <div class="nc-card">
+            <div class="nc-card-body" style="padding: 2.5rem;">
+                <p style="color:var(--nc-text-secondary);font-size:0.9rem;margin-bottom:2rem;">
+                    Create a new account with the <strong style="color:var(--nc-primary);">Admin</strong> role.
+                    Admins can manage products but cannot manage other admin accounts.
+                </p>
+
+                <form asp-action="Create" method="post" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="All" class="nc-validation-summary" style="@(ViewData.ModelState.IsValid ? "display:none" : "")"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="nc-form-group">
+                                <label class="nc-label" asp-for="FirstName">
+                                    <i class="fa fa-user me-1"></i> First Name
+                                </label>
+                                <input asp-for="FirstName" id="FirstName" class="nc-input" type="text" placeholder="First Name" />
+                                <span asp-validation-for="FirstName" class="nc-validation-error"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="nc-form-group">
+                                <label class="nc-label" asp-for="LastName">
+                                    <i class="fa fa-user me-1"></i> Last Name
+                                </label>
+                                <input asp-for="LastName" id="LastName" class="nc-input" type="text" placeholder="Last Name" />
+                                <span asp-validation-for="LastName" class="nc-validation-error"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nc-form-group">
+                        <label class="nc-label" asp-for="UserName">
+                            <i class="fa fa-id-badge me-1"></i> Username
+                        </label>
+                        <input asp-for="UserName" id="UserName" class="nc-input" type="text" placeholder="admin_username" />
+                        <span asp-validation-for="UserName" class="nc-validation-error"></span>
+                    </div>
+
+                    <div class="nc-form-group">
+                        <label class="nc-label" asp-for="Email">
+                            <i class="fa fa-envelope me-1"></i> Email Address
+                        </label>
+                        <input asp-for="Email" class="nc-input" type="email" placeholder="admin@nightcord.com" />
+                        <span asp-validation-for="Email" class="nc-validation-error"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="nc-form-group">
+                                <label class="nc-label" asp-for="Password">
+                                    <i class="fa fa-lock me-1"></i> Password
+                                </label>
+                                <input asp-for="Password" class="nc-input" type="password" placeholder="••••••••" />
+                                <span asp-validation-for="Password" class="nc-validation-error"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="nc-form-group">
+                                <label class="nc-label" asp-for="ConfirmPassword">
+                                    <i class="fa fa-lock me-1"></i> Confirm
+                                </label>
+                                <input asp-for="ConfirmPassword" class="nc-input" type="password" placeholder="••••••••" />
+                                <span asp-validation-for="ConfirmPassword" class="nc-validation-error"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:1rem;margin-top:2.5rem;flex-wrap:wrap; padding-top: 1.5rem; border-top: 1px solid var(--nc-border);">
+                        <button type="submit" class="btn-nc-primary" style="flex:1;padding:0.85rem; font-weight:700; border-radius: var(--nc-radius-sm);">
+                            <i class="fa fa-user-plus me-1"></i> Create Admin
+                        </button>
+                        <a asp-action="Index" class="btn-nc-outline" style="flex:1;padding:0.85rem;text-align:center; border-radius: var(--nc-radius-sm);">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstNameInput = document.getElementById('FirstName');
+            const lastNameInput = document.getElementById('LastName');
+            const userNameInput = document.getElementById('UserName');
+
+            function updateUserName() {
+                if (userNameInput.value === '' || userNameInput.dataset.autofilled === 'true') {
+                    const firstName = firstNameInput.value.trim().toLowerCase();
+                    const lastName = lastNameInput.value.trim().toLowerCase();
+                    if (firstName || lastName) {
+                        userNameInput.value = (firstName && lastName) ? `${firstName}.${lastName}` : (firstName || lastName);
+                        userNameInput.dataset.autofilled = 'true';
+                    }
+                }
+            }
+
+            firstNameInput.addEventListener('input', updateUserName);
+            lastNameInput.addEventListener('input', updateUserName);
+            userNameInput.addEventListener('input', function() {
+                userNameInput.dataset.autofilled = 'false';
+            });
+        });
+    </script>
+}
+

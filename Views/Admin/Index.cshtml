@@ -1,0 +1,86 @@
+@model IList<MvcMusic.Models.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Manage Admins";
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        @if (TempData["Success"] != null)
+        {
+            <div class="nc-alert nc-alert-success">
+                <i class="fa fa-circle-check"></i> @TempData["Success"]
+            </div>
+        }
+
+        <div class="nc-page-header">
+            <div>
+                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;">
+                    <i class="fa fa-user-shield me-1"></i> SuperAdmin Panel
+                </div>
+                <h1 class="nc-page-title">Admin Accounts</h1>
+            </div>
+            <a asp-action="Create" class="btn-nc-primary" style="padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">
+                <i class="fa fa-user-plus me-1"></i> Add Admin
+            </a>
+        </div>
+
+        <div class="nc-card">
+            <div class="nc-card-body">
+                <p style="color:var(--nc-text-secondary);font-size:0.9rem;margin-bottom:1.5rem;">
+                    All accounts with the <strong style="color:var(--nc-primary);">Admin</strong> role.
+                    SuperAdmins can create and remove admin accounts.
+                </p>
+
+                @if (!Model.Any())
+                {
+                    <div style="text-align:center;padding:3rem 0;color:var(--nc-text-muted);">
+                        <i class="fa fa-users-slash" style="font-size:2.5rem;margin-bottom:1rem;display:block;"></i>
+                        <p>No admin accounts found.</p>
+                        <a asp-action="Create" class="btn-nc-primary" style="margin-top:1rem;display:inline-block; padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">Create First Admin</a>
+                    </div>
+                }
+                else
+                {
+                    <table class="nc-table">
+                        <thead>
+                            <tr>
+                                <th><i class="fa fa-user me-1"></i> Full Name</th>
+                                <th><i class="fa fa-envelope me-1"></i> Email</th>
+                                <th><i class="fa fa-check-circle me-1"></i> Confirmed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var admin in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <span style="color:var(--nc-text-primary);font-weight:600;">@admin.FirstName @admin.LastName</span>
+                                    </td>
+                                    <td style="color:var(--nc-text-secondary); font-size: 0.9rem;">@admin.Email</td>
+                                    <td>
+                                        @if (admin.EmailConfirmed)
+                                        {
+                                            <span style="color:#81c784;font-size:0.8rem;"><i class="fa fa-check me-1"></i>Confirmed</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="color:#ffb74d;font-size:0.8rem;"><i class="fa fa-clock me-1"></i>Pending</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-action="Delete" asp-route-id="@admin.Id" class="btn-nc-danger" style="font-size:0.8rem;padding:0.4rem 0.8rem; border-radius: var(--nc-radius-sm);">
+                                            <i class="fa fa-trash me-1"></i> Remove
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+

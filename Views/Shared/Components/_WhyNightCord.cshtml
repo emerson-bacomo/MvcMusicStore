@@ -1,0 +1,71 @@
+<style>
+    /* ── Why NightCord Scoped Styles ─────────────────────────────── */
+    .nc-why {
+        padding: 4rem 2rem;
+        background: var(--nc-bg-secondary);
+        border-top: 1px solid var(--nc-border);
+        border-bottom: 1px solid var(--nc-border);
+    }
+    .nc-features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.5rem;
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+    .nc-feature-card {
+        text-align: center;
+        padding: 2rem 1.5rem;
+        background: var(--nc-bg-card);
+        border: 1px solid var(--nc-border);
+        border-radius: var(--nc-radius);
+        transition: var(--transition);
+    }
+    .nc-feature-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--nc-primary);
+    }
+    .nc-feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    .nc-feature-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--nc-text-primary);
+    }
+    .nc-feature-desc {
+        font-size: 0.85rem;
+        color: var(--nc-text-secondary);
+        line-height: 1.5;
+    }
+</style>
+
+<section class="nc-why">
+    <h2 class="nc-section-title">Why NightCord?</h2>
+    <p class="nc-section-subtitle">Everything a musician needs, in one desaturated corner of the web.</p>
+    <div class="nc-features-grid">
+        <div class="nc-feature-card">
+            <span class="nc-feature-icon">🎸</span>
+            <div class="nc-feature-title">Premium Brands</div>
+            <p class="nc-feature-desc">From Fender Squier to Roland &mdash; we carry trusted names that define your sound.</p>
+        </div>
+        <div class="nc-feature-card">
+            <span class="nc-feature-icon">❄️</span>
+            <div class="nc-feature-title">Cold Aesthetic</div>
+            <p class="nc-feature-desc">Our bluish-grey interface mimics the night sky, keeping your creative focus sharp.</p>
+        </div>
+        <div class="nc-feature-card">
+            <span class="nc-feature-icon">⭐</span>
+            <div class="nc-feature-title">Rated by Experts</div>
+            <p class="nc-feature-desc">Every instrument is reviewed by real musicians. No filler, just the good stuff.</p>
+        </div>
+        <div class="nc-feature-card">
+            <span class="nc-feature-icon">🎵</span>
+            <div class="nc-feature-title">All Levels Welcome</div>
+            <p class="nc-feature-desc">Starter sets to professional gear &mdash; we've got something for every journey.</p>
+        </div>
+    </div>
+</section>

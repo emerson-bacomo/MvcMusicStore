@@ -1,22 +1,344 @@
+/* ================================================================
+   NightCord — Dark Music Store Theme
+   ================================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&display=swap");
+
+/* ── CSS Variables ──────────────────────────────────────────────── */
+:root {
+    --nc-bg-primary: #0a0c10;
+    --nc-bg-secondary: #0e121a;
+    --nc-bg-card: #151a26;
+    --nc-bg-glass: rgba(20, 26, 40, 0.7);
+    --nc-border: rgba(122, 171, 221, 0.15);
+    --nc-primary: #7babdd;
+    --nc-primary-glow: rgba(123, 171, 221, 0.25);
+    --nc-accent: #d2dbea;
+    --nc-accent-dark: #8c9cb1;
+    --nc-text-primary: #e2e8f2;
+    --nc-text-secondary: #aab4cc;
+    --nc-text-muted: #647087;
+    --nc-success: #81c784;
+    --nc-error: #e57373;
+    --nc-warning: #ffb74d;
+    --nc-gold: #dfe8f1; /* Changed to a misty silver-grey */
+    --nc-nav-height: 70px;
+    --nc-radius: 12px;
+    --nc-radius-sm: 8px;
+    --nc-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --nc-shadow-glow: 0 0 25px rgba(123, 171, 221, 0.15);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Reset & Base ───────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+    scroll-behavior: smooth;
 }
 
 body {
-  margin-bottom: 60px;
+    font-family: "Inter", sans-serif;
+    background-color: var(--nc-bg-primary);
+    color: var(--nc-text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
 }
+
+/* ── Typography ─────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--nc-text-primary);
+}
+a {
+    color: var(--nc-primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+a:hover {
+    color: var(--nc-accent);
+}
+
+/* ── Navbar ─────────────────────────────────────────────────────── */
+.nc-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: var(--nc-nav-height);
+    background: rgba(10, 12, 16, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--nc-border);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    transition: var(--transition);
+}
+
+.nc-navbar .navbar-brand {
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+}
+
+.nc-navbar .nav-link {
+    color: var(--nc-text-secondary) !important;
+    font-weight: 500;
+    padding: 0.4rem 0.9rem !important;
+    border-radius: var(--nc-radius-sm);
+    transition: var(--transition);
+}
+.nc-navbar .nav-link:hover,
+.nc-navbar .nav-link.active {
+    color: var(--nc-text-primary) !important;
+    background: var(--nc-primary-glow);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn-nc-primary {
+    background: linear-gradient(135deg, #4a5d8a, #374a76);
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.btn-nc-primary:hover {
+    background: linear-gradient(135deg, #5b71a8, #4a5d8a);
+    box-shadow: 0 0 20px rgba(123, 171, 221, 0.3);
+}
+
+.btn-nc-outline {
+    background: transparent;
+    color: var(--nc-primary) !important;
+    border: 1.5px solid var(--nc-primary);
+}
+.btn-nc-outline:hover {
+    background: var(--nc-primary-glow);
+}
+
+.nc-card {
+    background: var(--nc-bg-card);
+    border: 1px solid var(--nc-border);
+    border-radius: var(--nc-radius);
+    overflow: hidden;
+    transition: var(--transition);
+    box-shadow: var(--nc-shadow);
+}
+.nc-card:hover { border-color: var(--nc-primary); }
+
+.nc-footer {
+    background: #080a0f;
+    border-top: 1px solid var(--nc-border);
+    padding: 3rem 2rem;
+    text-align: center;
+    margin-top: 4rem;
+}
+.nc-footer-brand {
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--nc-text-primary);
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+}
+.nc-footer-text {
+    color: var(--nc-text-muted);
+    font-size: 0.8rem;
+}
+
+/* ── Admin & Catalog Components ───────────────────────────────── */
+.nc-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--nc-border);
+}
+.nc-page-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.nc-card-body {
+    padding: 1.5rem;
+}
+
+/* Table Systems */
+.nc-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.nc-table th {
+    background: rgba(123, 171, 221, 0.1);
+    color: var(--nc-primary);
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+.nc-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--nc-border);
+}
+.nc-table tr:hover td {
+    background: rgba(123, 171, 221, 0.03);
+}
+
+.product-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--nc-border);
+}
+
+/* Buttons */
+.btn-nc-danger {
+    background: rgba(229, 115, 115, 0.1);
+    color: var(--nc-error) !important;
+    border: 1.5px solid rgba(229, 115, 115, 0.3);
+    border-radius: var(--nc-radius-sm);
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+.btn-nc-danger:hover {
+    background: var(--nc-error);
+    color: #fff !important;
+}
+
+/* Base Form Styles */
+.nc-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid var(--nc-border);
+    border-radius: var(--nc-radius-sm);
+    color: var(--nc-text-primary);
+    padding: 0.7rem 1rem;
+    outline: none;
+    transition: var(--transition);
+}
+.nc-input:focus {
+    border-color: var(--nc-primary);
+    box-shadow: 0 0 0 3px var(--nc-primary-glow);
+}
+.nc-form-group {
+    margin-bottom: 1.5rem;
+}
+.nc-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--nc-text-secondary);
+}
+
+/* Alerts & Validation */
+.nc-alert {
+    padding: 1rem 1.25rem;
+    border-radius: var(--nc-radius-sm);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+}
+.nc-alert-success {
+    background: rgba(129, 199, 132, 0.1);
+    color: var(--nc-success);
+    border-color: rgba(129, 199, 132, 0.2);
+}
+.nc-alert-error {
+    background: rgba(229, 115, 115, 0.1);
+    color: var(--nc-error);
+    border-color: rgba(229, 115, 115, 0.2);
+}
+
+.nc-validation-summary {
+    background: rgba(229, 115, 115, 0.1);
+    border: 1px solid rgba(229, 115, 115, 0.3);
+    border-radius: var(--nc-radius-sm);
+    padding: 1rem;
+    margin-bottom: 2rem;
+    color: var(--nc-error);
+    font-size: 0.85rem;
+}
+.nc-validation-summary ul { list-style: none; }
+.nc-validation-error {
+    display: block;
+    color: var(--nc-error);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.4rem;
+}
+
+/* Product Form Layouts */
+.nc-form-card {
+    max-width: 800px;
+    margin: 0 auto;
+}
+.nc-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+@media (max-width: 576px) { .nc-form-grid { grid-template-columns: 1fr; } }
+
+.nc-form-section { margin-bottom: 2rem; }
+.nc-form-section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--nc-primary);
+    letter-spacing: 0.1em;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--nc-border);
+    padding-bottom: 0.5rem;
+}
+
+.nc-form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    padding: 0.75rem;
+    border: 1px solid var(--nc-border);
+    border-radius: var(--nc-radius-sm);
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.02);
+}
+.nc-form-check:hover { border-color: var(--nc-primary); }
+.nc-form-check input { width: 1.1rem; height: 1.1rem; accent-color: var(--nc-primary); }
+
+/* Utilities */
+.nc-page { padding-top: calc(var(--nc-nav-height) + 2rem); min-height: 100vh; }
+.nc-container { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
+.badge-nc {
+    background: rgba(123, 171, 221, 0.2);
+    border: 1px solid var(--nc-primary);
+    color: var(--nc-primary);
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+

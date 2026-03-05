@@ -1,0 +1,55 @@
+@model MvcMusic.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Remove Admin";
+}
+
+<div class="nc-page">
+    <div class="nc-container" style="max-width:560px;">
+        <div class="nc-page-header">
+            <h1 class="nc-page-title" style="color:var(--nc-error);">Remove Admin</h1>
+            <a asp-action="Index" class="btn-nc-outline">
+                <i class="fa fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+
+        <div class="nc-card">
+            <div class="nc-card-body" style="padding:2.5rem;">
+                <div style="text-align:center;margin-bottom:2rem;">
+                    <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+                    <h2 style="font-size:1.2rem;color:var(--nc-text-primary);margin-bottom:0.5rem;">
+                        Are you sure?
+                    </h2>
+                    <p style="color:var(--nc-text-secondary);font-size:0.9rem;">
+                        This will permanently remove the admin account for
+                        <strong style="color:var(--nc-error);">@Model.Email</strong>.
+                        This action cannot be undone.
+                    </p>
+                </div>
+
+                <div style="background:rgba(229, 115, 115, 0.05);border:1px solid rgba(229, 115, 115, 0.2);border-radius:var(--nc-radius-sm);padding:1.5rem;margin-bottom:2rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;">
+                        <i class="fa fa-user" style="color:var(--nc-error);font-size:1.5rem;"></i>
+                        <div>
+                            <div style="font-weight:700;color:var(--nc-text-primary);">@Model.FirstName @Model.LastName</div>
+                            <div style="color:var(--nc-text-secondary);font-size:0.85rem;">@Model.Email</div>
+                            <span class="badge-nc" style="margin-top:0.25rem;">Admin</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                        <button type="submit" class="btn-nc-danger" style="flex:1;padding:0.8rem;">
+                            <i class="fa fa-trash me-1"></i> Yes, Remove
+                        </button>
+                        <a asp-action="Index" class="btn-nc-outline" style="flex:1;padding:0.8rem;text-align:center;">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

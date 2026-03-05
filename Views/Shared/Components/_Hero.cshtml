@@ -1,0 +1,291 @@
+@using Microsoft.EntityFrameworkCore
+@using MvcMusic.Data
+@inject MvcMusicContext Db
+@{
+    var bannerProducts = await Db.Product.Where(p => p.IsBanner).Take(1).ToListAsync();
+    var first = bannerProducts.FirstOrDefault();
+}
+
+<style>
+    /* ── Hero Scoped Styles ────────────────────────────────────────── */
+    .nc-hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--nc-bg-primary);
+    }
+
+    .nc-hero-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background: linear-gradient(135deg, var(--nc-bg-primary) 0%, #151a2636 50%, var(--nc-bg-primary) 100%);
+    }
+
+
+    .nc-hero-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(123, 171, 221, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(123, 171, 221, 0.03) 1px, transparent 1px);
+        background-size: 80px 80px;
+        mask-image: radial-gradient(circle at center, black 40%, transparent 90%);
+    }
+
+    .nc-hero-notes {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .nc-note {
+        position: absolute;
+        font-size: 1.5rem;
+        opacity: 0.1;
+        animation: floatNote linear infinite;
+        color: var(--nc-primary);
+    }
+
+    @@keyframes floatNote {
+        0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+        10% { opacity: 0.1; }
+        90% { opacity: 0.1; }
+        100% { transform: translateY(-120px) rotate(360deg); opacity: 0; }
+    }
+
+    .nc-hero-content {
+        position: relative;
+        z-index: 2;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: calc(var(--nc-nav-height) + 4rem) 2rem 4rem;
+        max-width: 1280px;
+        margin: 0 auto;
+        width: 100%;
+        gap: 4rem;
+    }
+
+    .nc-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: rgba(123, 171, 221, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(123, 171, 221, 0.3);
+        border-radius: 100px;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 2rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .nc-hero-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        font-weight: 900;
+        line-height: 1.05;
+        margin-bottom: 1.5rem;
+    }
+    .nc-hero-title .line-1 { color: var(--nc-text-primary); display: block; }
+    .nc-hero-title .line-2 {
+        display: block;
+        background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .nc-hero-subtitle {
+        font-size: 1.1rem;
+        color: var(--nc-text-secondary);
+        line-height: 1.7;
+        max-width: 520px;
+        margin-bottom: 2.5rem;
+    }
+
+    .btn-hero-primary {
+        background: linear-gradient(135deg, #4a5d8a, #374a76);
+        color: #fff !important;
+        padding: 0.9rem 2.2rem;
+        border-radius: var(--nc-radius-sm);
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-hero-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(123, 171, 221, 0.4);
+    }
+
+    .btn-hero-secondary {
+        background: transparent;
+        color: var(--nc-accent) !important;
+        border: 2px solid var(--nc-accent);
+        padding: 0.85rem 2rem;
+        border-radius: var(--nc-radius-sm);
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nc-hero-visual { flex: 0 0 400px; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; }
+    .nc-hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .nc-stat-card {
+        background: var(--nc-bg-glass);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--nc-border);
+        border-radius: var(--nc-radius-sm);
+        padding: 1rem;
+        text-align: center;
+    }
+    .nc-stat-value { font-family: "Orbitron", sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--nc-primary); display: block; }
+    .nc-stat-label { font-size: 0.7rem; color: var(--nc-text-muted); text-transform: uppercase; }
+
+    .nc-hero-banner-card {
+        position: relative;
+        border-radius: var(--nc-radius);
+        overflow: hidden;
+        border: 1px solid var(--nc-border);
+        aspect-ratio: 16/9;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    .nc-hero-banner-card:hover { transform: translateY(-5px); border-color: var(--nc-primary); }
+    .nc-hero-banner-card img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .nc-banner-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(10, 12, 16, 0.95) 0%, transparent 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.25rem;
+    }
+    .nc-banner-tag {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(10, 12, 16, 0.7);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(123, 171, 221, 0.4);
+        border-radius: 100px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        z-index: 2;
+    }
+    .nc-banner-name { color: var(--nc-text-primary); font-weight: 700; margin-top: 0.25rem; }
+    .nc-banner-price { color: var(--nc-accent); font-size: 0.85rem; }
+
+    .btn-see-all {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        background: var(--nc-bg-glass);
+        border: 1px solid var(--nc-border);
+        color: var(--nc-text-secondary);
+        padding: 0.75rem;
+        border-radius: var(--nc-radius-sm);
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: var(--transition);
+        text-decoration: none;
+    }
+    .btn-see-all:hover {
+        background: var(--nc-primary);
+        color: #fff;
+        border-color: var(--nc-primary);
+    }
+
+    @@media (max-width: 992px) {
+        .nc-hero-content { flex-direction: column; gap: 2rem; align-items: flex-start; }
+        .nc-hero-visual { flex: none; width: 100%; }
+    }
+</style>
+
+<section class="nc-hero">
+    <div class="nc-hero-bg"></div>
+    <div class="nc-hero-grid"></div>
+    
+    @await Html.PartialAsync("_FloatingNotes", new ViewDataDictionary(ViewData) { { "NotesId", "heroNotes" }, { "NoteCount", 20 } })
+
+    <div class="nc-hero-content">
+        <div class="nc-hero-text">
+            <div class="nc-hero-badge"><i class="fa fa-music"></i> Where Music Lives</div>
+            <h1 class="nc-hero-title">
+                <span class="line-1">Play the</span>
+                <span class="line-2">Night Away.</span>
+            </h1>
+            <p class="nc-hero-subtitle">
+                Discover premium instruments curated for every musician &mdash; from first-time players to seasoned performers.
+                NightCord brings the music to you.
+            </p>
+
+            <div class="nc-hero-cta">
+                @if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn-hero-primary">
+                        <i class="fa fa-right-to-bracket"></i> Login
+                    </a>
+                    <a asp-controller="Account" asp-action="Register" class="btn-hero-secondary">
+                        <i class="fa fa-user-plus"></i> Join Free
+                    </a>
+                }
+                else
+                {
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <a asp-controller="Admin" asp-action="Index" class="btn-hero-primary">Manage Admins</a>
+                    }
+                    else if (User.IsInRole("Admin"))
+                    {
+                        <a asp-controller="Products" asp-action="Index" class="btn-hero-primary">Manage Products</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Products" asp-action="UserIndex" class="btn-hero-primary">Browse</a>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="nc-hero-visual">
+            <div class="nc-hero-stats">
+                <div class="nc-stat-card"><span class="nc-stat-value">10+</span><span class="nc-stat-label">Instruments</span></div>
+                <div class="nc-stat-card"><span class="nc-stat-value">5★</span><span class="nc-stat-label">Rating</span></div>
+                <div class="nc-stat-card"><span class="nc-stat-value">1K+</span><span class="nc-stat-label">Fans</span></div>
+            </div>
+
+            @if (first != null)
+            {
+                <div class="nc-hero-banner-card" onclick="window.location='@Url.Action("Details", "Products", new { id = first.Id })'">
+                    <img src="@first.Image" alt="@first.Name" onerror="this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
+                    <span class="nc-banner-tag">@first.Category</span>
+                    <div class="nc-banner-overlay">
+                        <div class="nc-banner-name">@first.Name</div>
+                        <div class="nc-banner-price">₱ @first.Price.ToString("N2")</div>
+                    </div>
+                </div>
+                <a asp-controller="Products" asp-action="UserIndex" class="btn-see-all">
+                    See All Instruments <i class="fa fa-arrow-right ms-2"></i>
+                </a>
+            }
+        </div>
+    </div>
+</section>

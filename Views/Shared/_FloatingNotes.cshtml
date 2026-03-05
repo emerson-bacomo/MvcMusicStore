@@ -1,0 +1,45 @@
+<div class="nc-floating-notes" id="@ViewData["NotesId"]"></div>
+
+<style>
+    .nc-floating-notes {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 1;
+    }
+    .nc-note {
+        position: absolute;
+        font-size: 1.5rem;
+        opacity: 0.1;
+        animation: floatNote linear infinite;
+        color: var(--nc-primary);
+    }
+
+    @@keyframes floatNote {
+        0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+        10% { opacity: 0.1; }
+        90% { opacity: 0.1; }
+        100% { transform: translateY(-120px) rotate(360deg); opacity: 0; }
+    }
+</style>
+
+<script>
+    (function() {
+        const notes = ['♩', '♪', '♫', '♬', '𝄞', '𝄢'];
+        const containerId = '@ViewData["NotesId"]';
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const count = @(ViewData["NoteCount"] ?? 15);
+        for (let i = 0; i < count; i++) {
+            const note = document.createElement('span');
+            note.className = 'nc-note';
+            note.textContent = notes[i % notes.length];
+            note.style.left = Math.random() * 100 + '%';
+            note.style.animationDuration = (12 + Math.random() * 18) + 's';
+            note.style.animationDelay = (Math.random() * 10) + 's';
+            note.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+            container.appendChild(note);
+        }
+    })();
+</script>

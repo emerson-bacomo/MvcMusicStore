@@ -1,107 +1,134 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using MvcMusic.Data;
+using MvcMusic.ViewModels;
+using MvcMusic.Models;
 
 namespace MvcMusic.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly MvcMusicContext _context;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public AccountController(MvcMusicContext context, UserManager<IdentityUser> userManager)
+        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
         {
-            _context = context;
             _userManager = userManager;
+            _signInManager = signInManager;
         }
 
-        // GET: Account
-        public ActionResult Index()
+        // GET: /account/login
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Login(string? returnUrl = null)
         {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleDashboard();
+
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
-        // GET: Account/Details/5
-        [Authorize] // Must be logged in
-        public async Task<IActionResult> Details(int id)
-        {
-            var account = await _context.Users.FindAsync(id);
-            var currentUserId = _userManager.GetUserId(User);
-
-            // Hard-coded role check + logic check
-            if (User.IsInRole("SuperAdmin") || account?.Id == currentUserId)
-            {
-                return View(account);
-            }
-
-            return Forbid();
-        }
-
-        // GET: Account/Create
-        [Authorize(Roles = "SuperAdmin")]
-        public ActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Account/Create
+        // POST: /account/login
         [HttpPost]
-        [Authorize(Roles = "SuperAdmin")]
+        [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
-            try
+            ViewData["ReturnUrl"] = returnUrl;
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email) ?? await _userManager.FindByNameAsync(model.Email);
+            
+            if (user != null)
             {
-                return RedirectToAction(nameof(Index));
+                var result = await _signInManager.PasswordSignInAsync(
+                    user.UserName!, model.Password, model.RememberMe, lockoutOnFailure: false);
+
+                if (result.Succeeded)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                        return Redirect(returnUrl);
+
+                    return RedirectToRoleDashboard(roles);
+                }
             }
-            catch
-            {
-                return View();
-            }
+
+            ModelState.AddModelError(string.Empty, "Invalid login attempt. Please check your credentials.");
+            return View(model);
         }
 
-        // GET: AccountController/Edit/5
-        public ActionResult Edit(int id)
+        // GET: /account/register
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Register()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleDashboard();
+
+            return View();
+        }
+
+        // POST: /account/register
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = new ApplicationUser
+            {
+                UserName = model.UserName,
+                Email = model.Email,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "User");
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                return RedirectToAction("UserIndex", "Products");
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+
+            return View(model);
+        }
+
+        // POST: /account/logout
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
+        }
+
+        // GET: /account/access-denied
+        [HttpGet]
+        public IActionResult AccessDenied()
         {
             return View();
         }
 
-        // POST: AccountController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        private IActionResult RedirectToRoleDashboard(IList<string>? roles = null)
         {
-            try
+            if (roles == null)
             {
-                return RedirectToAction(nameof(Index));
+                if (User.IsInRole("SuperAdmin")) return RedirectToAction("Index", "Admin");
+                if (User.IsInRole("Admin")) return RedirectToAction("Index", "Products");
+                return RedirectToAction("UserIndex", "Products");
             }
-            catch
-            {
-                return View();
-            }
-        }
 
-        // GET: AccountController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: AccountController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            if (roles.Contains("SuperAdmin")) return RedirectToAction("Index", "Admin");
+            if (roles.Contains("Admin")) return RedirectToAction("Index", "Products");
+            return RedirectToAction("UserIndex", "Products");
         }
     }
 }

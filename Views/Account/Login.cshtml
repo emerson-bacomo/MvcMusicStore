@@ -1,0 +1,59 @@
+@model MvcMusic.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_AuthLayout";
+    ViewBag.FormTitle = "Welcome back";
+    ViewBag.FormSubtitle = "Sign in to continue your musical journey";
+}
+
+<form asp-action="Login" method="post" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="ReturnUrl" value="@ViewData["ReturnUrl"]" />
+
+    <div asp-validation-summary="All" class="nc-validation-summary" style="@(ViewData.ModelState.IsValid ? "display:none" : "")"></div>
+
+    <div class="nc-form-group">
+        <label class="nc-label" asp-for="Email">
+            <i class="fa fa-envelope me-1"></i> Email Address
+        </label>
+        <input asp-for="Email" class="nc-input" type="email" placeholder="you@example.com" autocomplete="email" />
+        <span asp-validation-for="Email" class="nc-validation-error"></span>
+    </div>
+
+    <div class="nc-form-group">
+        <label class="nc-label" asp-for="Password">
+            <i class="fa fa-lock me-1"></i> Password
+        </label>
+        <input asp-for="Password" class="nc-input" type="password" placeholder="Enter your password" autocomplete="current-password" />
+        <span asp-validation-for="Password" class="nc-validation-error"></span>
+    </div>
+
+    <div class="nc-form-group d-flex justify-content-between align-items-center">
+        <label class="nc-checkbox" style="cursor:pointer;">
+            <input asp-for="RememberMe" type="checkbox" style="accent-color:var(--nc-primary);" />
+            <span style="color:var(--nc-text-secondary);font-size:0.85rem;margin-left:0.5rem;">Remember me</span>
+        </label>
+    </div>
+
+    <button type="submit" class="btn-nc-primary" style="padding:0.85rem; font-weight:700; border-radius:var(--nc-radius-sm); width:100%;">
+        <i class="fa fa-right-to-bracket me-1"></i> Sign In
+    </button>
+</form>
+
+<div class="nc-auth-divider">or</div>
+
+<p style="text-align:center;font-size:0.85rem;color:var(--nc-text-secondary);">
+    New to NightCord?
+    <a asp-controller="Account" asp-action="Register" style="color:var(--nc-primary);font-weight:600;">
+        Create an account
+    </a>
+</p>
+
+@section FooterLinks {
+    <p style="text-align:center;font-size:0.8rem;margin-bottom:0;">
+        <a asp-controller="Home" asp-action="Index" style="color:var(--nc-text-muted);">
+            <i class="fa fa-arrow-left me-1"></i> Back to Home
+        </a>
+    </p>
+}
