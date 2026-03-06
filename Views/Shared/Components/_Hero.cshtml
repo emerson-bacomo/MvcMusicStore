@@ -67,6 +67,7 @@
         margin: 0 auto;
         width: 100%;
         gap: 4rem;
+        justify-content: center;
     }
 
     .nc-hero-badge {
@@ -237,7 +238,7 @@
                 NightCord brings the music to you.
             </p>
 
-            <div class="nc-hero-cta">
+            <div class="nc-hero-cta d-flex gap-3">
                 @if (!User.Identity?.IsAuthenticated ?? true)
                 {
                     <a asp-controller="Account" asp-action="Login" class="btn-hero-primary">
