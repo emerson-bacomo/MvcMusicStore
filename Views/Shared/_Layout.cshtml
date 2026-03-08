@@ -11,7 +11,9 @@
 </head>
 <body>
     <nav class="nc-navbar navbar navbar-expand-lg">
-        <div class="container-fluid px-0 mx-auto" style="max-width:1280px;padding:0 1.5rem;">
+        <div class="container-fluid px-0 mx-auto" 
+             style="max-width: 1280px;
+                    padding: 0 1.5rem;">
             <a class="navbar-brand" asp-controller="Home" asp-action="Index">
                 &#9835; NightCord
             </a>
@@ -68,16 +70,22 @@
                                 displayName = $"{currentUser.FirstName} {currentUser.LastName}";
                             }
                             <li class="nav-item">
-                                <span class="nav-link" style="color:var(--nc-text-primary);font-weight:600;font-size:0.85rem;">
-                                    <i class="fa fa-circle-user me-1" style="color:var(--nc-primary);"></i> @displayName
+                                <span class="nav-link" 
+                                      style="color: var(--nc-text-primary);
+                                             font-weight: 600;
+                                             font-size: 0.85rem;">
+                                    <i class="fa fa-circle-user me-1" 
+                                       style="color: var(--nc-primary);"></i> @displayName
                                 </span>
                             </li>
                         }
                         <li class="nav-item">
                             <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn-nc-outline" style="font-size:0.82rem;padding:0.35rem 1rem;">
-                                    <i class="fa fa-right-from-bracket me-1"></i> Logout
+                                <button type="submit" class="btn-nc-outline" 
+                                        style="font-size: 0.82rem;
+                                               padding: 0.35rem 1rem;">
+                                    <i class="fa fa-right-to-bracket me-1"></i> Sign Out
                                 </button>
                             </form>
                         </li>
@@ -85,14 +93,17 @@
                     else
                     {
                         <li class="nav-item">
-                            <a class="btn-nc-outline" asp-controller="Account" asp-action="Login" style="font-size:0.82rem;padding:0.35rem 1rem;">
-                                <i class="fa fa-right-to-bracket me-1"></i> Login
-                            </a>
+                            <a class="btn-nc-outline" asp-area="" asp-controller="Account" asp-action="Login" 
+                               style="margin-right: 0.75rem; 
+                                      padding: 0.4rem 1.25rem; 
+                                      border-radius: var(--nc-radius-sm); 
+                                      font-size: 0.85rem;">Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn-nc-primary" asp-controller="Account" asp-action="Register" style="font-size:0.82rem;padding:0.35rem 1rem;">
-                                <i class="fa fa-user-plus me-1"></i> Register
-                            </a>
+                            <a class="btn-nc-primary text-white" asp-area="" asp-controller="Account" asp-action="Register" 
+                               style="padding: 0.4rem 1.25rem; 
+                                      border-radius: var(--nc-radius-sm); 
+                                      font-size: 0.85rem;">Register</a>
                         </li>
                     }
                 </ul>

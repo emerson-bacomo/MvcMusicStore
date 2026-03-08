@@ -96,7 +96,7 @@ a:hover {
 }
 
 .nc-navbar .nav-link {
-    color: var(--nc-text-secondary) !important;
+    color: var(--nc-text-primary) !important;
     font-weight: 500;
     padding: 0.4rem 0.9rem !important;
     border-radius: var(--nc-radius-sm);
@@ -110,22 +110,45 @@ a:hover {
 
 /* ── Buttons ────────────────────────────────────────────────────── */
 .btn-nc-primary {
-    background: linear-gradient(135deg, #4a5d8a, #374a76);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.6rem;
+    background: linear-gradient(135deg, var(--nc-primary), #5b71a8);
     color: #fff !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: var(--nc-radius-sm);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: var(--transition);
+    box-shadow: 0 10px 20px rgba(123, 171, 221, 0.1);
 }
 .btn-nc-primary:hover {
-    background: linear-gradient(135deg, #5b71a8, #4a5d8a);
-    box-shadow: 0 0 20px rgba(123, 171, 221, 0.3);
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #8cbbe6, var(--nc-primary));
+    box-shadow: 0 12px 24px rgba(123, 171, 221, 0.25), 0 0 10px rgba(123, 171, 221, 0.1);
 }
 
 .btn-nc-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
-    color: var(--nc-primary) !important;
+    color: var(--nc-text-primary) !important;
     border: 1.5px solid var(--nc-primary);
+    border-radius: var(--nc-radius-sm);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: var(--transition);
 }
 .btn-nc-outline:hover {
     background: var(--nc-primary-glow);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(123, 171, 221, 0.08);
 }
 
 .nc-card {
@@ -282,7 +305,7 @@ a:hover {
     color: var(--nc-error);
     font-size: 0.85rem;
 }
-.nc-validation-summary ul { list-style: none; }
+.nc-validation-summary ul { list-style: none; padding-left: 1rem; margin-bottom: 0; }
 .nc-validation-error {
     display: block;
     color: var(--nc-error);
@@ -342,3 +365,25 @@ a:hover {
     font-weight: 600;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--nc-bg-primary);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(123, 171, 221, 0.2);
+    border-radius: 10px;
+    border: 2px solid var(--nc-bg-primary);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(123, 171, 221, 0.4);
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(123, 171, 221, 0.2) var(--nc-bg-primary);
+}

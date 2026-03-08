@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MvcMusic.Data;
 
@@ -11,9 +12,11 @@ using MvcMusic.Data;
 namespace MvcMusic.Migrations
 {
     [DbContext(typeof(MvcMusicContext))]
-    partial class MvcMusicContextModelSnapshot : ModelSnapshot
+    [Migration("20260308161508_multipleProductImages")]
+    partial class multipleProductImages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -254,6 +257,9 @@ namespace MvcMusic.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("Image")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsBanner")
                         .HasColumnType("bit");
 
@@ -287,13 +293,7 @@ namespace MvcMusic.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
-
                     b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<string>("Url")

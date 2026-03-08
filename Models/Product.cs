@@ -8,14 +8,11 @@ namespace MvcMusic.Models
         public int Id { get; set; }
 
         [StringLength(50, MinimumLength = 3)]
-        [RegularExpression(@"^[A-Z]+[a-zA-Z\s]*$")]
         public required string Name { get; set; }
 
-        [RegularExpression(@"^[A-Z]+[a-zA-Z\s]*$")]
         [StringLength(30)]
         public required string Category { get; set; }
 
-        [RegularExpression(@"^[A-Z]+[a-zA-Z\s]*$")]
         public required string Brand { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
@@ -28,7 +25,6 @@ namespace MvcMusic.Models
 
         [StringLength(1000)]
         public string? Description { get; set; }
-        public string? Image { get; set; } = "https://placehold.co/600x400?text=No+Image";
         public bool IsBanner { get; set; }
         public string? BannerDescription { get; set; }
 
@@ -37,5 +33,7 @@ namespace MvcMusic.Models
 
         [Range(0, int.MaxValue, ErrorMessage = "Value cannot be negative.")]
         public int SoldAmount { get; set; }
+
+        public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     }
 }

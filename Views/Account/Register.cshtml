@@ -1,16 +1,17 @@
 @model MvcMusic.ViewModels.RegisterViewModel
 
 @{
-    ViewData["Title"] = "Join NightCord";
+    ViewData["Title"] = "Register";
     Layout = "_AuthLayout";
-    ViewBag.FormTitle = "Create Account";
+    ViewBag.FormTitle = "Register";
     ViewBag.FormSubtitle = "Start your musical journey with NightCord";
 }
 
 <form asp-action="Register" method="post" novalidate>
     @Html.AntiForgeryToken()
 
-    <div asp-validation-summary="All" class="nc-validation-summary" style="@(ViewData.ModelState.IsValid ? "display:none" : "")"></div>
+    <div asp-validation-summary="All" class="nc-validation-summary" 
+         style="@(ViewData.ModelState.IsValid ? "display:none" : "margin-bottom: 2rem;")"></div>
 
     <div class="nc-form-group">
         <label class="nc-label" asp-for="UserName">
@@ -34,7 +35,24 @@
                 <label class="nc-label" asp-for="Password">
                     <i class="fa fa-lock me-1"></i> Password
                 </label>
-                <input asp-for="Password" class="nc-input" type="password" placeholder="••••••••" />
+                <div style="position: relative;">
+                    <input asp-for="Password" class="nc-input" type="password" placeholder="••••••••" 
+                           style="padding-right: 2.5rem;
+                                  margin-bottom: 0.5rem;" />
+                    <button type="button" class="btn-toggle-password" onclick="togglePassword(this)" 
+                            style="position: absolute;
+                                   right: 0.75rem;
+                                   top: calc(50% - 0.25rem);
+                                   transform: translateY(-50%);
+                                   background: none;
+                                   border: none;
+                                   color: var(--nc-text-muted);
+                                   padding: 0;
+                                   cursor: pointer;
+                                   font-size: 1.1rem;">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
                 <span asp-validation-for="Password" class="nc-validation-error"></span>
             </div>
         </div>
@@ -43,28 +61,109 @@
                 <label class="nc-label" asp-for="ConfirmPassword">
                     <i class="fa fa-shield me-1"></i> Confirm
                 </label>
-                <input asp-for="ConfirmPassword" class="nc-input" type="password" placeholder="••••••••" />
+                <div style="position: relative;">
+                    <input asp-for="ConfirmPassword" class="nc-input" type="password" placeholder="••••••••" 
+                           style="padding-right: 2.5rem;
+                                  margin-bottom: 0.5rem;" />
+                    <button type="button" class="btn-toggle-password" onclick="togglePassword(this)" 
+                            style="position: absolute;
+                                   right: 0.75rem;
+                                   top: calc(50% - 0.25rem);
+                                   transform: translateY(-50%);
+                                   background: none;
+                                   border: none;
+                                   color: var(--nc-text-muted);
+                                   padding: 0;
+                                   cursor: pointer;
+                                   font-size: 1.1rem;">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
                 <span asp-validation-for="ConfirmPassword" class="nc-validation-error"></span>
             </div>
         </div>
     </div>
 
-    <button type="submit" class="btn-nc-primary" style="padding:0.85rem; font-weight:700; border-radius:var(--nc-radius-sm); width:100%; margin-top:1rem;">
-        <i class="fa fa-user-plus me-1"></i> Create Account
+    <button type="submit" class="btn-nc-primary" 
+            style="padding: 0.85rem;
+                   font-weight: 700;
+                   border-radius: var(--nc-radius-sm);
+                   width: 100%;
+                   margin-top: 1rem;">
+        <i class="fa fa-user-plus me-1"></i> Register
     </button>
 </form>
 
-<p style="text-align:center;font-size:0.85rem;color:var(--nc-text-secondary); margin-top:2rem;">
+<p style="text-align: center;
+          font-size: 0.85rem;
+          color: var(--nc-text-secondary);
+          margin-top: 2rem;">
     Already have an account?
-    <a asp-controller="Account" asp-action="Login" style="color:var(--nc-primary);font-weight:600;">
-        Log In
+    <a asp-controller="Account" asp-action="Login" 
+       style="color: var(--nc-primary);
+              font-weight: 600;">
+        Login
     </a>
 </p>
 
 @section FooterLinks {
-    <p style="text-align:center;font-size:0.8rem;margin-bottom:0;">
-        <a asp-controller="Home" asp-action="Index" style="color:var(--nc-text-muted);">
+    <p style="text-align: center;
+              font-size: 0.8rem;
+              margin-bottom: 0;">
+        <a asp-controller="Home" asp-action="Index" 
+           style="color: var(--nc-text-muted);">
             <i class="fa fa-arrow-left me-1"></i> Back to Home
         </a>
     </p>
 }
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const passwordInput = document.getElementById("Password");
+        const confirmInput = document.getElementById("ConfirmPassword");
+        
+        function validatePassword() {
+            const val = passwordInput.value;
+            let errorMsg = "";
+            let errorSpan = document.querySelector('[data-valmsg-for="Password"]');
+            
+            if (val.length > 0 && val.length < 6) {
+                errorMsg = "Password must be at least 6 characters.";
+            } else if (val.length > 0 && !/\d/.test(val)) {
+                errorMsg = "Password must have at least one digit.";
+            } else if (val.length > 0 && !/[A-Z]/.test(val)) {
+                errorMsg = "Password must have at least one uppercase letter.";
+            } else if (val.length > 0 && !/[a-z]/.test(val)) {
+                errorMsg = "Password must have at least one lowercase letter.";
+            }
+            
+            if(errorSpan) {
+                errorSpan.textContent = errorMsg;
+                if(errorMsg) {
+                    errorSpan.classList.add("field-validation-error");
+                    errorSpan.classList.remove("field-validation-valid");
+                } else {
+                    errorSpan.classList.remove("field-validation-error");
+                    errorSpan.classList.add("field-validation-valid");
+                }
+            }
+        }
+        
+        if (passwordInput) {
+            passwordInput.addEventListener("input", validatePassword);
+            passwordInput.addEventListener("keyup", validatePassword);
+        }
+
+        window.togglePassword = function(btn) {
+            const input = btn.previousElementSibling;
+            const icon = btn.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        };
+    });
+</script>

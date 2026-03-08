@@ -1,9 +1,1 @@
-﻿Add all banner products to carousel with auto next instead of listing it below the hero page
-dont hard code the stats in hero page (e.g., intruments count, rating, sold)
-Add product image drag and drop upload in product create/edit, upload to server the image and allow frontend to access it using url
-Allow adding multiple images and add horizontal scrolling to product image display
-allow fullscreen when clicking an image
-improve crud pages design
-make login work with either email or username
-
-check {ecommerce project path} for sample implementation
+﻿

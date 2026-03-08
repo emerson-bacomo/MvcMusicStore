@@ -95,7 +95,7 @@
             var detailUrl = Url.Action("Details", "Products", new { id = product.Id });
             
             <div class="nc-banner-card" onclick="window.location='@detailUrl'">
-                <img src="@product.Image" alt="@product.Name" onerror="this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
+                <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)" alt="@product.Name" onerror="this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
                 <span class="nc-banner-tag">@product.Category</span>
                 <div class="nc-banner-overlay">
                     <div class="nc-banner-name">@product.Name</div>

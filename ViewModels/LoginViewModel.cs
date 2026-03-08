@@ -4,9 +4,8 @@ namespace MvcMusic.ViewModels
 {
     public class LoginViewModel
     {
-        [Required(ErrorMessage = "Email is required.")]
-        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
-        [Display(Name = "Email")]
+        [Required(ErrorMessage = "Email or Username is required.")]
+        [Display(Name = "Email or Username")]
         public required string Email { get; set; }
 
         [Required(ErrorMessage = "Password is required.")]

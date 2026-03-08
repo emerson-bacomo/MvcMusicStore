@@ -71,7 +71,7 @@
 
 <div class="nc-product-card">
     <div class="nc-product-img-wrap">
-        <img src="@Model.Image" alt="@Model.Name" onerror="this.src='https://placehold.co/400x300/1a1f2c/7babdd?text=NightCord'" />
+        <img src="@(Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url)" alt="@Model.Name" onerror="this.src='https://placehold.co/400x300/1a1f2c/7babdd?text=NightCord'" />
         <span class="nc-product-badge">@Model.Category</span>
     </div>
     <div class="nc-product-body">
@@ -79,14 +79,20 @@
         <div class="nc-product-name">@Model.Name</div>
         <div class="nc-stars">
             @for (int i = 0; i < (int)Model.Rating; i++) { <span class="filled">★</span> }
-            @for (int i = (int)Model.Rating; i < 5; i++) { <span style="opacity:0.2;">★</span> }
-            <span style="color:var(--nc-text-muted);font-size:0.7rem;margin-left:0.25rem;">@Model.SoldAmount sold</span>
+            @for (int i = (int)Model.Rating; i < 5; i++) { 
+                <span style="opacity: 0.2;">★</span> 
+            }
+            <span style="color: var(--nc-text-muted);
+                         font-size: 0.7rem;
+                         margin-left: 0.25rem;">@Model.SoldAmount sold</span>
         </div>
         <div class="nc-product-price">₱ @Model.Price.ToString("N2")</div>
     </div>
     <div class="nc-product-footer">
         <span class="nc-product-stock"><i class="fa fa-box me-1"></i> @Model.Stock in stock</span>
-        <a asp-action="Details" asp-route-id="@Model.Id" class="btn-nc-primary" style="font-size:0.8rem;padding:0.4rem 0.9rem;">
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn-nc-primary" 
+           style="font-size: 0.8rem;
+                  padding: 0.4rem 0.9rem;">
             View
         </a>
     </div>

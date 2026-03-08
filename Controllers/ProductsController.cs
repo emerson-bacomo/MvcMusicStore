@@ -23,14 +23,14 @@ namespace MvcMusic.Controllers
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Product.ToListAsync());
+            return View(await _context.Product.Include(p => p.ProductImages).ToListAsync());
         }
 
         // GET: /products/user-index (User browse - read only)
         [AllowAnonymous]
         public async Task<IActionResult> UserIndex(string? category, string? search)
         {
-            var products = _context.Product.AsQueryable();
+            var products = _context.Product.Include(p => p.ProductImages).AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
                 products = products.Where(p => p.Name.Contains(search) || p.Brand.Contains(search));
@@ -51,8 +51,10 @@ namespace MvcMusic.Controllers
         {
             if (id == null) return NotFound();
 
-            var product = await _context.Product.FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
+
+            product.ProductImages = product.ProductImages.OrderBy(p => p.SortOrder).ToList();
 
             return View(product);
         }
@@ -68,10 +70,44 @@ namespace MvcMusic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Create([Bind("Id,Name,Category,Brand,Price,Stock,Description,Image,IsBanner,BannerDescription,Rating,SoldAmount")] Product product)
+        public async Task<IActionResult> Create([Bind("Id,Name,Category,Brand,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? primaryImage, string? imageOrder)
         {
             if (ModelState.IsValid)
             {
+                if (productImages != null && productImages.Count > 0)
+                {
+                    foreach (var file in productImages)
+                    {
+                        var filePath = await SaveFile(file);
+                        product.ProductImages.Add(new ProductImage { Url = filePath });
+                    }
+                }
+                
+                if (imageUrls != null && imageUrls.Count > 0)
+                {
+                    foreach (var url in imageUrls)
+                    {
+                        if (!string.IsNullOrWhiteSpace(url))
+                            product.ProductImages.Add(new ProductImage { Url = url });
+                    }
+                }
+
+                if (product.ProductImages.Any())
+                {
+                    var primary = product.ProductImages.FirstOrDefault(p => p.Url == primaryImage) ?? product.ProductImages.First();
+                    primary.IsPrimary = true;
+                }
+
+                if (!string.IsNullOrEmpty(imageOrder))
+                {
+                    var orderArray = imageOrder.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    for (int i = 0; i < orderArray.Length; i++)
+                    {
+                        var img = product.ProductImages.FirstOrDefault(p => p.Url == orderArray[i]);
+                        if (img != null) img.SortOrder = i;
+                    }
+                }
+
                 _context.Add(product);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Product '{product.Name}' created successfully.";
@@ -85,8 +121,9 @@ namespace MvcMusic.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
-            var product = await _context.Product.FindAsync(id);
+            var product = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
             if (product == null) return NotFound();
+            product.ProductImages = product.ProductImages.OrderBy(p => p.SortOrder).ToList();
             return View(product);
         }
 
@@ -94,7 +131,7 @@ namespace MvcMusic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,Brand,Price,Stock,Description,Image,IsBanner,BannerDescription,Rating,SoldAmount")] Product product)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,Brand,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
         {
             if (id != product.Id) return NotFound();
 
@@ -102,9 +139,91 @@ namespace MvcMusic.Controllers
             {
                 try
                 {
-                    _context.Update(product);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = $"Product '{product.Name}' updated successfully.";
+                    product.ProductImages.Clear();
+
+                    if (existingImages != null && existingImages.Count > 0)
+                    {
+                        foreach (var url in existingImages)
+                        {
+                            if (!string.IsNullOrWhiteSpace(url))
+                                product.ProductImages.Add(new ProductImage { Url = url });
+                        }
+                    }
+
+                    if (productImages != null && productImages.Count > 0)
+                    {
+                        foreach (var file in productImages)
+                        {
+                            var filePath = await SaveFile(file);
+                            product.ProductImages.Add(new ProductImage { Url = filePath });
+                        }
+                    }
+
+                    if (imageUrls != null && imageUrls.Count > 0)
+                    {
+                        foreach (var url in imageUrls)
+                        {
+                            if (!string.IsNullOrWhiteSpace(url))
+                                product.ProductImages.Add(new ProductImage { Url = url });
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(deletedImages))
+                    {
+                        try
+                        {
+                            var deletedFiles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(deletedImages);
+                            if (deletedFiles != null)
+                            {
+                                foreach (var fileUrl in deletedFiles)
+                                {
+                                    if (fileUrl.StartsWith("/uploads/"))
+                                    {
+                                        var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", fileUrl.TrimStart('/'));
+                                        if (System.IO.File.Exists(physicalPath))
+                                        {
+                                            System.IO.File.Delete(physicalPath);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch { /* Ignore deserialization errors */ }
+                    }
+
+                    var existingProduct = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
+                    if (existingProduct != null)
+                    {
+                        _context.Entry(existingProduct).CurrentValues.SetValues(product);
+                        
+                        // Sync navigation property
+                        _context.ProductImage.RemoveRange(existingProduct.ProductImages);
+                        foreach (var img in product.ProductImages)
+                        {
+                            existingProduct.ProductImages.Add(img);
+                        }
+
+                        if (existingProduct.ProductImages.Any())
+                        {
+                            var primary = existingProduct.ProductImages.FirstOrDefault(p => p.Url == primaryImage) ?? existingProduct.ProductImages.First();
+                            foreach (var img in existingProduct.ProductImages) img.IsPrimary = false;
+                            primary.IsPrimary = true;
+                        }
+
+                        if (!string.IsNullOrEmpty(imageOrder))
+                        {
+                            var orderArray = imageOrder.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                            for (int i = 0; i < orderArray.Length; i++)
+                            {
+                                var imgUrl = orderArray[i];
+                                var img = existingProduct.ProductImages.FirstOrDefault(p => p.Url == imgUrl);
+                                if (img != null) img.SortOrder = i;
+                            }
+                        }
+
+                        await _context.SaveChangesAsync();
+                        TempData["Success"] = $"Product '{product.Name}' updated successfully.";
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -116,12 +235,26 @@ namespace MvcMusic.Controllers
             return View(product);
         }
 
+        private async Task<string> SaveFile(IFormFile file)
+        {
+            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "products");
+            if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+            
+            var filePath = Path.Combine(uploadDir, fileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+            return "/uploads/products/" + fileName;
+        }
+
         // GET: /products/delete/5
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-            var product = await _context.Product.FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
             return View(product);
         }

@@ -21,7 +21,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.User.RequireUniqueEmail = true;
 })
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<MvcMusicContext>();
+    .AddEntityFrameworkStores<MvcMusicContext>()
+    .AddErrorDescriber<CustomIdentityErrorDescriber>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

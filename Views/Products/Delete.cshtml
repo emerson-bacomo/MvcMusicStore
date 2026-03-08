@@ -1,48 +1,45 @@
 ﻿@model MvcMusic.Models.Product
 
 @{
-    ViewData["Title"] = "Delete Product";
+    ViewData["Title"] = "Terminate Listing";
 }
 
 <div class="nc-page">
-    <div class="nc-container" style="max-width:560px;">
-        <div class="nc-page-header">
-            <h1 class="nc-page-title" style="color:var(--nc-error);">Delete Product</h1>
-            <a asp-action="Index" class="btn-nc-outline" style="padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back
-            </a>
+    <div class="nc-container" style="max-width: 650px;">
+        <div class="nc-delete-header text-center mb-5">
+            <div class="nc-delete-icon-wrapper">
+                <i class="fa fa-skull-crossbones"></i>
+            </div>
+            <h1 class="nc-delete-title mt-4">Confirm Termination</h1>
+            <p class="nc-delete-subtitle">You are about to permanently remove this instrument from the NightCord records.</p>
         </div>
 
-        <div class="nc-card">
-            <div class="nc-card-body" style="padding:2.5rem;">
-                <div style="text-align:center;margin-bottom:2rem;">
-                    <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
-                    <h2 style="font-size:1.3rem;font-weight:800;color:var(--nc-text-primary);margin-bottom:0.5rem;">
-                        Remove from Inventory?
-                    </h2>
-                    <p style="color:var(--nc-text-secondary);font-size:0.9rem;">
-                        This action will permanently delete the instrument and its details from the catalog.
-                    </p>
+        <div class="nc-delete-card-premium">
+            <div class="nc-delete-visual">
+                <img src="@(Model.ProductImages?.OrderBy(p => p.SortOrder).FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.OrderBy(p => p.SortOrder).FirstOrDefault()?.Url)" alt="@Model.Name" onerror="this.src='https://placehold.co/400x400/151a26/7babdd?text=NC'" />
+                <div class="nc-delete-overlay"></div>
+            </div>
+            
+            <div class="nc-delete-content">
+                <div class="nc-delete-meta">
+                    <span class="nc-delete-tag">@Model.Category</span>
+                    <span class="nc-delete-brand">@Model.Brand</span>
+                </div>
+                <h2 class="nc-delete-name">@Model.Name</h2>
+                <div class="nc-delete-price">₱ @Model.Price.ToString("N2")</div>
+                
+                <div class="nc-warning-box">
+                    <i class="fa fa-info-circle"></i>
+                    <span>This action is irreversible. All related data and media associations will be lost.</span>
                 </div>
 
-                <div style="background:rgba(229, 115, 115, 0.05);border:1px solid rgba(229, 115, 115, 0.2);border-radius:var(--nc-radius-sm);padding:1.5rem;margin-bottom:2rem;display:flex;align-items:center;gap:1.5rem;">
-                    <img src="@Model.Image" alt="@Model.Name"
-                         style="width:90px;height:90px;object-fit:cover;border-radius:var(--nc-radius-sm);border:1px solid var(--nc-border);flex-shrink:0;"
-                         onerror="this.src='https://placehold.co/100x100/151a26/7babdd?text=NC'" />
-                    <div>
-                        <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.25rem;">@Model.Name</div>
-                        <span class="badge-nc" style="background: rgba(123, 171, 221, 0.1); border-color: var(--nc-primary); color: var(--nc-primary);">@Model.Category</span>
-                        <div style="color:var(--nc-accent);font-weight:800;margin-top:0.4rem; font-size: 1.1rem;">₱ @Model.Price.ToString("N2")</div>
-                    </div>
-                </div>
-
-                <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="nc-delete-form">
                     @Html.AntiForgeryToken()
-                    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-                        <button type="submit" class="btn-nc-danger" style="flex:1;padding:0.85rem; font-weight:700; border-radius: var(--nc-radius-sm);">
-                            <i class="fa fa-trash me-1"></i> Yes, Delete
+                    <div class="nc-delete-actions">
+                        <button type="submit" class="btn-nc-danger nc-btn-large">
+                            <i class="fa fa-trash-alt me-2"></i> Confirm Termination
                         </button>
-                        <a asp-action="Index" class="btn-nc-outline" style="flex:1;padding:0.85rem;text-align:center; border-radius: var(--nc-radius-sm);">
+                        <a asp-action="Index" class="btn-nc-outline nc-btn-large">
                             Cancel
                         </a>
                     </div>
@@ -51,4 +48,48 @@
         </div>
     </div>
 </div>
+
+<style>
+    .nc-delete-icon-wrapper {
+        width: 80px; height: 80px; background: rgba(229, 115, 115, 0.1);
+        border: 2px solid rgba(229, 115, 115, 0.2); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto; color: #e57373; font-size: 2rem;
+        box-shadow: 0 0 30px rgba(229, 115, 115, 0.15);
+    }
+    .nc-delete-title { font-family: 'Orbitron', sans-serif; font-size: 2rem; font-weight: 900; letter-spacing: 2px; }
+    .nc-delete-subtitle { color: var(--nc-text-muted); font-size: 1rem; }
+
+    .nc-delete-card-premium {
+        background: rgba(21, 26, 38, 0.6); backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2rem;
+        overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    }
+
+    .nc-delete-visual { position: relative; height: 280px; overflow: hidden; background: #000; }
+    .nc-delete-visual img { width: 100%; height: 100%; object-fit: contain; }
+    .nc-delete-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom, transparent, rgba(21, 26, 38, 1));
+    }
+
+    .nc-delete-content { padding: 3rem; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .nc-delete-meta { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem; width: 100%; }
+    .nc-delete-tag { background: rgba(123, 171, 221, 0.1); color: var(--nc-primary); padding: 0.25rem 0.75rem; border-radius: 100px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .nc-delete-brand { color: var(--nc-text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+    .nc-delete-name { font-size: 2.25rem; font-weight: 900; margin-bottom: 0.5rem; }
+    .nc-delete-price { font-size: 1.5rem; font-weight: 800; color: var(--nc-primary); margin-bottom: 2rem; }
+
+    .nc-warning-box {
+        background: rgba(229, 115, 115, 0.05); border: 1px solid rgba(229, 115, 115, 0.1);
+        padding: 1rem; border-radius: 1rem; color: #e57373;
+        font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+        margin-bottom: 2.5rem; text-align: center; width: 100%;
+    }
+
+    .nc-delete-form { width: 100%; }
+    .nc-delete-actions { display: flex; flex-direction: column; gap: 1rem; width: 100%; }
+    .nc-btn-large { padding: 1rem 2rem; border-radius: 1rem; font-weight: 700; width: 100%; font-size: 1rem; justify-content: center; }
+</style>
+
 

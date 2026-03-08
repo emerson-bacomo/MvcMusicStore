@@ -16,5 +16,6 @@ namespace MvcMusic.Data
         }
 
         public DbSet<MvcMusic.Models.Product> Product { get; set; } = default!;
+        public DbSet<MvcMusic.Models.ProductImage> ProductImage { get; set; } = default!;
     }
 }

@@ -5,10 +5,11 @@
 
 <div class="nc-card nc-form-card">
     <div class="nc-card-body">
-    <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" novalidate>
+    <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" enctype="multipart/form-data" novalidate id="productForm">
         @if (isEdit) { <input type="hidden" asp-for="Id" /> }
 
-        <div asp-validation-summary="All" class="nc-validation-summary" style="@(ViewData.ModelState.IsValid ? "display:none" : "")"></div>
+        <div asp-validation-summary="All" class="nc-validation-summary" 
+             style="@(ViewData.ModelState.IsValid ? "display: none;" : "margin-bottom: 2rem;")"></div>
 
         <!-- Basic Info -->
         <div class="nc-form-section">
@@ -39,9 +40,14 @@
             <div class="nc-form-grid">
                 <div class="nc-form-group">
                     <label class="nc-label" asp-for="Price">Price (PHP)</label>
-                    <div style="position:relative;">
-                        <span style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--nc-text-muted);">₱</span>
-                        <input asp-for="Price" class="nc-input" style="padding-left:2rem;" />
+                    <div style="position: relative;">
+                        <span style="position: absolute; 
+                                     left: 1rem; 
+                                     top: 50%; 
+                                     transform: translateY(-50%); 
+                                     color: var(--nc-text-muted);">₱</span>
+                        <input asp-for="Price" class="nc-input" 
+                               style="padding-left: 2rem;" />
                     </div>
                     <span asp-validation-for="Price" class="nc-validation-error"></span>
                 </div>
@@ -57,22 +63,79 @@
         <div class="nc-form-section">
             <h3 class="nc-form-section-title">Media & Presentation</h3>
             <div class="nc-form-group">
-                <label class="nc-label" asp-for="Image">Image URL</label>
-                <input asp-for="Image" class="nc-input" placeholder="https://..." />
-                <span asp-validation-for="Image" class="nc-validation-error"></span>
+                <label class="nc-label">Product Images (Drag & Drop)</label>
+                <div class="nc-upload-zone" id="dropZone">
+                    <div class="nc-upload-content">
+                        <i class="fa fa-cloud-upload-alt fa-2x mb-2" 
+                           style="color: var(--nc-primary);"></i>
+                        <p style="margin-bottom: 0.5rem; 
+                                  font-weight: 600;">Drag and drop images here</p>
+                        <p style="font-size: 0.8rem; 
+                                  color: var(--nc-text-muted);">or click to browse files</p>
+                    </div>
+                    <input type="file" name="productImages" id="fileInput" multiple accept="image/*" 
+                           style="display: none;" />
+                </div>
+                
+                <div class="mt-3" 
+                     style="display: flex; 
+                            gap: 0.5rem; 
+                            align-items: center;">
+                    <input type="url" id="imageUrlInput" class="nc-input" placeholder="Or paste an image URL here..." 
+                           style="flex: 1; 
+                                  margin-bottom: 0;" />
+                    <button type="button" class="btn-nc-outline" onclick="addImageUrl()" 
+                            style="padding: 0.75rem 1rem; 
+                                   border-radius: var(--nc-radius-sm);">Add URL</button>
+                    <!-- Hidden fields -->
+                    <input type="hidden" name="primaryImage" id="primaryImageInput" value="@(Model?.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model?.ProductImages?.FirstOrDefault()?.Url)" />
+                    <input type="hidden" name="imageOrder" id="imageOrderInput" value="" />
+                </div>
+                
+                <div id="imagePreviewContainer" class="nc-image-preview-grid mt-3">
+                    @if (isEdit && Model?.ProductImages != null)
+                    {
+                        foreach (var img in Model.ProductImages.OrderBy(p => p.SortOrder))
+                        {
+                            var isPrimary = img.IsPrimary || (Model.ProductImages.FirstOrDefault(p => p.IsPrimary) == null && img == Model.ProductImages.OrderBy(x => x.SortOrder).First());
+                            <div class="nc-preview-item" data-url="@img.Url" draggable="true">
+                                <div class="nc-preview-thumb">
+                                    <img src="@img.Url" />
+                                    <div class="nc-preview-actions">
+                                        <button type="button" class="nc-preview-btn btn-edit" onclick="toggleEditUrl(this)" title="Edit URL"><i class="fa fa-pen"></i></button>
+                                        <button type="button" class="nc-preview-btn btn-star @(isPrimary ? "active" : "")" onclick="setPrimaryImage(this)" title="Set Thumbnail"><i class="fa fa-star"></i></button>
+                                        <button type="button" class="nc-preview-btn btn-danger" onclick="toggleRemovePreview(this)" title="Remove"><i class="fa fa-times"></i></button>
+                                    </div>
+                                    @if(isPrimary) { 
+                                        <span class="nc-primary-badge">THUMBNAIL</span> 
+                                    }
+                                </div>
+                                <div class="nc-preview-edit-area">
+                                    <input type="text" class="nc-input nc-preview-edit-input" value="@img.Url" onchange="updatePreviewUrl(this)" />
+                                    <input type="hidden" name="existingImages" value="@img.Url" />
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
             </div>
+
             <div class="nc-form-group">
                 <label class="nc-label" asp-for="Description">Description</label>
                 <textarea asp-for="Description" class="nc-input" rows="3" placeholder="Tell us about this instrument..."></textarea>
                 <span asp-validation-for="Description" class="nc-validation-error"></span>
             </div>
 
-            <div class="nc-form-grid" style="margin-top:1.5rem;">
+            <div class="nc-form-grid" 
+                 style="margin-top: 1.5rem;">
                 <label class="nc-form-check">
                     <input asp-for="IsBanner" type="checkbox" />
                     <div>
-                        <div style="font-weight:600; font-size:0.9rem; color:var(--nc-text-primary);">Feature as Banner</div>
-                        <div style="color:var(--nc-text-secondary); font-size:0.75rem;">Show on landing page spotlight</div>
+                        <div style="font-weight: 600; 
+                                    font-size: 0.9rem; 
+                                    color: var(--nc-text-primary);">Feature as Banner</div>
+                        <div style="color: var(--nc-text-secondary); 
+                                    font-size: 0.75rem;">Show on landing page spotlight</div>
                     </div>
                 </label>
                 <div class="nc-form-group">
@@ -83,12 +146,345 @@
             </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--nc-border);">
-            <a asp-action="Index" class="btn-nc-outline" style="padding: 0.7rem 1.5rem; border-radius: var(--nc-radius-sm);">Cancel</a>
-            <button type="submit" class="btn-nc-primary" style="padding: 0.7rem 2rem; border-radius: var(--nc-radius-sm); font-weight:700;">
+        <div style="display: flex; 
+                    justify-content: flex-end; 
+                    gap: 1rem; 
+                    margin-top: 2.5rem; 
+                    padding-top: 1.5rem; 
+                    border-top: 1px solid var(--nc-border);">
+             <!-- Input tracking deleted server files -->
+            <input type="hidden" id="deletedImagesInput" name="deletedImages" value="" />
+            
+            <a asp-action="Index" class="btn-nc-outline" 
+               style="padding: 0.7rem 1.5rem; 
+                      border-radius: var(--nc-radius-sm);">Cancel</a>
+            <button type="submit" class="btn-nc-primary" 
+                    style="padding: 0.7rem 2rem; 
+                           border-radius: var(--nc-radius-sm); 
+                           font-weight: 700;">
                 <i class="fa fa-save me-1"></i> @(isEdit ? "Update Instrument" : "Save Instrument")
             </button>
         </div>
     </form>
+</div>
+</div>
+
+<style>
+    .nc-upload-zone {
+        border: 2px dashed var(--nc-border);
+        border-radius: var(--nc-radius-sm);
+        padding: 2rem;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.02);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .nc-upload-zone:hover, .nc-upload-zone.dragover {
+        border-color: var(--nc-primary);
+        background: rgba(123, 171, 221, 0.05);
+    }
+    .nc-image-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1rem;
+        align-items: start;
+    }
+    .nc-preview-item {
+        background: var(--nc-bg-secondary);
+        border: 1px solid var(--nc-border);
+        border-radius: var(--nc-radius-sm);
+        padding: 0.25rem;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+    }
+    .nc-preview-item.is-editing {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+    }
+    .nc-preview-item.is-removed .nc-preview-thumb {
+        filter: grayscale(100%) opacity(40%);
+    }
+    .nc-preview-item.is-dragover {
+        border-color: var(--nc-primary);
+        transform: scale(1.05);
+    }
+    .nc-preview-item.is-dragging {
+        opacity: 0.5;
+    }
+    .nc-preview-thumb {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 4px;
+        overflow: hidden;
+        width: 100%;
+        background: var(--nc-bg-primary);
+    }
+    .nc-preview-item.is-editing .nc-preview-thumb {
+        width: 140px;
+        flex-shrink: 0;
+    }
+    .nc-preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .nc-preview-actions {
+        position: absolute; top:0; left:0; right:0;
+        display: flex; justify-content: flex-end; gap: 0.25rem;
+        padding: 0.25rem; background: rgba(0,0,0,0.5); 
+        opacity: 0; transition: opacity 0.2s;
+    }
+    .nc-preview-thumb:hover .nc-preview-actions { opacity: 1; }
+    
+    .nc-preview-btn {
+        background: rgba(255,255,255,0.2);
+        color: white; border: none; border-radius: 4px;
+        width: 26px; height: 26px; font-size: 11px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: background 0.2s;
+    }
+    .nc-preview-btn:hover { background: var(--nc-primary); }
+    .nc-preview-btn.btn-danger:hover, .nc-preview-item.is-removed .nc-preview-btn.btn-danger { background: #e53935; }
+    .nc-preview-btn.btn-star:hover, .nc-preview-btn.btn-star.active { background: #fbc02d; color:#000; }
+    .nc-preview-item.is-editing .nc-preview-btn.btn-edit { background: var(--nc-primary); }
+    
+    .nc-primary-badge {
+        position: absolute; bottom: 0.25rem; left: 0.25rem;
+        background: #fbc02d; color: #000; font-size: 9px; 
+        padding: 2px 6px; border-radius: 4px; font-weight: 800;
+    }
+
+    .nc-preview-edit-area {
+        display: none;
+        flex: 1;
+    }
+    .nc-preview-item.is-editing .nc-preview-edit-area {
+        display: block;
+    }
+    .nc-preview-edit-input {
+        width: 100%;
+        margin: 0;
+    }
+</style>
+
+<script>
+    let deletedFilesArray = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewGrid = document.getElementById('imagePreviewContainer');
+        const deletedImagesInput = document.getElementById('deletedImagesInput');
+        
+        // Auto-assign first primary & collect order on submit
+        document.getElementById('productForm').addEventListener('submit', function() {
+            const items = Array.from(document.querySelectorAll('.nc-preview-item:not(.is-removed)'));
+            
+            // Set primary if empty
+            const primaryInput = document.getElementById('primaryImageInput');
+            if(!primaryInput.value && items.length > 0) {
+                primaryInput.value = items[0].dataset.url;
+            }
+            // Set order
+            const urls = items.map(item => item.dataset.url);
+            document.getElementById('imageOrderInput').value = urls.join(',');
+        });
+
+        dropZone.onclick = () => fileInput.click();
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+        function createPreviewElement(url, isDataUrl = false) {
+            const div = document.createElement('div');
+            div.className = 'nc-preview-item';
+            div.dataset.url = url;
+            div.draggable = true;
+            
+            let editArea = '';
+            let editBtn = '';
+            
+            if (!isDataUrl) {
+                editBtn = `<button type="button" class="nc-preview-btn btn-edit" onclick="toggleEditUrl(this)" title="Edit URL"><i class="fa fa-pen"></i></button>`;
+                editArea = `
+                <div class="nc-preview-edit-area">
+                    <input type="text" class="nc-input nc-preview-edit-input" value="${url}" onchange="updatePreviewUrl(this)" />
+                    <input type="hidden" name="imageUrls" value="${url}" />
+                </div>`;
+            }
+            
+            div.innerHTML = `
+                <div class="nc-preview-thumb">
+                    <img src="${url}" onerror="this.src='https://placehold.co/100x100?text=Invalid'" />
+                    <div class="nc-preview-actions">
+                        ${editBtn}
+                        <button type="button" class="nc-preview-btn btn-star" onclick="setPrimaryImage(this)" title="Set Thumbnail"><i class="fa fa-star"></i></button>
+                        <button type="button" class="nc-preview-btn btn-danger" onclick="toggleRemovePreview(this)" title="Remove"><i class="fa fa-times"></i></button>
+                    </div>
+                </div>
+                ${editArea}
+            `;
+            
+            setupDragAndDrop(div);
+            return div;
+        }
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewGrid.appendChild(createPreviewElement(e.target.result, true));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        window.addImageUrl = function() {
+            const urlInput = document.getElementById('imageUrlInput');
+            const url = urlInput.value.trim();
+            if(!url) return;
+            
+            previewGrid.appendChild(createPreviewElement(url, false));
+            urlInput.value = '';
+        };
+
+        window.toggleEditUrl = function(btn) {
+            const item = btn.closest('.nc-preview-item');
+            item.classList.toggle('is-editing');
+        };
+
+        window.updatePreviewUrl = function(input) {
+            const item = input.closest('.nc-preview-item');
+            const newUrl = input.value;
+            item.dataset.url = newUrl;
+            item.querySelector('img').src = newUrl;
+            item.querySelector('input[type="hidden"]').value = newUrl;
+            
+            // Check if we need to update primary
+            const badge = item.querySelector('.nc-primary-badge');
+            if (badge) {
+                document.getElementById('primaryImageInput').value = newUrl;
+            }
+        };
+
+        window.setPrimaryImage = function(btn) {
+            const item = btn.closest('.nc-preview-item');
+            const url = item.dataset.url;
+            
+            // Remove previous badges & active states
+            document.querySelectorAll('.nc-primary-badge').forEach(el => el.remove());
+            document.querySelectorAll('.btn-star').forEach(el => el.classList.remove('active'));
+            
+            // Add active state & badge to this item
+            btn.classList.add('active');
+            const badge = document.createElement('span');
+            badge.className = 'nc-primary-badge';
+            badge.innerText = 'THUMBNAIL';
+            item.querySelector('.nc-preview-thumb').appendChild(badge);
+            
+            // Update hidden primary input
+            document.getElementById('primaryImageInput').value = url;
+        };
+
+        window.toggleRemovePreview = function(btn) {
+            const item = btn.closest('.nc-preview-item');
+            const url = item.dataset.url;
+            
+            const isRemoved = item.classList.toggle('is-removed');
+            
+            // Disable/Enable hidden inputs for this item so they aren't sent in the POST
+            const hiddenInputs = item.querySelectorAll('input[type="hidden"]');
+            hiddenInputs.forEach(input => {
+                input.disabled = isRemoved;
+            });
+
+            if (url && url.startsWith('/uploads/')) {
+                if (isRemoved) {
+                    if (!deletedFilesArray.includes(url)) deletedFilesArray.push(url);
+                } else {
+                    deletedFilesArray = deletedFilesArray.filter(u => u !== url);
+                }
+                deletedImagesInput.value = JSON.stringify(deletedFilesArray);
+            }
+            
+            // If soft deleting the primary, clear primaryInput
+            if (isRemoved && item.querySelector('.nc-primary-badge')) {
+                document.getElementById('primaryImageInput').value = '';
+            }
+        };
+
+        // --- Drag & Drop Reordering ---
+        let dragSrcEl = null;
+
+        function setupDragAndDrop(item) {
+            item.addEventListener('dragstart', function(e) {
+                if (e.target.tagName.toLowerCase() === 'input') {
+                    e.preventDefault();
+                    return;
+                }
+                dragSrcEl = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+                this.classList.add('is-dragging');
+            });
+
+            item.addEventListener('dragover', function(e) {
+                if (e.preventDefault) e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                if (dragSrcEl !== this) {
+                    const container = this.parentNode;
+                    const items = Array.from(container.querySelectorAll('.nc-preview-item'));
+                    const srcIndex = items.indexOf(dragSrcEl);
+                    const targetIndex = items.indexOf(this);
+
+                    if (srcIndex < targetIndex) {
+                        container.insertBefore(dragSrcEl, this.nextSibling);
+                    } else {
+                        container.insertBefore(dragSrcEl, this);
+                    }
+                }
+                return false;
+            });
+
+            item.addEventListener('dragenter', function(e) {
+                if (dragSrcEl !== this) {
+                    this.classList.add('is-dragover');
+                }
+            });
+
+            item.addEventListener('dragleave', function(e) {
+                this.classList.remove('is-dragover');
+            });
+
+            item.addEventListener('drop', function(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                return false;
+            });
+
+            item.addEventListener('dragend', function(e) {
+                document.querySelectorAll('.nc-preview-item').forEach(el => {
+                    el.classList.remove('is-dragover', 'is-dragging');
+                });
+            });
+        }
+
+        // Initialize drag & drop for existing items purely from razor render
+        document.querySelectorAll('.nc-preview-item').forEach(setupDragAndDrop);
+    });
+</script>
 </div>
 </div>
