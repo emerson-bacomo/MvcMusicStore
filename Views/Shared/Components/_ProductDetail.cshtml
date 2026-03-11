@@ -41,7 +41,7 @@
                     <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
                     <div class="nc-meta-stat-content">
                         <span class="nc-meta-stat-label">Product Rating</span>
-                        <span class="nc-meta-stat-value">@Model.Rating / 5.0</span>
+                        <span class="nc-meta-stat-value">@Model.Rating.ToString("0.0") / 5.0</span>
                     </div>
                 </div>
             </div>
@@ -62,8 +62,6 @@
                 <p class="nc-detail-desc">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this premium instrument." : Model.Description)</p>
             </div>
 
-
-
             @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
             {
                 <div class="nc-admin-actions mt-5">
@@ -81,153 +79,6 @@
         </div>
     </div>
 </div>
-
-<style>
-    /* ── Details Container & Card ──────────────────────────────── */
-    .nc-detail-container {
-        padding: 2rem 0;
-        animation: fadeIn 0.6s ease-out;
-    }
-
-    .nc-detail-card {
-        display: grid;
-        grid-template-columns: 1.2fr 1fr;
-        gap: 5rem;
-        background: rgba(30, 35, 45, 0.4);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 2rem;
-        padding: 4rem;
-        box-shadow: 0 40px 100px rgba(0,0,0,0.5);
-    }
-
-    @@media (max-width: 1200px) {
-        .nc-detail-card { gap: 3rem; padding: 3rem; }
-    }
-    @@media (max-width: 992px) {
-        .nc-detail-card { grid-template-columns: 1fr; gap: 4rem; padding: 2rem; }
-    }
-
-    /* ── Visual Section ───────────────────────────────────────── */
-    .nc-main-image-wrapper {
-        position: relative;
-        border-radius: 1.5rem;
-        overflow: hidden;
-        background: rgba(0,0,0,0.2);
-        aspect-ratio: 1;
-        cursor: zoom-in;
-        border: 1px solid rgba(255,255,255,0.03);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .nc-main-image { 
-        max-width: 100%; 
-        max-height: 100%; 
-        object-fit: contain; 
-        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .nc-main-image-wrapper:hover .nc-main-image { transform: scale(1.08); }
-
-    .nc-image-badge {
-        position: absolute; top: 1.5rem; left: 1.5rem;
-        background: var(--nc-primary);
-        color: #fff; padding: 0.5rem 1.2rem;
-        border-radius: 2rem; font-size: 0.75rem;
-        font-weight: 800; text-transform: uppercase;
-        letter-spacing: 0.05em; box-shadow: 0 10px 20px rgba(123, 171, 221, 0.3);
-    }
-
-    .nc-gallery-container { margin-top: 2rem; }
-    .nc-gallery-scroll {
-        display: flex; gap: 1rem;
-        overflow-x: auto; padding-bottom: 0.5rem;
-        scrollbar-width: none; /* Firefox */
-    }
-    .nc-gallery-scroll::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-
-    .nc-gallery-item {
-        flex: 0 0 110px; aspect-ratio: 1;
-        border-radius: 1rem; overflow: hidden;
-        border: 2px solid transparent; cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: rgba(255,255,255,0.03);
-        padding: 6px;
-    }
-    .nc-gallery-item:hover { background: rgba(255,255,255,0.08); transform: translateY(-4px); }
-    .nc-gallery-item.active { border-color: var(--nc-primary); background: rgba(123, 171, 221, 0.1); }
-    .nc-gallery-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.75rem; }
-
-    /* ── Meta Stats ─────────────────────────────────────────── */
-    .nc-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-    .nc-meta-stat {
-        display: flex; align-items: center; gap: 1rem;
-        padding: 1.25rem; background: rgba(255,255,255,0.02);
-        border-radius: 1.25rem; border: 1px solid rgba(255,255,255,0.05);
-    }
-    .nc-meta-stat-icon {
-        width: 45px; height: 45px; border-radius: 12px;
-        background: rgba(123, 171, 221, 0.1); color: var(--nc-primary);
-        display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
-    }
-    .nc-meta-stat-content { display: flex; flex-direction: column; }
-    .nc-meta-stat-label { font-size: 0.7rem; color: var(--nc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-    .nc-meta-stat-value { font-size: 0.95rem; font-weight: 600; color: var(--nc-text-primary); }
-
-    /* ── Info Section ────────────────────────────────────────── */
-    .nc-info-header { margin-bottom: 3rem; }
-    .nc-detail-brand { 
-        font-size: 1.1rem; color: var(--nc-primary); 
-        font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.15em; margin-bottom: 0.75rem;
-    }
-    .nc-detail-name { font-size: 4rem; font-weight: 900; line-height: 1.1; margin-bottom: 1.5rem; }
-    .nc-detail-price { font-size: 2.5rem; font-weight: 800; color: var(--nc-primary); }
-    .nc-currency { font-size: 1.5rem; font-weight: 400; margin-right: 0.25rem; opacity: 0.7; }
-    
-    @@media (max-width: 768px) {
-        .nc-detail-name { font-size: 2.5rem; }
-        .nc-detail-price { font-size: 2rem; }
-    }
-
-    .nc-detail-section { margin-bottom: 3rem; }
-    .nc-section-title { font-size: 1rem; font-weight: 700; color: var(--nc-text-secondary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
-    .nc-detail-desc { font-size: 1.1rem; line-height: 1.7; color: var(--nc-text-muted); font-weight: 400; }
-
-    /* ── Purchase Actions ───────────────────────────────────── */
-    .nc-purchase-section { display: flex; gap: 1rem; }
-    .nc-buy-btn { flex: 1; padding: 1.25rem; font-size: 1.1rem; border-radius: 1rem; box-shadow: 0 15px 30px rgba(123, 171, 221, 0.2); }
-    .nc-wishlist-btn { width: 62px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 1rem; font-size: 1.3rem; }
-
-    /* ── Admin Management ───────────────────────────────────── */
-    .nc-admin-actions {
-        padding-top: 2.5rem; border-top: 1px solid rgba(255,255,255,0.05);
-    }
-    .nc-admin-title { font-size: 0.85rem; color: #ffb74d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 1.5rem; }
-    .nc-action-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .nc-admin-btn {
-        padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;
-        text-decoration: none; transition: all 0.3s; display: inline-flex; align-items: center;
-    }
-    .btn-edit { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-    .btn-edit:hover { background: rgba(255,255,255,0.1); transform: translateY(-3px); }
-    .btn-delete { background: rgba(229, 115, 115, 0.1); color: #e57373; border: 1px solid rgba(229, 115, 115, 0.2); }
-    .btn-delete:hover { background: #e57373; color: #fff; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(229, 115, 115, 0.3); }
-
-    /* Fullscreen Overlay */
-    .nc-fullscreen-overlay {
-        display: none; position: fixed; inset: 0; z-index: 10000;
-        background: rgba(10,12,16,0.98); align-items: center; justify-content: center;
-        padding: 3rem; backdrop-filter: blur(20px);
-    }
-    .nc-fullscreen-overlay img { max-width: 95%; max-height: 95%; object-fit: contain; animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-    .nc-close-btn { position: absolute; top: 2rem; right: 2rem; color: #fff; font-size: 3rem; cursor: pointer; opacity: 0.5; transition: opacity 0.3s; }
-    .nc-close-btn:hover { opacity: 1; }
-
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @@keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-</style>
 
 <div id="fullscreenOverlay" class="nc-fullscreen-overlay" onclick="closeFullscreen()">
     <span class="nc-close-btn">&times;</span>
@@ -258,3 +109,375 @@
     }
 </script>
 
+<style>
+    /* ── Details Container & Card ──────────────────────────────── */
+    .nc-detail-container {
+        padding: 2rem 0;
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .nc-detail-card {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 5rem;
+        background: rgba(30, 35, 45, 0.4);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 2rem;
+        padding: 4rem;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    }
+
+    @@media (max-width: 1200px) {
+        .nc-detail-card {
+            gap: 3rem;
+            padding: 3rem;
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .nc-detail-card {
+            grid-template-columns: 1fr;
+            gap: 4rem;
+            padding: 2rem;
+        }
+    }
+
+    /* ── Visual Section ───────────────────────────────────────── */
+    .nc-main-image-wrapper {
+        position: relative;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        background: rgba(0,0,0,0.2);
+        aspect-ratio: 1;
+        cursor: zoom-in;
+        border: 1px solid rgba(255,255,255,0.03);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nc-main-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nc-main-image-wrapper:hover .nc-main-image {
+        transform: scale(1.08);
+    }
+
+    .nc-image-badge {
+        position: absolute;
+        top: 1.5rem;
+        left: 1.5rem;
+        background: var(--nc-primary);
+        color: #fff;
+        padding: 0.5rem 1.2rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        box-shadow: 0 10px 20px rgba(123, 171, 221, 0.3);
+    }
+
+    .nc-gallery-container {
+        margin-top: 2rem;
+    }
+
+    .nc-gallery-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scrollbar-width: none; /* Firefox */
+    }
+
+        .nc-gallery-scroll::-webkit-scrollbar {
+            display: none;
+        }
+    /* Chrome/Safari */
+
+    .nc-gallery-item {
+        flex: 0 0 110px;
+        aspect-ratio: 1;
+        border-radius: 1rem;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255,255,255,0.03);
+        padding: 6px;
+    }
+
+        .nc-gallery-item:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-4px);
+        }
+
+        .nc-gallery-item.active {
+            border-color: var(--nc-primary);
+            background: rgba(123, 171, 221, 0.1);
+        }
+
+        .nc-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0.75rem;
+        }
+
+    /* ── Meta Stats ─────────────────────────────────────────── */
+    .nc-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .nc-meta-stat {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: rgba(255,255,255,0.02);
+        border-radius: 1.25rem;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .nc-meta-stat-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        background: rgba(123, 171, 221, 0.1);
+        color: var(--nc-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    .nc-meta-stat-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nc-meta-stat-label {
+        font-size: 0.7rem;
+        color: var(--nc-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+    }
+
+    .nc-meta-stat-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--nc-text-primary);
+    }
+
+    /* ── Info Section ────────────────────────────────────────── */
+    .nc-info-header {
+        margin-bottom: 3rem;
+    }
+
+    .nc-detail-brand {
+        font-size: 1.1rem;
+        color: var(--nc-primary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        margin-bottom: 0.75rem;
+    }
+
+    .nc-detail-name {
+        font-size: 4rem;
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+    }
+
+    .nc-detail-price {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--nc-primary);
+    }
+
+    .nc-currency {
+        font-size: 1.5rem;
+        font-weight: 400;
+        margin-right: 0.25rem;
+        opacity: 0.7;
+    }
+
+    @@media (max-width: 768px) {
+        .nc-detail-name {
+            font-size: 2.5rem;
+        }
+
+        .nc-detail-price {
+            font-size: 2rem;
+        }
+    }
+
+    .nc-detail-section {
+        margin-bottom: 3rem;
+    }
+
+    .nc-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--nc-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+    }
+
+    .nc-detail-desc {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        color: var(--nc-text-muted);
+        font-weight: 400;
+    }
+
+    /* ── Purchase Actions ───────────────────────────────────── */
+    .nc-purchase-section {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .nc-buy-btn {
+        flex: 1;
+        padding: 1.25rem;
+        font-size: 1.1rem;
+        border-radius: 1rem;
+        box-shadow: 0 15px 30px rgba(123, 171, 221, 0.2);
+    }
+
+    .nc-wishlist-btn {
+        width: 62px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 1rem;
+        font-size: 1.3rem;
+    }
+
+    /* ── Admin Management ───────────────────────────────────── */
+    .nc-admin-actions {
+        padding-top: 2.5rem;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .nc-admin-title {
+        font-size: 0.85rem;
+        color: #ffb74d;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: 1.5rem;
+    }
+
+    .nc-action-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .nc-admin-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-edit {
+        background: rgba(255,255,255,0.05);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+        .btn-edit:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-3px);
+        }
+
+    .btn-delete {
+        background: rgba(229, 115, 115, 0.1);
+        color: #e57373;
+        border: 1px solid rgba(229, 115, 115, 0.2);
+    }
+
+        .btn-delete:hover {
+            background: #e57373;
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(229, 115, 115, 0.3);
+        }
+
+    /* Fullscreen Overlay */
+    .nc-fullscreen-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(10,12,16,0.98);
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        backdrop-filter: blur(20px);
+    }
+
+        .nc-fullscreen-overlay img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+    .nc-close-btn {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        color: #fff;
+        font-size: 3rem;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.3s;
+    }
+
+        .nc-close-btn:hover {
+            opacity: 1;
+        }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes zoomIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+</style>
