@@ -1,48 +1,43 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MvcMusic.Data;
 using MvcMusic.Models;
+using MvcMusic.Utils;
 
 namespace MvcMusic.Controllers
 {
     public class ProductsController : Controller
     {
         private readonly MvcMusicContext _context;
+        private readonly IActivityLogService _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ProductsController(MvcMusicContext context)
+        public ProductsController(MvcMusicContext context, IActivityLogService logger, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _logger = logger;
+            _userManager = userManager;
         }
 
-        // GET: /products (Admin/SuperAdmin dashboard - full CRUD list)
-        [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Index()
+        private async Task<(string? id, string? name, string? role)> CurrentEmployeeInfoAsync()
         {
-            return View(await _context.Product.Include(p => p.ProductImages).ToListAsync());
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return (null, null, null);
+            var roles = await _userManager.GetRolesAsync(user);
+            return (user.Id, user.UserName, roles.FirstOrDefault());
         }
 
-        // GET: /products/user-index (User browse - read only)
-        [AllowAnonymous]
-        public async Task<IActionResult> UserIndex(string? category, string? search)
+        // GET: /products/admin-products (Admin/SuperAdmin/Staff dashboard - specific access levels)
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+        public async Task<IActionResult> AdminProducts()
         {
-            var products = _context.Product.Include(p => p.ProductImages).AsQueryable();
-
-            if (!string.IsNullOrEmpty(search))
-                products = products.Where(p => p.Name.Contains(search) || p.Brand.Contains(search));
-
-            if (!string.IsNullOrEmpty(category))
-                products = products.Where(p => p.Category == category);
-
-            ViewData["CurrentCategory"] = category;
-            ViewData["CurrentSearch"] = search;
-            ViewData["Categories"] = await _context.Product.Select(p => p.Category).Distinct().ToListAsync();
-
-            return View(await products.ToListAsync());
+            return View("AdminProducts", await _context.Product.Include(p => p.ProductImages).ToListAsync());
         }
 
         // GET: /products/details/5 (Users, Admins, SuperAdmins)
@@ -108,16 +103,19 @@ namespace MvcMusic.Controllers
                     }
                 }
 
+                product.DateCreated = DateTime.UtcNow;
                 _context.Add(product);
                 await _context.SaveChangesAsync();
+                var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync("Create Product", $"Created product '{product.Name}' (ID: {product.Id})", cId, cName, cRole);
                 TempData["Success"] = $"Product '{product.Name}' created successfully.";
                 return RedirectToAction(nameof(Index));
             }
             return View(product);
         }
 
-        // GET: /products/edit/5
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        // GET: /products/edit/5 (Admin, SuperAdmin, Staff)
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -130,7 +128,7 @@ namespace MvcMusic.Controllers
         // POST: /products/edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,Brand,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
         {
             if (id != product.Id) return NotFound();
@@ -221,7 +219,10 @@ namespace MvcMusic.Controllers
                             }
                         }
 
+                        existingProduct.DateModified = DateTime.UtcNow;
                         await _context.SaveChangesAsync();
+                        var (cId2, cName2, cRole2) = await CurrentEmployeeInfoAsync();
+                        await _logger.LogAsync("Edit Product", $"Edited product '{product.Name}' (ID: {id})", cId2, cName2, cRole2);
                         TempData["Success"] = $"Product '{product.Name}' updated successfully.";
                     }
                 }
@@ -268,6 +269,8 @@ namespace MvcMusic.Controllers
             var product = await _context.Product.FindAsync(id);
             if (product != null)
             {
+                var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync("Delete Product", $"Deleted product '{product.Name}' (ID: {id})", cId, cName, cRole);
                 _context.Product.Remove(product);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Product deleted successfully.";

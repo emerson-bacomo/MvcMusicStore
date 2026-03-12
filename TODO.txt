@@ -1,23 +1,4 @@
-﻿Make landing page for admins be analytics dashboard with graphs and all for sales (by day, week, month, season, etc), top sellers, revenue by category
-Make superadmin be able to do
-	Edit admin accounts
-	Reset admin passwords
-	Assign roles
-	Disable / delete admins
-	View activity logs
-	and more of whatever is appropriate
-
-also add activity logging for all actions with details like the action itself, username (non-editable by admin, but users can edit theirs) (make this be in format like yy-(S-Staff,A-Admin,0001), date, etc
-add date created and date modified in product and display date modified in table
-add profile edit page, add profile pictur upload
-
-instead of just admins table, make it employee table that contains admin (crud authority), staff (update authority), and more of whatever is appropriate
-when adding employee table, there is a dropdown for the role
-
-add customer management for super/admins, they can see the list of customers and their profiles, purchase history (pending, on delivery, delivered etc), and be able to ban
-
-add arrows to image viewer in product details
-
+﻿
 after the generic hardcoded product details page, there is a fillable section below it for more detailed description
 in this section, make it like MsWord where you can add shapes with text, textbox and pictureboxes (with editable url), all of which are draggable and resizable
 add side panel for all elements to view and edit their properties their, like width, height, url, color, etc
@@ -26,11 +7,11 @@ save this under a column under each product as html code
 add a copy button that copies the html code and a paste button that pastes the code
 add a template system where people can save and load html templates
 
-make navbar be container-fluid, and based on the content (like tables), also make some sections be container-fluid
 
 instead of making a plain edit page for product, when you are in the product details page, clicking the edit button wont make you go to the edit page but the static product details page would become
 the edit page. the labels become text inputs, just put a label near the input to indicate what property it is. the image viewer main div is divided in half, upper is drag upload local image, bottom is url
 the bottom of the main div becomes the current images section in edit page that is draggable reorder and still with the url edit (make this floating popup near the image instead), etc.
 
 make sure that all data are only soft delete in admin side. add a IsDeleted property, and only show the non deleted data normally. add a filter menu on top right of tables to toggle show deleted, hide certain columns, etc
-refer to DATSYS project for implementation of table filters, search, column based sorting
+refer to SIS project for implementation of table filters, search, column based sorting,. also copy how there are input fields in the table row itself and how all logic work like changes indicator, changes summary on save, etc.
+in this setup only show the properties that are important and needs to work with multi edit like stock, price, etc. description, images and the like are only edited in edit page since theyre too long and complex

@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MvcMusic.ViewModels;
 using MvcMusic.Models;
+using MvcMusic.Utils;
 
 namespace MvcMusic.Controllers
 {
@@ -10,11 +11,13 @@ namespace MvcMusic.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IActivityLogService _logger;
 
-        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IActivityLogService logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _logger = logger;
         }
 
         // GET: /account/login
@@ -43,12 +46,22 @@ namespace MvcMusic.Controllers
             
             if (user != null)
             {
+                if (user.IsDisabled)
+                {
+                    ModelState.AddModelError(string.Empty, "This account has been disabled. Please contact an administrator.");
+                    return View(model);
+                }
+
                 var result = await _signInManager.PasswordSignInAsync(
                     user.UserName!, model.Password, model.RememberMe, lockoutOnFailure: false);
 
                 if (result.Succeeded)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
+                    var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                    if (ip == "::1" || ip == "127.0.0.1") ip = "Localhost";
+                    await _logger.LogAsync("Login", $"User logged in from {ip}", user.Id, user.UserName, roles.FirstOrDefault());
+
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                         return Redirect(returnUrl);
 
@@ -84,7 +97,8 @@ namespace MvcMusic.Controllers
             {
                 UserName = model.UserName,
                 Email = model.Email,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                DateCreated = DateTime.UtcNow
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -92,7 +106,7 @@ namespace MvcMusic.Controllers
             {
                 await _userManager.AddToRoleAsync(user, "User");
                 await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("UserIndex", "Products");
+                return RedirectToAction("Index", "Home");
             }
 
             foreach (var error in result.Errors)
@@ -106,6 +120,13 @@ namespace MvcMusic.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                await _logger.LogAsync("Logout", "User logged out", user.Id, user.UserName, roles.FirstOrDefault());
+            }
+
             await _signInManager.SignOutAsync();
             return RedirectToAction("Index", "Home");
         }
@@ -121,14 +142,14 @@ namespace MvcMusic.Controllers
         {
             if (roles == null)
             {
-                if (User.IsInRole("SuperAdmin")) return RedirectToAction("Index", "Admin");
-                if (User.IsInRole("Admin")) return RedirectToAction("Index", "Products");
-                return RedirectToAction("UserIndex", "Products");
+                if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Staff"))
+                    return RedirectToAction("Index", "AdminDashboard");
+                return RedirectToAction("Index", "Home");
             }
 
-            if (roles.Contains("SuperAdmin")) return RedirectToAction("Index", "Admin");
-            if (roles.Contains("Admin")) return RedirectToAction("Index", "Products");
-            return RedirectToAction("UserIndex", "Products");
+            if (roles.Contains("SuperAdmin") || roles.Contains("Admin") || roles.Contains("Staff"))
+                return RedirectToAction("Index", "AdminDashboard");
+            return RedirectToAction("Index", "Home");
         }
     }
 }

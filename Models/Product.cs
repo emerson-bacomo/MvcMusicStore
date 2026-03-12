@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MvcMusic.Models
@@ -31,8 +31,14 @@ namespace MvcMusic.Models
         [Range(0, 5)]
         public double Rating { get; set; }
 
+        [Range(0, int.MaxValue)]
+        public int RatingsCount { get; set; }
+
         [Range(0, int.MaxValue, ErrorMessage = "Value cannot be negative.")]
         public int SoldAmount { get; set; }
+
+        public DateTime DateCreated { get; set; } = DateTime.UtcNow;
+        public DateTime? DateModified { get; set; }
 
         public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     }

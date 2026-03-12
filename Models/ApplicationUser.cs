@@ -6,7 +6,14 @@ namespace MvcMusic.Models
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
-        
+
         public string FullName => $"{FirstName} {LastName}";
+
+        /// <summary>Path to profile picture under /uploads/avatars/</summary>
+        public string? ProfilePicture { get; set; }
+
+        public bool IsDisabled { get; set; } = false;
+
+        public DateTime DateCreated { get; set; } = DateTime.UtcNow;
     }
 }

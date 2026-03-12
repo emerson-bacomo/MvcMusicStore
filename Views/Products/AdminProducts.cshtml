@@ -1,21 +1,24 @@
-﻿@model IEnumerable<MvcMusic.Models.Product>
+@model IEnumerable<MvcMusic.Models.Product>
 
 @{
     ViewData["Title"] = "Instrument Management";
 }
 
 <div class="nc-page">
-    <div class="nc-container">
+    <div class="container-fluid px-4">
         <div class="nc-page-header">
             <div>
                 <h1 class="nc-page-title">Instrument Management</h1>
                 <p class="nc-page-subtitle">Manage your inventory, pricing, and showcase highlights.</p>
             </div>
-            <div class="nc-page-actions">
-                <a asp-action="Create" class="btn-nc-primary nc-btn-featured">
-                    <i class="fa fa-plus me-2"></i> Add New Instrument
-                </a>
-            </div>
+            @if (!User.IsInRole("Staff"))
+            {
+                <div class="nc-page-actions">
+                    <a asp-action="Create" class="btn-nc-primary nc-btn-featured">
+                        <i class="fa fa-plus me-2"></i> Add New Instrument
+                    </a>
+                </div>
+            }
         </div>
 
         @if (TempData["Success"] != null)
@@ -77,7 +80,10 @@
                                     <div class="nc-action-group">
                                         <a asp-action="Details" asp-route-id="@item.Id" class="nc-action-link" title="View"><i class="fa fa-eye"></i></a>
                                         <a asp-action="Edit" asp-route-id="@item.Id" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="nc-action-link delete" title="Delete"><i class="fa fa-trash"></i></a>
+                                        @if (!User.IsInRole("Staff"))
+                                        {
+                                            <a asp-action="Delete" asp-route-id="@item.Id" class="nc-action-link delete" title="Delete"><i class="fa fa-trash"></i></a>
+                                        }
                                     </div>
                                 </td>
                             </tr>

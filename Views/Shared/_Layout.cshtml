@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -11,10 +11,8 @@
 </head>
 <body>
     <nav class="nc-navbar navbar navbar-expand-lg">
-        <div class="container-fluid px-0 mx-auto" 
-             style="max-width: 1280px;
-                    padding: 0 1.5rem;">
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+        <div class="container-fluid px-4 mx-auto">
+            <a class="navbar-brand" asp-controller="Landing" asp-action="Index">
                 &#9835; NightCord
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
@@ -33,27 +31,43 @@
                         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Products" asp-action="Index">
-                                    <i class="fa fa-layer-group me-1"></i> Manage Products
+                                <a class="nav-link" asp-controller="AdminDashboard" asp-action="Index">
+                                    <i class="fa fa-chart-line me-1"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Products" asp-action="AdminProducts">
+                                    <i class="fa fa-box me-1"></i> Products
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Customers" asp-action="CustomerList">
+                                    <i class="fa fa-users me-1"></i> Customers
+                                </a>
+                            </li>
+                        }
+                        @if (User.IsInRole("Staff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="AdminDashboard" asp-action="Index">
+                                    <i class="fa fa-chart-line me-1"></i> Dashboard
                                 </a>
                             </li>
                         }
                         @if (User.IsInRole("SuperAdmin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Index">
-                                    <i class="fa fa-user-shield me-1"></i> Manage Admins
+                                <a class="nav-link" asp-controller="Employee" asp-action="EmployeeList">
+                                    <i class="fa fa-user-shield me-1"></i> Employees
                                 </a>
                             </li>
-                        }
-                        @if (User.IsInRole("User"))
-                        {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Products" asp-action="UserIndex">
-                                    <i class="fa fa-music me-1"></i> Browse
+                                <a class="nav-link" asp-controller="Employee" asp-action="ActivityLogs">
+                                    <i class="fa fa-list-alt me-1"></i> Logs
                                 </a>
                             </li>
                         }
+
                     }
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-2 align-items-center">
@@ -69,26 +83,39 @@
                             {
                                 displayName = $"{currentUser.FirstName} {currentUser.LastName}";
                             }
-                            <li class="nav-item">
-                                <span class="nav-link" 
-                                      style="color: var(--nc-text-primary);
-                                             font-weight: 600;
-                                             font-size: 0.85rem;">
-                                    <i class="fa fa-circle-user me-1" 
-                                       style="color: var(--nc-primary);"></i> @displayName
-                                </span>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                   style="color: var(--nc-text-primary); font-weight: 600; font-size: 0.85rem; padding: 0.5rem 0.8rem !important; border-radius:100px; background: rgba(255,255,255,0.03); border: 1px solid var(--nc-border);">
+                                    @if (!string.IsNullOrEmpty(currentUser?.ProfilePicture))
+                                    {
+                                        <img src="@currentUser.ProfilePicture" alt="Profile" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:8px; border: 1.5px solid var(--nc-primary);" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fa fa-circle-user me-2" style="color: var(--nc-primary); font-size: 1.2rem;"></i>
+                                    }
+                                    @displayName
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="profileDropdown">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Profile" asp-action="Index">
+                                            <i class="fa fa-user-circle me-2"></i> View Profile
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item text-danger d-flex align-items-center w-100 border-0 background-none">
+                                                <i class="fa fa-right-from-bracket me-2"></i> Sign Out
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+
                             </li>
                         }
-                        <li class="nav-item">
-                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn-nc-outline" 
-                                        style="font-size: 0.82rem;
-                                               padding: 0.35rem 1rem;">
-                                    <i class="fa fa-right-to-bracket me-1"></i> Sign Out
-                                </button>
-                            </form>
-                        </li>
+
                     }
                     else
                     {

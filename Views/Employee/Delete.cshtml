@@ -1,0 +1,39 @@
+@model MvcMusic.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Delete Employee";
+    var role = ViewBag.Role as string ?? "Employee";
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div style="margin-bottom:2rem;">
+            <a asp-action="Index" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
+                <i class="fa fa-arrow-left me-1"></i> Back to Employees
+            </a>
+        </div>
+
+        <div class="nc-card nc-form-card" style="border-color:rgba(229,115,115,0.3);">
+            <div class="nc-card-body" style="text-align:center;padding:3rem;">
+                <div style="width:80px;height:80px;border-radius:50%;background:rgba(229,115,115,0.1);border:2px solid rgba(229,115,115,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+                    <i class="fa fa-trash" style="font-size:2rem;color:#e57373;"></i>
+                </div>
+                <h2 style="color:var(--nc-text-primary);margin-bottom:0.5rem;">Delete Employee Account</h2>
+                <p style="color:var(--nc-text-muted);margin-bottom:2rem;">
+                    Are you sure you want to permanently delete the account for<br/>
+                    <strong style="color:var(--nc-text-primary);">@Model.FirstName @Model.LastName</strong>
+                    (@(Model.UserName ?? Model.Email))?
+                    <br/><span style="color:#e57373;font-size:0.85rem;">This action cannot be undone.</span>
+                </p>
+                <form asp-action="Delete" method="post" style="display:flex;gap:1rem;justify-content:center;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn-nc-danger" style="padding:0.75rem 2rem;font-size:0.95rem;">
+                        <i class="fa fa-trash me-2"></i> Yes, Delete
+                    </button>
+                    <a asp-action="Index" class="btn-nc-outline" style="padding:0.75rem 1.5rem;border-radius:var(--nc-radius-sm);">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

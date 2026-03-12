@@ -108,6 +108,33 @@ a:hover {
     background: var(--nc-primary-glow);
 }
 
+/* ── Dropdowns ─────────────────────────────────────────────────── */
+.dropdown-menu {
+    background: var(--nc-bg-card);
+    border: 1px solid var(--nc-border);
+    box-shadow: var(--nc-shadow);
+    border-radius: var(--nc-radius-sm);
+    padding: 0.5rem;
+    margin-top: 0.5rem !important;
+    backdrop-filter: blur(15px);
+}
+.dropdown-item {
+    color: var(--nc-text-primary) !important;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+.dropdown-item:hover {
+    background: var(--nc-primary-glow);
+    color: var(--nc-primary) !important;
+}
+.dropdown-divider {
+    border-top: 1px solid var(--nc-border);
+    margin: 0.5rem 0;
+}
+
 /* ── Buttons ────────────────────────────────────────────────────── */
 .btn-nc-primary {
     display: inline-flex;

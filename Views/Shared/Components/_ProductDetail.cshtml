@@ -10,6 +10,15 @@
                 }
                 <img id="mainProductImage" src="@primaryUrl" alt="@Model.Name" class="nc-main-image" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
                 <div class="nc-image-badge">@Model.Category</div>
+                @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
+                {
+                    <button type="button" class="nc-img-nav prev" onclick="navigateImage(-1, event)" aria-label="Previous Image">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="nc-img-nav next" onclick="navigateImage(1, event)" aria-label="Next Image">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                }
             </div>
             
             @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
@@ -41,7 +50,29 @@
                     <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
                     <div class="nc-meta-stat-content">
                         <span class="nc-meta-stat-label">Product Rating</span>
-                        <span class="nc-meta-stat-value">@Model.Rating.ToString("0.0") / 5.0</span>
+                        <span class="nc-meta-stat-value">
+                            @(Model.SoldAmount > 0 ? Model.Rating.ToString("0.0") + " / 5.0" : "Rating Undefined")
+                            @if (Model.SoldAmount > 0)
+                            {
+                                <span style="font-size: 0.75rem; color: var(--nc-text-muted); font-weight: 400; margin-left: 0.4rem;">
+                                    (@Model.RatingsCount reviewers)
+                                </span>
+                            }
+                        </span>
+                    </div>
+                </div>
+                <div class="nc-meta-stat">
+                    <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
+                    <div class="nc-meta-stat-content">
+                        <span class="nc-meta-stat-label">Sales Performance</span>
+                        <span class="nc-meta-stat-value">@Model.SoldAmount units sold</span>
+                    </div>
+                </div>
+                <div class="nc-meta-stat">
+                    <div class="nc-meta-stat-icon"><i class="fa fa-tag"></i></div>
+                    <div class="nc-meta-stat-content">
+                        <span class="nc-meta-stat-label">Manufacturer</span>
+                        <span class="nc-meta-stat-value">@Model.Brand</span>
                     </div>
                 </div>
             </div>
@@ -86,7 +117,29 @@
 </div>
 
 <script>
-    function updateMainImage(url, el) {
+    const productImages = [
+        @if (Model.ProductImages != null)
+        {
+            foreach (var img in Model.ProductImages)
+            {
+                @: '@img.Url',
+            }
+        }
+    ];
+    let currentImageIndex = @(Model.ProductImages != null && primaryUrl != null ? Math.Max(0, Model.ProductImages.ToList().FindIndex(p => p.Url == primaryUrl)) : 0);
+
+    function navigateImage(direction, event) {
+        if (event) event.stopPropagation();
+        if (productImages.length <= 1) return;
+        
+        currentImageIndex += direction;
+        if (currentImageIndex < 0) currentImageIndex = productImages.length - 1;
+        if (currentImageIndex >= productImages.length) currentImageIndex = 0;
+        
+        applyImageChange(productImages[currentImageIndex]);
+    }
+
+    function applyImageChange(url) {
         const main = document.getElementById('mainProductImage');
         main.style.opacity = '0';
         setTimeout(() => {
@@ -94,8 +147,18 @@
             main.style.opacity = '1';
         }, 200);
         
-        document.querySelectorAll('.nc-gallery-item').forEach(item => item.classList.remove('active'));
-        el.classList.add('active');
+        document.querySelectorAll('.nc-gallery-item').forEach((item, index) => {
+            if (index === currentImageIndex) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    function updateMainImage(url, el) {
+        currentImageIndex = productImages.indexOf(url);
+        applyImageChange(url);
     }
     function openFullscreen(url) {
         const overlay = document.getElementById('fullscreenOverlay');
@@ -169,6 +232,38 @@
         transform: scale(1.08);
     }
 
+    .nc-img-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(14, 18, 26, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.3s;
+        backdrop-filter: blur(4px);
+    }
+
+    .nc-img-nav:hover {
+        background: var(--nc-primary);
+        color: #fff;
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .nc-main-image-wrapper:hover .nc-img-nav {
+        opacity: 1;
+    }
+
+    .nc-img-nav.prev { left: 1rem; }
+    .nc-img-nav.next { right: 1rem; }
+
     .nc-image-badge {
         position: absolute;
         top: 1.5rem;
@@ -233,7 +328,7 @@
     /* ── Meta Stats ─────────────────────────────────────────── */
     .nc-meta-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.5rem;
     }
 

@@ -1,0 +1,28 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using MvcMusic.Data
+@inject MvcMusicContext Db
+
+@{
+    ViewData["Title"] = "NightCord — Instruments That Speak";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var bannerProducts = await Db.Product.Include(p => p.ProductImages).Where(p => p.IsBanner).ToListAsync();
+}
+
+<!DOCTYPE html>
+<html>
+<body style="padding-top:0!important;">
+
+    <!-- Component: Hero Section -->
+    <partial name="Components/_Hero" />
+
+    <!-- Component: Featured Banners -->
+    @if (bannerProducts.Count > 0)
+    {
+        <partial name="Components/_FeaturedBanners" model="bannerProducts" />
+    }
+
+    <!-- Component: Why NightCord Section -->
+    <partial name="Components/_WhyNightCord" />
+
+</body>
+</html>

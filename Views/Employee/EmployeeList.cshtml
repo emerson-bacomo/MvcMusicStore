@@ -1,0 +1,148 @@
+@model List<(MvcMusic.Models.ApplicationUser user, string role)>
+
+@{
+    ViewData["Title"] = "Employee Management";
+}
+
+<div class="nc-page">
+    <div class="container-fluid px-4">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="nc-alert nc-alert-success"><i class="fa fa-circle-check"></i> @TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="nc-alert nc-alert-error"><i class="fa fa-circle-xmark"></i> @TempData["Error"]</div>
+        }
+
+        <div class="nc-page-header">
+            <div>
+                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;">
+                    <i class="fa fa-user-shield me-1"></i> SuperAdmin Panel
+                </div>
+                <h1 class="nc-page-title">Employee Management</h1>
+                <p style="color:var(--nc-text-muted);font-size:0.88rem;margin-top:0.25rem;">Manage Admin and Staff accounts</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="ActivityLogs" class="btn-nc-outline" style="padding:0.6rem 1.2rem;border-radius:var(--nc-radius-sm);">
+                    <i class="fa fa-list-check me-1"></i> All Logs
+                </a>
+                <a asp-action="Create" class="btn-nc-primary" style="padding:0.6rem 1.2rem;border-radius:var(--nc-radius-sm);">
+                    <i class="fa fa-user-plus me-1"></i> Add Employee
+                </a>
+            </div>
+        </div>
+
+        <div class="nc-card">
+            <div class="nc-card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div style="text-align:center;padding:3rem;color:var(--nc-text-muted);">
+                        <i class="fa fa-users-slash" style="font-size:2.5rem;display:block;margin-bottom:1rem;"></i>
+                        <p>No employees found.</p>
+                        <a asp-action="Create" class="btn-nc-primary" style="margin-top:1rem;display:inline-block;padding:0.6rem 1.2rem;">Create First Employee</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="nc-table-responsive">
+                        <table class="nc-table">
+                            <thead>
+                                <tr>
+                                    <th><i class="fa fa-id-badge me-1"></i> Code</th>
+                                    <th><i class="fa fa-user me-1"></i> Name</th>
+                                    <th><i class="fa fa-at me-1"></i> Username</th>
+                                    <th><i class="fa fa-envelope me-1"></i> Email</th>
+                                    <th><i class="fa fa-shield-halved me-1"></i> Role</th>
+                                    <th><i class="fa fa-circle me-1"></i> Status</th>
+                                    <th><i class="fa fa-calendar me-1"></i> Created</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var (emp, role) in Model)
+                                {
+                                    <tr class="@(emp.IsDisabled ? "row-disabled" : "")">
+                                        <td>
+                                            <span class="emp-code">@(emp.UserName ?? "—")</span>
+                                        </td>
+                                        <td>
+                                            <div class="emp-name-cell">
+                                                @if (!string.IsNullOrEmpty(emp.ProfilePicture))
+                                                {
+                                                    <img src="@emp.ProfilePicture" class="emp-avatar" onerror="this.src='https://placehold.co/36x36/1a1f2c/7babdd?text=?'" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="emp-avatar-placeholder">
+                                                        @((emp.FirstName?.First() ?? '?').ToString().ToUpper())
+                                                    </div>
+                                                }
+                                                <span style="font-weight:600;">@emp.FirstName @emp.LastName @(emp.UserName == User.Identity?.Name ? "(You)" : "")</span>
+                                            </div>
+                                        </td>
+                                        <td style="color:var(--nc-text-muted);font-size:0.85rem;">@emp.UserName</td>
+                                        <td style="color:var(--nc-text-secondary);font-size:0.9rem;">@emp.Email</td>
+                                        <td>
+                                            <span class="role-badge role-@role.ToLower()">@role</span>
+                                        </td>
+                                        <td>
+                                            @if (emp.IsDisabled)
+                                            {
+                                                <span style="color:#e57373;font-size:0.8rem;"><i class="fa fa-circle-xmark me-1"></i>Disabled</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="color:#81c784;font-size:0.8rem;"><i class="fa fa-circle-check me-1"></i>Active</span>
+                                            }
+                                        </td>
+                                        <td style="color:var(--nc-text-muted);font-size:0.8rem;">@emp.DateCreated.ToString("MMM d, yyyy")</td>
+                                        <td class="text-end">
+                                            <div class="nc-action-group">
+                                                <a asp-action="Edit" asp-route-id="@emp.Id" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>
+                                                <a asp-action="ResetPassword" asp-route-id="@emp.Id" class="nc-action-link" title="Reset Password"><i class="fa fa-key"></i></a>
+                                                <a asp-action="ActivityLogs" asp-route-id="@emp.Id" class="nc-action-link" title="View Logs"><i class="fa fa-list-check"></i></a>
+                                                <form asp-action="ToggleDisable" asp-route-id="@emp.Id" method="post" style="display:inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="nc-action-link @(emp.IsDisabled ? "enable" : "disable")" title="@(emp.IsDisabled ? "Enable" : "Disable")">
+                                                        <i class="fa @(emp.IsDisabled ? "fa-circle-play" : "fa-ban")"></i>
+                                                    </button>
+                                                </form>
+                                                @if (role != "SuperAdmin")
+                                                {
+                                                    <a asp-action="Delete" asp-route-id="@emp.Id" class="nc-action-link delete" title="Delete"><i class="fa fa-trash"></i></a>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nc-table-responsive { overflow-x: auto; }
+    .emp-code { font-family: 'Orbitron', monospace; font-size: 0.75rem; color: var(--nc-primary); background: rgba(123,171,221,0.1); padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 700; }
+    .emp-name-cell { display: flex; align-items: center; gap: 0.75rem; }
+    .emp-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--nc-border); }
+    .emp-avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: rgba(123,171,221,0.15); color: var(--nc-primary); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 800; border: 1.5px solid var(--nc-border); flex-shrink: 0; }
+    .role-badge { font-size: 0.73rem; padding: 0.2rem 0.7rem; border-radius: 100px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em; }
+    .role-admin { background: rgba(123,171,221,0.15); color: var(--nc-primary); border: 1px solid rgba(123,171,221,0.3); }
+    .role-staff { background: rgba(129,199,132,0.15); color: #81c784; border: 1px solid rgba(129,199,132,0.3); }
+    .role-superadmin { background: rgba(255,183,77,0.15); color: #ffb74d; border: 1px solid rgba(255,183,77,0.3); }
+    .row-disabled td { opacity: 0.5; }
+    .nc-action-group { display: flex; gap: 0.5rem; justify-content: flex-end; }
+    .nc-action-link { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--nc-bg-secondary); color: var(--nc-text-secondary); transition: all 0.25s; border: 1px solid var(--nc-border); cursor: pointer; font-size: 0.85rem; }
+    .nc-action-link:hover { background: var(--nc-primary); color: #fff; transform: translateY(-2px); border-color: var(--nc-primary); }
+    .nc-action-link.delete { color: #e57373; }
+    .nc-action-link.delete:hover { background: #e57373; border-color: #e57373; color: #fff; }
+    .nc-action-link.disable:hover { background: #ffb74d; border-color: #ffb74d; color: #fff; }
+    .nc-action-link.enable:hover { background: #81c784; border-color: #81c784; color: #fff; }
+    .nc-card-body.p-0 { padding: 0; }
+</style>

@@ -1,0 +1,155 @@
+@model List<MvcMusic.Models.Order>
+
+@{
+    ViewData["Title"] = "Customer Profile";
+    var customer = ViewBag.Customer as MvcMusic.Models.ApplicationUser;
+}
+
+<div class="nc-page">
+    <div class="container-fluid px-4">
+        <div style="margin-bottom:2rem;">
+            <a asp-action="Index" class="btn-nc-outline" style="padding:0.5rem 1rem; border-radius:var(--nc-radius-sm);">
+                <i class="fa fa-arrow-left me-1"></i> Back to Customers
+            </a>
+        </div>
+
+        <div class="row gx-4">
+            <div class="col-lg-4 mb-4">
+                <div class="nc-card">
+                    <div class="nc-card-body p-4 text-center">
+                        <div style="margin-bottom:1.5rem;">
+                            @if (!string.IsNullOrEmpty(customer.ProfilePicture))
+                            {
+                                <img src="@customer.ProfilePicture" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--nc-border);padding:4px;" />
+                            }
+                            else
+                            {
+                                <div style="width:120px;height:120px;border-radius:50%;background:rgba(123,171,221,0.15);color:var(--nc-primary);display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:800;border:3px solid var(--nc-border);margin:0 auto;">
+                                    @((customer.FirstName?.FirstOrDefault() ?? customer.UserName?.FirstOrDefault() ?? '?').ToString().ToUpper())
+                                </div>
+                            }
+                        </div>
+                        <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.25rem;">@(string.IsNullOrWhiteSpace(customer.FullName.Trim()) ? customer.UserName : customer.FullName)</h2>
+                        <div style="color:var(--nc-text-secondary);font-size:0.9rem;margin-bottom:1rem;">@customer.Email</div>
+                        
+                        <div style="display:inline-block;padding:0.3rem 1rem;border-radius:100px;font-size:0.8rem;font-weight:700;margin-bottom:2rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                            Joined @customer.DateCreated.ToString("MMM d, yyyy")
+                        </div>
+
+                        <div style="text-align:left;border-top:1px solid var(--nc-border);padding-top:1.5rem;">
+                            <div style="margin-bottom:1rem;font-size:0.85rem;">
+                                <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Status</span>
+                                @if (customer.IsDisabled)
+                                {
+                                    <span style="color:#e57373;font-weight:700;"><i class="fa fa-ban me-1"></i> Banned / Disabled</span>
+                                }
+                                else
+                                {
+                                    <span style="color:#81c784;font-weight:700;"><i class="fa fa-circle-check me-1"></i> Active Account</span>
+                                }
+                            </div>
+                            <div style="margin-bottom:1rem;font-size:0.85rem;">
+                                <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Orders</span>
+                                <span style="color:var(--nc-text-primary);font-weight:700;font-size:1.1rem;">@Model.Count</span>
+                            </div>
+                            <div style="font-size:0.85rem;">
+                                <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Spent</span>
+                                <span style="color:var(--nc-primary);font-weight:800;font-size:1.2rem;">₱ @Model.Where(o => o.Status != "Cancelled").Sum(o => o.TotalAmount).ToString("N2")</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--nc-border);">
+                            <form asp-action="ToggleBan" asp-route-id="@customer.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                @if (customer.IsDisabled)
+                                {
+                                    <button type="submit" class="btn btn-success w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                        <i class="fa fa-circle-play me-2"></i> Restore Account
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-outline-danger w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                        <i class="fa fa-ban me-2"></i> Ban Customer
+                                    </button>
+                                }
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="nc-card">
+                    <div class="nc-card-header" style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--nc-border);">
+                        <h3 style="font-size:1.1rem;font-weight:700;margin:0;"><i class="fa fa-clock-rotate-left me-2 text-primary"></i> Order History</h3>
+                    </div>
+                    <div class="nc-card-body p-0">
+                        @if (!Model.Any())
+                        {
+                            <div style="text-align:center;padding:4rem 2rem;color:var(--nc-text-muted);">
+                                <i class="fa fa-box-open" style="font-size:3rem;margin-bottom:1rem;opacity:0.5;"></i>
+                                <p>No orders found for this customer.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="nc-table-responsive" style="max-height: 600px; overflow-y: auto;">
+                                <table class="nc-table align-middle">
+                                    <thead style="position: sticky; top: 0; background: var(--nc-bg-card); z-index: 10;">
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Date</th>
+                                            <th>Items</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var o in Model)
+                                        {
+                                            <tr>
+                                                <td style="font-weight:600;color:var(--nc-text-secondary);">@o.Id</td>
+                                                <td style="color:var(--nc-text-muted);font-size:0.85rem;">@o.OrderDate.ToString("MMM d, yyyy HH:mm")</td>
+                                                <td>
+                                                    <div style="font-size:0.85rem;">
+                                                        @foreach (var i in o.OrderItems.Take(2))
+                                                        {
+                                                            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="@i.Product?.Name">
+                                                                <span style="color:var(--nc-text-muted);">@i.Quantity x</span> @(i.Product?.Name ?? "Unknown Product")
+                                                            </div>
+                                                        }
+                                                        @if (o.OrderItems.Count > 2)
+                                                        {
+                                                            <div style="color:var(--nc-primary);font-size:0.75rem;margin-top:2px;">+ @(o.OrderItems.Count - 2) more</div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td style="font-weight:700;">₱ @o.TotalAmount.ToString("N2")</td>
+                                                <td>
+                                                    @{
+                                                        var sc = o.Status switch { "Delivered" => "status-delivered", "OnDelivery" => "status-delivery", "Pending" => "status-pending", _ => "status-cancelled" };
+                                                        var sl = o.Status switch { "OnDelivery" => "On Delivery", _ => o.Status };
+                                                    }
+                                                    <span class="nc-order-badge @sc">@sl</span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nc-order-badge { font-size: 0.75rem; padding: 0.25rem 0.8rem; border-radius: 100px; font-weight: 700; display: inline-block; white-space: nowrap; }
+    .status-delivered { background: rgba(129,199,132,0.1); color: #81c784; border: 1px solid rgba(129,199,132,0.2); }
+    .status-delivery { background: rgba(255,183,77,0.1); color: #ffb74d; border: 1px solid rgba(255,183,77,0.2); }
+    .status-pending { background: rgba(123,171,221,0.1); color: var(--nc-primary); border: 1px solid rgba(123,171,221,0.2); }
+    .status-cancelled { background: rgba(229,115,115,0.1); color: #e57373; border: 1px solid rgba(229,115,115,0.2); }
+</style>

@@ -17,5 +17,8 @@ namespace MvcMusic.Data
 
         public DbSet<MvcMusic.Models.Product> Product { get; set; } = default!;
         public DbSet<MvcMusic.Models.ProductImage> ProductImage { get; set; } = default!;
+        public DbSet<MvcMusic.Models.ActivityLog> ActivityLog { get; set; } = default!;
+        public DbSet<MvcMusic.Models.Order> Order { get; set; } = default!;
+        public DbSet<MvcMusic.Models.OrderItem> OrderItem { get; set; } = default!;
     }
 }

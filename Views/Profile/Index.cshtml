@@ -1,0 +1,152 @@
+@model MvcMusic.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "My Profile";
+    var roles = ViewBag.Roles as IList<string> ?? new List<string>();
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div class="nc-profile-card">
+            <div class="nc-profile-header">
+                <div class="nc-profile-avatar-large">
+                    @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                    {
+                        <img src="@Model.ProfilePicture" alt="Profile Picture" />
+                    }
+                    else
+                    {
+                        <div class="nc-avatar-placeholder">
+                            <i class="fa fa-user"></i>
+                        </div>
+                    }
+                </div>
+                <div class="nc-profile-info">
+                    <h1 class="nc-profile-name">@Model.FirstName @Model.LastName</h1>
+                    <div class="nc-profile-badges">
+                        @foreach (var role in roles)
+                        {
+                            <span class="nc-badge nc-badge-@role.ToLower()">@role</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="nc-profile-details">
+                <div class="nc-detail-group">
+                    <label>Username</label>
+                    <div class="nc-detail-value">@Model.UserName</div>
+                </div>
+                <div class="nc-detail-group">
+                    <label>Email Address</label>
+                    <div class="nc-detail-value">@Model.Email</div>
+                </div>
+                <div class="nc-detail-group">
+                    <label>Joined Since</label>
+                    <div class="nc-detail-value">@Model.DateCreated.ToString("MMMM dd, yyyy")</div>
+                </div>
+            </div>
+
+            <div class="nc-profile-actions">
+                <a asp-action="Edit" class="btn-nc-primary">
+                    <i class="fa fa-pen me-2"></i> Edit Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nc-profile-card {
+        background: var(--nc-bg-card);
+        border: 1px solid var(--nc-border);
+        border-radius: 20px;
+        padding: 3rem;
+        max-width: 800px;
+        margin: 0 auto;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+
+    .nc-profile-header {
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--nc-border);
+    }
+
+    .nc-profile-avatar-large {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 4px solid var(--nc-primary);
+        background: #1a1f2c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nc-profile-avatar-large img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .nc-avatar-placeholder {
+        font-size: 4rem;
+        color: var(--nc-primary);
+        opacity: 0.5;
+    }
+
+    .nc-profile-name {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .nc-profile-badges {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .nc-profile-code {
+        font-size: 0.9rem;
+        color: var(--nc-text-muted);
+        font-family: monospace;
+    }
+
+    .nc-profile-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .nc-detail-group label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--nc-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.5rem;
+    }
+
+    .nc-detail-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--nc-text-primary);
+    }
+
+    .nc-badge-superadmin { background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); }
+    .nc-badge-admin { background: rgba(123, 171, 221, 0.15); color: var(--nc-primary); border: 1px solid rgba(123, 171, 221, 0.3); }
+    .nc-badge-staff { background: rgba(129, 199, 132, 0.15); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.3); }
+    .nc-badge-user { background: rgba(255, 255, 255, 0.05); color: var(--nc-text-muted); border: 1px solid var(--nc-border); }
+
+    .nc-profile-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+</style>

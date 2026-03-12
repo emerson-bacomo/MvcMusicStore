@@ -1,0 +1,99 @@
+@model MvcMusic.ViewModels.EmployeeEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Employee";
+    var roles = new[] { "Admin", "Staff" };
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div style="margin-bottom:2rem;">
+            <a asp-action="Index" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
+                <i class="fa fa-arrow-left me-1"></i> Back to Employees
+            </a>
+        </div>
+
+        <div class="nc-page-header">
+            <div>
+                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;"><i class="fa fa-pen me-1"></i> SuperAdmin Panel</div>
+                <h1 class="nc-page-title">Edit Employee</h1>
+                @if (!string.IsNullOrEmpty(Model.UserName))
+                {
+                    <span class="emp-code-display">@Model.UserName</span>
+                }
+            </div>
+        </div>
+
+        <div class="nc-card nc-form-card">
+            <div class="nc-card-body">
+                <asp-validation-summary class="nc-validation-summary" model-only="false"></asp-validation-summary>
+
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="nc-form-section">
+                        <div class="nc-form-section-title">Account Identity (Read-only)</div>
+                        <div class="nc-form-group">
+                            <label class="nc-label">Username</label>
+                            <input value="@Model.UserName" class="nc-input" readonly style="opacity:0.6;cursor:not-allowed;" />
+                            <small style="color:var(--nc-text-muted);font-size:0.75rem;">Username cannot be changed by admins.</small>
+                        </div>
+                    </div>
+
+                    <div class="nc-form-section">
+                        <div class="nc-form-section-title">Personal Information</div>
+                        <div class="nc-form-grid">
+                            <div class="nc-form-group">
+                                <label asp-for="FirstName" class="nc-label"></label>
+                                <input asp-for="FirstName" class="nc-input" />
+                                <span asp-validation-for="FirstName" class="nc-validation-error"></span>
+                            </div>
+                            <div class="nc-form-group">
+                                <label asp-for="LastName" class="nc-label"></label>
+                                <input asp-for="LastName" class="nc-input" />
+                                <span asp-validation-for="LastName" class="nc-validation-error"></span>
+                            </div>
+                            <div class="nc-form-group">
+                                <label asp-for="Email" class="nc-label"></label>
+                                <input asp-for="Email" type="email" class="nc-input" />
+                                <span asp-validation-for="Email" class="nc-validation-error"></span>
+                            </div>
+                            <div class="nc-form-group">
+                                <label asp-for="Role" class="nc-label"></label>
+                                <select asp-for="Role" class="nc-input nc-select">
+                                    @foreach (var r in roles)
+                                    {
+                                        if (r == Model.Role)
+                                        {
+                                            <option value="@r" selected>@r</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@r">@r</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="Role" class="nc-validation-error"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:1rem;">
+                        <button type="submit" class="btn-nc-primary" style="padding:0.75rem 2rem;border-radius:var(--nc-radius-sm);">
+                            <i class="fa fa-floppy-disk me-2"></i> Save Changes
+                        </button>
+                        <a asp-action="Index" class="btn-nc-outline" style="padding:0.75rem 1.5rem;border-radius:var(--nc-radius-sm);">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .emp-code-display { font-family:'Orbitron',monospace; font-size:0.9rem; color:var(--nc-primary); background:rgba(123,171,221,0.1); padding:0.3rem 0.8rem; border-radius:6px; font-weight:700; display:inline-block; margin-top:0.5rem; }
+    .nc-select option { background:var(--nc-bg-card); color:var(--nc-text-primary); }
+</style>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

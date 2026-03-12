@@ -2,8 +2,8 @@
 @using MvcMusic.Data
 @inject MvcMusicContext Db
 @{
-    var bannerProducts = await Db.Product.Include(p => p.ProductImages).Where(p => p.IsBanner).ToListAsync();
-    var firstProduct = bannerProducts.FirstOrDefault();
+    var topSellers = await Db.Product.Include(p => p.ProductImages).OrderByDescending(p => p.SoldAmount).Take(10).ToListAsync();
+    var firstProduct = topSellers.FirstOrDefault();
 
     // Default to the first product's stats if any
     string initSold = "0";
@@ -76,6 +76,12 @@
         font-size: 0.9rem;
         margin-bottom: 1rem;
         max-width: 80%;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
     }
 
     .nc-carousel-price {
@@ -276,7 +282,7 @@
 
         <div class="col-lg-6 col-12 position-relative d-flex flex-column ms-auto" 
              style="gap: 2rem;">
-            @if (bannerProducts.Any())
+            @if (topSellers.Any())
             {
                 <div class="d-flex flex-wrap justify-content-center justify-content-lg-start" 
                      style="gap: 1.5rem;">
@@ -292,9 +298,9 @@
                 <div id="heroCarousel" class="carousel slide nc-hero-carousel">
                     <div class="carousel-inner h-100">
                         <div class="nc-carousel-overlay"></div>
-                        @for (int i = 0; i < bannerProducts.Count; i++)
+                        @for (int i = 0; i < topSellers.Count; i++)
                         {
-                            var product = bannerProducts[i];
+                            var product = topSellers[i];
                             string pSold = product.SoldAmount >= 1000 ? (product.SoldAmount / 1000.0).ToString("0.#") + "K+" : product.SoldAmount.ToString();
                             string pRating = product.Rating.ToString("0.#") + "★";
                             string pStock = product.Stock.ToString();
@@ -314,9 +320,9 @@
                                     <!-- Content Container -->
                                     <div class="nc-carousel-inner-content">
                                         <div class="nc-carousel-name">@product.Name</div>
-                                        @if (!string.IsNullOrEmpty(product.BannerDescription))
+                                        @if (!string.IsNullOrEmpty(product.Description))
                                         {
-                                            <div class="nc-carousel-desc">@product.BannerDescription</div>
+                                            <div class="nc-carousel-desc">@product.Description</div>
                                         }
                                         <div class="nc-carousel-price">₱ @product.Price.ToString("N2")</div>
                                     </div>

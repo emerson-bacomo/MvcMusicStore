@@ -42,6 +42,8 @@ builder.Services.AddControllersWithViews(options =>
     options.Conventions.Add(new RouteTokenTransformerConvention(new KebabCaseTransformer()));
 });
 
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -49,8 +51,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<MvcMusicContext>();
     context.Database.Migrate();
-    await DataSeeder.SeedRolesAsync(services);
-    SeedData.Initialize(services);
+    await DataSeeder.SeedAllAsync(services);
 }
 
 // Configure the HTTP request pipeline.
@@ -70,7 +71,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Landing}/{action=Index}/{id?}");
 
 app.MapRazorPages();
 

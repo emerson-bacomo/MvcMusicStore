@@ -1,28 +1,221 @@
-﻿@using Microsoft.EntityFrameworkCore
-@using MvcMusic.Data
-@inject MvcMusicContext Db
+@model IEnumerable<MvcMusic.Models.Product>
 
 @{
-    ViewData["Title"] = "NightCord — Instruments That Speak";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    var bannerProducts = await Db.Product.Include(p => p.ProductImages).Where(p => p.IsBanner).ToListAsync();
+    ViewData["Title"] = "Home — NightCord";
+    var categories = ViewData["Categories"] as List<string> ?? new List<string>();
+    var currentCategory = ViewData["CurrentCategory"]?.ToString();
+    var currentSearch = ViewData["CurrentSearch"]?.ToString();
+    var bannerProducts = ViewData["BannerProducts"] as List<MvcMusic.Models.Product> ?? new List<MvcMusic.Models.Product>();
 }
 
-<!DOCTYPE html>
-<html>
-<body style="padding-top:0!important;">
+<style>
+    /* Filter Bar Styles */
+    .nc-filter-bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; }
+    .nc-search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .nc-search-wrap .nc-input { padding-left: 2.5rem; }
+    .nc-search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--nc-text-muted); font-size: 0.9rem; }
+    .nc-select { background: rgba(255, 255, 255, 0.05); border: 1.5px solid var(--nc-border); border-radius: var(--nc-radius-sm); color: var(--nc-text-primary); padding: 0.7rem 1rem; font-family: inherit; font-size: 0.9rem; outline: none; cursor: pointer; transition: var(--transition); }
+    .nc-select:focus { border-color: var(--nc-primary); }
+    .nc-select option { background: var(--nc-bg-card); }
+    .nc-products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1.5rem; }
 
-    <!-- Component: Hero Section -->
-    <partial name="Components/_Hero" />
+    /* Carousel Styles */
+    .nc-hero-carousel { position: relative; width: 100%; border-radius: var(--nc-radius); overflow: hidden; border: 1px solid var(--nc-border); aspect-ratio: 21/9; background: var(--nc-bg-secondary); margin-bottom: 3rem; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .carousel-item-content { position: relative; width: 100%; height: 100%; cursor: pointer; }
+    .carousel-item-content img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .nc-hero-carousel:hover .carousel-item-content img { transform: scale(1.05); }
+    .nc-carousel-tag { position: absolute; top: 1.5rem; left: 1.5rem; background: var(--nc-primary); color: #fff; padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; z-index: 4; }
+    .nc-carousel-name { color: #fff; font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; }
+    .nc-carousel-desc { color: var(--nc-text-secondary); font-size: 1rem; margin-bottom: 1rem; max-width: 80%; }
+    .nc-carousel-price { color: var(--nc-accent); font-weight: 700; font-size: 1.3rem; }
+    .nc-carousel-img { position: absolute; inset: 0; z-index: 1; }
+    .nc-carousel-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,12,16,0.95) 0%, rgba(10,12,16,0.3) 60%, transparent 100%); pointer-events: none; z-index: 2; }
+    .nc-carousel-inner-content { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem; z-index: 3; }
+    .nc-carousel-control { width: 10%; z-index: 15; }
+    .nc-carousel-icon { filter: drop-shadow(0 0 4px rgba(0,0,0,0.5)); }
+</style>
 
-    <!-- Component: Featured Banners -->
-    @if (bannerProducts.Count > 0)
-    {
-        <partial name="Components/_FeaturedBanners" model="bannerProducts" />
-    }
+<div class="nc-page">
+    <div class="container-fluid px-4 mx-auto" style="max-width: 1600px;">
+        
+        <!-- Banner Carousel -->
+        @if (bannerProducts.Any())
+        {
+            <div id="heroCarousel" class="carousel slide nc-hero-carousel">
+                <div class="carousel-inner h-100">
+                    <div class="nc-carousel-overlay"></div>
+                    @for (int i = 0; i < bannerProducts.Count; i++)
+                    {
+                        var product = bannerProducts[i];
+                        <div class="carousel-item h-100 @(i == 0 ? "active" : "")">
+                            <div class="carousel-item-content" onclick="window.location='@Url.Action("Details", "Products", new { id = product.Id })'">
+                                <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)" alt="@product.Name" class="nc-carousel-img" />
+                                <span class="nc-carousel-tag">Featured</span>
+                                <div class="nc-carousel-inner-content">
+                                    <div class="nc-carousel-name">@product.Name</div>
+                                    @if (!string.IsNullOrEmpty(product.BannerDescription))
+                                    {
+                                        <div class="nc-carousel-desc">@product.BannerDescription</div>
+                                    }
+                                    <div class="nc-carousel-price">₱ @product.Price.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: rgba(255, 255, 255, 0.1); z-index: 10;">
+                    <div id="carouselProgressBar" style="height: 100%; background: #9fdcff56; width: 0%;"></div>
+                </div>
 
-    <!-- Component: Why NightCord Section -->
-    <partial name="Components/_WhyNightCord" />
+                <button class="carousel-control-prev nc-carousel-control" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon nc-carousel-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next nc-carousel-control" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon nc-carousel-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        }
 
-</body>
-</html>
+        <div class="nc-page-header">
+            <div>
+                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;">
+                    <i class="fa fa-music me-1"></i> Welcome, @User.Identity?.Name
+                </div>
+                <h1 class="nc-page-title">Browse Instruments</h1>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <form method="get" asp-action="UserHome">
+            <div class="nc-filter-bar">
+                <div class="nc-search-wrap">
+                    <i class="fa fa-search nc-search-icon"></i>
+                    <input type="text" name="search" value="@currentSearch" class="nc-input" placeholder="Search by name or brand..." />
+                </div>
+                <select name="category" class="nc-select" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    @foreach (var cat in categories)
+                    {
+                        if (cat == currentCategory)
+                        {
+                            <option value="@cat" selected="selected">@cat</option>
+                        }
+                        else
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    }
+                </select>
+                <button type="submit" class="btn-nc-primary" style="white-space:nowrap; padding: 0.7rem 1.5rem; border-radius: var(--nc-radius-sm);">
+                    <i class="fa fa-search me-1"></i> Search
+                </button>
+                @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(currentCategory))
+                {
+                    <a asp-action="UserHome" class="btn-nc-outline" style="white-space:nowrap; padding: 0.7rem 1.2rem; border-radius: var(--nc-radius-sm);">
+                        <i class="fa fa-xmark me-1"></i> Clear
+                    </a>
+                }
+            </div>
+        </form>
+
+        @if (!Model.Any())
+        {
+            <div style="text-align:center;padding:4rem 0;color:var(--nc-text-muted);">
+                <i class="fa fa-guitar" style="font-size:3rem;margin-bottom:1rem;display:block;"></i>
+                <p style="font-size:1rem;">No instruments found matching your criteria.</p>
+                <a asp-action="UserHome" class="btn-nc-outline" style="margin-top:1rem;display:inline-block; padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">View All</a>
+            </div>
+        }
+        else
+        {
+            <div class="nc-products-grid">
+                @foreach (var product in Model)
+                {
+                    <partial name="Components/_ProductCard" model="product" />
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const bannerCarouselEl = document.getElementById("heroCarousel");
+        const progressEl = document.getElementById("carouselProgressBar");
+        if (!bannerCarouselEl) return;
+        const slides = bannerCarouselEl.querySelectorAll(".carousel-item");
+        if (slides.length <= 1) return;
+        const duration = 5000;
+        let slideTimer;
+        let slideStartTime;
+        const bannerCarousel = new bootstrap.Carousel(bannerCarouselEl, { interval: false, ride: false, pause: false });
+
+        const startProgress = () => {
+            slideStartTime = Date.now();
+            progressEl.style.transition = "none";
+            progressEl.style.width = "0%";
+            requestAnimationFrame(() => {
+                progressEl.style.transition = `width ${duration}ms linear`;
+                progressEl.style.width = "100%";
+            });
+            clearTimeout(slideTimer);
+            slideTimer = setTimeout(() => { bannerCarousel.next(); }, duration);
+        };
+
+        const pauseProgress = () => {
+            clearTimeout(slideTimer);
+            const timeElapsed = Date.now() - slideStartTime;
+            const percentElapsed = (timeElapsed / duration) * 100;
+            const timeRemaining = duration - timeElapsed;
+            bannerCarouselEl.dataset.timeRemaining = Math.max(0, timeRemaining);
+            progressEl.style.transition = "none";
+            progressEl.style.width = `${percentElapsed}%`;
+        };
+
+        const resumeProgress = () => {
+            let timeRemaining = parseFloat(bannerCarouselEl.dataset.timeRemaining);
+            if (isNaN(timeRemaining) || timeRemaining <= 0) {
+                startProgress();
+                return;
+            }
+            slideStartTime = Date.now() - (duration - timeRemaining);
+            requestAnimationFrame(() => {
+                progressEl.style.transition = `width ${timeRemaining}ms linear`;
+                progressEl.style.width = "100%";
+            });
+            clearTimeout(slideTimer);
+            slideTimer = setTimeout(() => { bannerCarousel.next(); }, timeRemaining);
+        };
+
+        let isSliding = false;
+        startProgress();
+        bannerCarouselEl.addEventListener("slide.bs.carousel", () => {
+            startProgress();
+            isSliding = true;
+        });
+
+        ["mousedown", "touchstart"].forEach((evt) =>
+            bannerCarouselEl.addEventListener(evt, () => {
+                pauseProgress();
+                bannerCarouselEl.style.cursor = "grabbing";
+            })
+        );
+        ["mouseup", "touchend", "mouseleave"].forEach((evt) =>
+            bannerCarouselEl.addEventListener(evt, () => {
+                if (!isSliding && document.hidden === false && document.hasFocus()) {
+                    resumeProgress();
+                }
+                bannerCarouselEl.style.cursor = "pointer";
+                isSliding = false;
+            })
+        );
+        const handlePagePause = () => pauseProgress();
+        const handlePageResume = () => document.hidden === false && document.hasFocus() && resumeProgress();
+        document.addEventListener("visibilitychange", () => (document.hidden ? handlePagePause() : handlePageResume()));
+        window.addEventListener("blur", handlePagePause);
+        window.addEventListener("focus", handlePageResume);
+    });
+</script>

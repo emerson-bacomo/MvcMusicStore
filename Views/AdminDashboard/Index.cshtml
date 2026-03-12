@@ -1,0 +1,536 @@
+@model MvcMusic.ViewModels.AdminDashboardViewModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Analytics Dashboard";
+    var salesDayLabels = Json.Serialize(Model.SalesByDay.Select(s => s.Label).ToList());
+    var salesDayData   = Json.Serialize(Model.SalesByDay.Select(s => s.Value).ToList());
+    var salesWeekLabels = Json.Serialize(Model.SalesByWeek.Select(s => s.Label).ToList());
+    var salesWeekData   = Json.Serialize(Model.SalesByWeek.Select(s => s.Value).ToList());
+    var salesMonthLabels = Json.Serialize(Model.SalesByMonth.Select(s => s.Label).ToList());
+    var salesMonthData   = Json.Serialize(Model.SalesByMonth.Select(s => s.Value).ToList());
+    var seasonLabels = Json.Serialize(Model.SalesBySeason.Select(s => s.Label).ToList());
+    var seasonData   = Json.Serialize(Model.SalesBySeason.Select(s => s.Value).ToList());
+    var topSellerLabels = Json.Serialize(Model.TopSellers.Select(s => s.Label).ToList());
+    var topSellerData   = Json.Serialize(Model.TopSellers.Select(s => s.Value).ToList());
+    var catLabels = Json.Serialize(Model.RevenueByCategory.Select(s => s.Label).ToList());
+    var catData   = Json.Serialize(Model.RevenueByCategory.Select(s => s.Value).ToList());
+}
+
+<div class="nc-page">
+    <div class="container-fluid px-4">
+
+        <!-- Page Header -->
+        <div class="dash-header">
+            <div>
+                <div class="dash-breadcrumb"><i class="fa fa-chart-line me-1"></i> Admin Panel</div>
+                <h1 class="nc-page-title">Analytics Dashboard</h1>
+            </div>
+            <div class="dash-header-time">
+                <i class="fa fa-clock me-1"></i>
+                <span id="liveTime"></span>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="nc-alert nc-alert-success mb-4">
+                <i class="fa fa-circle-check"></i> @TempData["Success"]
+            </div>
+        }
+
+        <!-- Stat Cards -->
+        <div class="dash-stats-grid">
+            <div class="dash-stat-card revenue">
+                <div class="dash-stat-icon"><i class="fa fa-peso-sign"></i></div>
+                <div class="dash-stat-body">
+                    <div class="dash-stat-label">Total Revenue</div>
+                    <div class="dash-stat-value">₱ @Model.TotalRevenue.ToString("N0")</div>
+                    <div class="dash-stat-sub">Delivered orders only</div>
+                </div>
+            </div>
+            <div class="dash-stat-card orders">
+                <div class="dash-stat-icon"><i class="fa fa-bag-shopping"></i></div>
+                <div class="dash-stat-body">
+                    <div class="dash-stat-label">Total Orders</div>
+                    <div class="dash-stat-value">@Model.TotalOrders</div>
+                    <div class="dash-stat-sub">All time</div>
+                </div>
+            </div>
+            <div class="dash-stat-card customers">
+                <div class="dash-stat-icon"><i class="fa fa-users"></i></div>
+                <div class="dash-stat-body">
+                    <div class="dash-stat-label">Customers</div>
+                    <div class="dash-stat-value">@Model.TotalCustomers</div>
+                    <div class="dash-stat-sub">Registered accounts</div>
+                </div>
+            </div>
+            <div class="dash-stat-card products">
+                <div class="dash-stat-icon"><i class="fa fa-guitar"></i></div>
+                <div class="dash-stat-body">
+                    <div class="dash-stat-label">Products</div>
+                    <div class="dash-stat-value">@Model.TotalProducts</div>
+                    <div class="dash-stat-sub">In catalog</div>
+                </div>
+            </div>
+            <div class="dash-stat-card employees">
+                <div class="dash-stat-icon"><i class="fa fa-user-tie"></i></div>
+                <div class="dash-stat-body">
+                    <div class="dash-stat-label">Employees</div>
+                    <div class="dash-stat-value">@Model.TotalEmployees</div>
+                    <div class="dash-stat-sub">Admin + Staff</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1: Sales by Day and by Month -->
+        <div class="dash-charts-row">
+            <div class="dash-chart-card wide">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-calendar-day me-2"></i>Sales Last 30 Days</div>
+                    <div class="dash-chart-sub">Daily revenue trend</div>
+                </div>
+                <div class="dash-chart-body">
+                    <canvas id="chartDay"></canvas>
+                </div>
+            </div>
+            <div class="dash-chart-card">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-calendar me-2"></i>Sales by Season</div>
+                    <div class="dash-chart-sub">Seasonal breakdown</div>
+                </div>
+                <div class="dash-chart-body">
+                    <canvas id="chartSeason"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2: By Week, By Month -->
+        <div class="dash-charts-row">
+            <div class="dash-chart-card">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-calendar-week me-2"></i>Sales Last 12 Weeks</div>
+                    <div class="dash-chart-sub">Weekly revenue</div>
+                </div>
+                <div class="dash-chart-body">
+                    <canvas id="chartWeek"></canvas>
+                </div>
+            </div>
+            <div class="dash-chart-card">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-calendar-alt me-2"></i>Sales Last 12 Months</div>
+                    <div class="dash-chart-sub">Monthly revenue</div>
+                </div>
+                <div class="dash-chart-body">
+                    <canvas id="chartMonth"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 3: Top Sellers + Revenue by Category -->
+        <div class="dash-charts-row">
+            <div class="dash-chart-card">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-trophy me-2"></i>Top Sellers</div>
+                    <div class="dash-chart-sub">By units sold</div>
+                </div>
+                <div class="dash-chart-body">
+                    <canvas id="chartTopSellers"></canvas>
+                </div>
+            </div>
+            <div class="dash-chart-card">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-chart-pie me-2"></i>Revenue by Category</div>
+                    <div class="dash-chart-sub">Total from orders</div>
+                </div>
+                <div class="dash-chart-body">
+                    <canvas id="chartCategory"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders Table -->
+        <div class="dash-chart-card" style="margin-bottom: 3rem;">
+            <div class="dash-chart-header">
+                <div class="dash-chart-title"><i class="fa fa-clock-rotate-left me-2"></i>Recent Orders</div>
+                <div class="dash-chart-sub">Showing the most recent transactions</div>
+            </div>
+            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--nc-border);">
+                <div class="dash-chart-sub">Manage your most recent transactions below.</div>
+            </div>
+            <table class="nc-table" id="recentOrdersTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Customer</th>
+                        <th>Products</th>
+                        <th class="text-center">Qty</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in Model.RecentOrders)
+                    {
+                        <tr>
+                            <td style="color:var(--nc-text-muted);font-size:0.8rem;">#@o.Id</td>
+                            <td style="font-weight:600;">@o.CustomerName</td>
+                            <td style="color:var(--nc-text-secondary);font-size:0.9rem;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="@o.Products">
+                                @o.Products
+                            </td>
+                            <td class="text-center" style="color:var(--nc-text-secondary);">@o.TotalQuantity</td>
+                            <td style="font-weight:700;color:var(--nc-primary);">₱ @o.Amount.ToString("N2")</td>
+                            <td style="color:var(--nc-text-muted);font-size:0.85rem;">@o.Date.ToString("MMM d, yyyy")</td>
+                            <td>
+                                @{
+                                    var sc = o.Status switch { "Delivered" => "status-delivered", "OnDelivery" => "status-delivery", "Pending" => "status-pending", _ => "" };
+                                    var sl = o.Status switch { "OnDelivery" => "On Delivery", _ => o.Status };
+                                }
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="nc-order-badge @sc">@sl</span>
+                                    @if (o.Status != "Delivered")
+                                    {
+                                        <form asp-action="MarkDelivered" asp-route-id="@o.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-link p-0 ms-2 text-primary" title="Mark as Delivered" style="font-size: 0.9rem;">
+                                                <i class="fa fa-square-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="text-center p-3" style="border-top: 1px solid var(--nc-border);">
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="font-size: 0.8rem; color: var(--nc-text-muted);">Batch size:</span>
+                        <input type="number" id="batchSize" value="10" min="1" max="50" class="nc-input" style="width: 60px; padding: 0.2rem 0.4rem; font-size: 0.8rem;" />
+                    </div>
+                    <button id="showMoreBtn" class="btn-nc-primary" style="padding: 0.4rem 1.5rem; font-size: 0.85rem; border-radius: 6px;">
+                        <i class="fa fa-plus me-1"></i> Show More
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Live clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveTime').textContent = now.toLocaleString();
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        const ncPrimary = '#7babdd';
+        const chartDefaults = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(14,18,26,0.95)',
+                    titleColor: '#e2e8f2',
+                    bodyColor: '#aab4cc',
+                    borderColor: 'rgba(122,171,221,0.3)',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => ' ₱ ' + Number(ctx.parsed.y ?? ctx.parsed).toLocaleString('en-PH', {minimumFractionDigits: 2})
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#647087', font: { size: 11 } }, grid: { color: 'rgba(122,171,221,0.07)' } },
+                y: { ticks: { color: '#647087', font: { size: 11 }, callback: v => '₱' + Number(v).toLocaleString() }, grid: { color: 'rgba(122,171,221,0.07)' } }
+            }
+        };
+
+        const gradientCtx = id => {
+            const canvas = document.getElementById(id);
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(123,171,221,0.35)');
+            gradient.addColorStop(1, 'rgba(123,171,221,0.01)');
+            return { ctx, gradient };
+        };
+
+        // Day chart
+        const dayCtx = gradientCtx('chartDay');
+        new Chart(dayCtx.ctx, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(salesDayLabels),
+                datasets: [{ data: @Html.Raw(salesDayData), borderColor: ncPrimary, backgroundColor: dayCtx.gradient, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: ncPrimary }]
+            },
+            options: { ...chartDefaults }
+        });
+
+        // Week chart
+        const wkCtx = gradientCtx('chartWeek');
+        new Chart(wkCtx.ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(salesWeekLabels),
+                datasets: [{ data: @Html.Raw(salesWeekData), backgroundColor: 'rgba(123,171,221,0.3)', borderColor: ncPrimary, borderWidth: 1.5, borderRadius: 6 }]
+            },
+            options: { ...chartDefaults }
+        });
+
+        // Month chart
+        const moCtx = gradientCtx('chartMonth');
+        new Chart(moCtx.ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(salesMonthLabels),
+                datasets: [{ data: @Html.Raw(salesMonthData), backgroundColor: 'rgba(123,171,221,0.3)', borderColor: ncPrimary, borderWidth: 1.5, borderRadius: 6 }]
+            },
+            options: { ...chartDefaults }
+        });
+
+        // Season chart (doughnut)
+        new Chart(document.getElementById('chartSeason'), {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(seasonLabels),
+                datasets: [{
+                    data: @Html.Raw(seasonData),
+                    backgroundColor: ['rgba(123,171,221,0.7)', 'rgba(129,199,132,0.7)', 'rgba(255,183,77,0.7)', 'rgba(229,115,115,0.7)'],
+                    borderColor: '#0a0c10',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { color: '#aab4cc', font: { size: 12 }, padding: 16 } },
+                    tooltip: { callbacks: { label: ctx => ' ₱ ' + Number(ctx.parsed).toLocaleString('en-PH', {minimumFractionDigits: 2}) } }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // Top sellers
+        new Chart(document.getElementById('chartTopSellers'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(topSellerLabels),
+                datasets: [{ data: @Html.Raw(topSellerData), backgroundColor: 'rgba(210,219,234,0.3)', borderColor: '#d2dbea', borderWidth: 1.5, borderRadius: 6 }]
+            },
+            options: {
+                ...chartDefaults,
+                indexAxis: 'y',
+                plugins: { ...chartDefaults.plugins,
+                    tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.x + ' units sold' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#647087' }, grid: { color: 'rgba(122,171,221,0.07)' } },
+                    y: { ticks: { color: '#aab4cc', font: { size: 11 } }, grid: { color: 'rgba(122,171,221,0.07)' } }
+                }
+            }
+        });
+
+        // Category doughnut
+        const catColors = ['rgba(123,171,221,0.8)','rgba(129,199,132,0.8)','rgba(255,183,77,0.8)','rgba(229,115,115,0.8)','rgba(186,104,200,0.8)','rgba(77,208,225,0.8)','rgba(255,138,101,0.8)'];
+        new Chart(document.getElementById('chartCategory'), {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(catLabels),
+                datasets: [{
+                    data: @Html.Raw(catData),
+                    backgroundColor: catColors,
+                    borderColor: '#0a0c10',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { color: '#aab4cc', font: { size: 12 }, padding: 16 } },
+                    tooltip: { callbacks: { label: ctx => ' ₱ ' + Number(ctx.parsed).toLocaleString('en-PH', {minimumFractionDigits: 2}) } }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // ── AJAX Show More Logic ──────────────────────────────────────────
+        let currentSkip = @Model.RecentOrders.Count;
+        const showMoreBtn = document.getElementById('showMoreBtn');
+        const tableBody = document.querySelector('#recentOrdersTable tbody');
+        const batchInput = document.getElementById('batchSize');
+
+        showMoreBtn.addEventListener('click', async () => {
+            const take = parseInt(batchInput.value) || 10;
+            showMoreBtn.disabled = true;
+            showMoreBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Loading...';
+
+            try {
+                const response = await fetch(`/AdminDashboard/GetMoreOrders?skip=${currentSkip}&take=${take}`);
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    showMoreBtn.innerHTML = '<i class="fa fa-check me-1"></i> No More Orders';
+                    setTimeout(() => {
+                        showMoreBtn.innerHTML = '<i class="fa fa-plus me-1"></i> Show More';
+                        showMoreBtn.disabled = false;
+                    }, 2000);
+                    return;
+                }
+
+                data.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.style.animation = 'fadeIn 0.5s ease-out';
+                    row.innerHTML = `
+                        <td style="color:var(--nc-text-muted);font-size:0.8rem;">#${order.id}</td>
+                        <td style="font-weight:600;">${order.customerName}</td>
+                        <td style="color:var(--nc-text-secondary);font-size:0.9rem;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${order.products}">
+                            ${order.products}
+                        </td>
+                        <td class="text-center" style="color:var(--nc-text-secondary);">${order.totalQuantity}</td>
+                        <td style="font-weight:700;color:var(--nc-primary);">₱ ${order.amount}</td>
+                        <td style="color:var(--nc-text-muted);font-size:0.85rem;">${order.date}</td>
+                        <td>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="nc-order-badge ${order.statusClass}">${order.statusLabel}</span>
+                                ${order.status !== 'Delivered' ? `
+                                    <form action="/AdminDashboard/MarkDelivered/${order.id}" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-link p-0 ms-2 text-primary" title="Mark as Delivered" style="font-size: 0.9rem;">
+                                            <i class="fa fa-square-check"></i>
+                                        </button>
+                                    </form>
+                                ` : ''}
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                currentSkip += data.length;
+                showMoreBtn.disabled = false;
+                showMoreBtn.innerHTML = '<i class="fa fa-plus me-1"></i> Show More';
+
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                showMoreBtn.innerHTML = '<i class="fa fa-exclamation-triangle me-1"></i> Error';
+                showMoreBtn.disabled = false;
+            }
+        });
+    </script>
+}
+
+<style>
+    /* Hide number input spinners */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--nc-border);
+    }
+    .dash-breadcrumb { color: var(--nc-text-muted); font-size: 0.8rem; margin-bottom: 0.25rem; }
+    .dash-header-time { color: var(--nc-text-muted); font-size: 0.85rem; }
+
+    .dash-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    @@media (max-width: 1200px) { .dash-stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    @@media (max-width: 768px) { .dash-stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .dash-stat-card {
+        background: var(--nc-bg-card);
+        border: 1px solid var(--nc-border);
+        border-radius: 14px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+    .dash-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: var(--nc-primary);
+        opacity: 0;
+        transition: var(--transition);
+    }
+    .dash-stat-card:hover { transform: translateY(-3px); border-color: var(--nc-primary); box-shadow: 0 8px 24px rgba(123,171,221,0.12); }
+    .dash-stat-card:hover::before { opacity: 1; }
+
+    .dash-stat-icon {
+        width: 52px; height: 52px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .revenue .dash-stat-icon { background: rgba(123,171,221,0.12); color: var(--nc-primary); }
+    .orders .dash-stat-icon { background: rgba(129,199,132,0.12); color: #81c784; }
+    .customers .dash-stat-icon { background: rgba(255,183,77,0.12); color: #ffb74d; }
+    .products .dash-stat-icon { background: rgba(186,104,200,0.12); color: #ba68c8; }
+    .employees .dash-stat-icon { background: rgba(77,208,225,0.12); color: #4dd0e1; }
+
+    .dash-stat-label { font-size: 0.75rem; color: var(--nc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .dash-stat-value { font-size: 1.5rem; font-weight: 800; color: var(--nc-text-primary); line-height: 1; }
+    .dash-stat-sub { font-size: 0.72rem; color: var(--nc-text-muted); margin-top: 0.25rem; }
+
+    .dash-charts-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .dash-charts-row .dash-chart-card:only-child,
+    .dash-charts-row .dash-chart-card.full { grid-column: 1 / -1; }
+    .dash-charts-row:has(.dash-chart-card:nth-child(2):last-child) { grid-template-columns: 1fr 1fr; }
+    @@media (max-width: 992px) { .dash-charts-row { grid-template-columns: 1fr; } }
+
+    .dash-chart-card {
+        background: var(--nc-bg-card);
+        border: 1px solid var(--nc-border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .dash-chart-card:hover { border-color: rgba(122,171,221,0.3); }
+    .dash-chart-card.wide { grid-column: span 1; }
+
+    .dash-chart-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid var(--nc-border);
+    }
+    .dash-chart-title { font-size: 0.95rem; font-weight: 700; color: var(--nc-text-primary); }
+    .dash-chart-sub { font-size: 0.75rem; color: var(--nc-text-muted); margin-top: 0.2rem; }
+    .dash-chart-body { padding: 1.25rem; height: 240px; position: relative; }
+    .dash-chart-body canvas { max-height: 100%; }
+
+    .nc-order-badge { font-size: 0.75rem; padding: 0.2rem 0.75rem; border-radius: 100px; font-weight: 700; display: inline-block; }
+    .status-delivered { background: rgba(129,199,132,0.1); color: #81c784; border: 1px solid rgba(129,199,132,0.2); }
+    .status-delivery { background: rgba(255,183,77,0.1); color: #ffb74d; border: 1px solid rgba(255,183,77,0.2); }
+    .status-pending { background: rgba(123,171,221,0.1); color: var(--nc-primary); border: 1px solid rgba(123,171,221,0.2); }
+</style>

@@ -1,0 +1,129 @@
+@model MvcMusic.ViewModels.ProfileEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div class="nc-profile-card">
+            <h1 class="nc-section-title mb-4">Edit Your Profile</h1>
+            
+            <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="nc-edit-layout">
+                    <!-- Photo Upload Section -->
+                    <div class="nc-avatar-upload-group">
+                        <div class="nc-profile-avatar-large mb-3">
+                            <img id="avatarPreview" src="@(!string.IsNullOrEmpty(Model.ProfilePicture) ? Model.ProfilePicture : "/images/default-avatar.png")" alt="Preview" />
+                        </div>
+                        <label for="pictureInput" class="btn-nc-outline w-100 text-center" style="cursor: pointer;">
+                            <i class="fa fa-camera me-2"></i> Replace Photo
+                        </label>
+                        <input type="file" asp-for="NewProfilePicture" id="pictureInput" class="d-none" accept="image/*" onchange="previewImage(this)" />
+                        <span asp-validation-for="NewProfilePicture" class="text-danger small"></span>
+                        <div class="mt-2 text-center" style="font-size: 0.75rem; color: var(--nc-text-muted);">
+                            Max size 2MB. Format: JPG, PNG, WEBP.
+                        </div>
+                    </div>
+
+                    <!-- Fields Section -->
+                    <div class="nc-form-fields">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="nc-label">First Name</label>
+                                <input asp-for="FirstName" class="nc-input" placeholder="Enter first name" />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="nc-label">Last Name</label>
+                                <input asp-for="LastName" class="nc-input" placeholder="Enter last name" />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="nc-label">Username</label>
+                            <input class="nc-input" value="@Model.UserName" disabled style="background: rgba(0,0,0,0.2); cursor: not-allowed;" />
+                            <div class="mt-1" style="font-size: 0.72rem; color: var(--nc-text-muted);">
+                                <i class="fa fa-info-circle me-1"></i> Username cannot be changed for transparency.
+                            </div>
+                        </div>
+
+                        <div class="nc-profile-actions mt-5">
+                            <a asp-action="Index" class="btn-nc-outline me-3">Cancel</a>
+                            <button type="submit" class="btn-nc-primary">
+                                <i class="fa fa-save me-2"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('avatarPreview').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+
+<style>
+    .nc-profile-card {
+        background: var(--nc-bg-card);
+        border: 1px solid var(--nc-border);
+        border-radius: 24px;
+        padding: 4rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .nc-edit-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 4rem;
+        margin-top: 2rem;
+    }
+
+    @@media (max-width: 768px) {
+        .nc-edit-layout { grid-template-columns: 1fr; gap: 2rem; }
+        .nc-avatar-upload-group { justify-self: center; }
+    }
+
+    .nc-profile-avatar-large {
+        width: 220px;
+        height: 220px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid var(--nc-border);
+        background: #1a1f2c;
+    }
+
+    .nc-profile-avatar-large img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .nc-label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--nc-text-muted);
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .nc-profile-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+</style>
