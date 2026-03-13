@@ -49,7 +49,7 @@
                         var product = bannerProducts[i];
                         <div class="carousel-item h-100 @(i == 0 ? "active" : "")">
                             <div class="carousel-item-content" onclick="window.location='@Url.Action("Details", "Products", new { id = product.Id })'">
-                                <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)" alt="@product.Name" class="nc-carousel-img" />
+                                <img src="@(product.BannerImageUrl ?? product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)" alt="@product.Name" class="nc-carousel-img" />
                                 <span class="nc-carousel-tag">Featured</span>
                                 <div class="nc-carousel-inner-content">
                                     <div class="nc-carousel-name">@product.Name</div>

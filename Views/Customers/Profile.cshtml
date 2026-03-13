@@ -115,7 +115,7 @@
                                                     <div style="font-size:0.85rem;">
                                                         @foreach (var i in o.OrderItems.Take(2))
                                                         {
-                                                            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="@i.Product?.Name">
+                                                            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px;" title="@i.Product?.Name">
                                                                 <span style="color:var(--nc-text-muted);">@i.Quantity x</span> @(i.Product?.Name ?? "Unknown Product")
                                                             </div>
                                                         }

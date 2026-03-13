@@ -1,4 +1,14 @@
-﻿
+﻿add more contrast to all text
+check all button navigation logic to ensure that all route destinations are valid
+add more detail to log detail, refer to SIS project
+add logs list page like customers list
+disable update button if no changes
+add order detail page, make sure that is responsive like clicking the order item would go to productDetails
+finish privacy page
+add about page with contact email
+search for more products with easy source of banner image
+add bocchi guitar for giggles
+
 after the generic hardcoded product details page, there is a fillable section below it for more detailed description
 in this section, make it like MsWord where you can add shapes with text, textbox and pictureboxes (with editable url), all of which are draggable and resizable
 add side panel for all elements to view and edit their properties their, like width, height, url, color, etc

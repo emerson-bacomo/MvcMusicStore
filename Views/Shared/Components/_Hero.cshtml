@@ -262,21 +262,6 @@
                         <i class="fa fa-user-plus"></i> Join Free
                     </a>
                 }
-                else
-                {
-                    @if (User.IsInRole("SuperAdmin"))
-                    {
-                        <a asp-controller="Admin" asp-action="Index" class="btn-hero-primary">Manage Admins</a>
-                    }
-                    else if (User.IsInRole("Admin"))
-                    {
-                        <a asp-controller="Products" asp-action="Index" class="btn-hero-primary">Manage Products</a>
-                    }
-                    else
-                    {
-                        <a asp-controller="Products" asp-action="UserIndex" class="btn-hero-primary">Browse</a>
-                    }
-                }
             </div>
         </div>
 
@@ -355,7 +340,7 @@
                 </div>
             }
             
-            <a asp-controller="Products" asp-action="UserIndex" class="d-inline-flex align-items-center mt-4 text-decoration-none" 
+            <a asp-controller="Home" asp-action="Index" class="d-inline-flex align-items-center mt-4 text-decoration-none" 
                style="color: var(--nc-primary); 
                       font-weight: 700; 
                       transition: all 0.3s ease;" 

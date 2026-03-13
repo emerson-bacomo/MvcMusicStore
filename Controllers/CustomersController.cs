@@ -45,6 +45,7 @@ namespace MvcMusic.Controllers
 
             var orders = await _context.Order
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
                 .Where(o => o.CustomerId == id)
                 .OrderByDescending(o => o.OrderDate)
                 .OrderByDescending(o => o.OrderDate)

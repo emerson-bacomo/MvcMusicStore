@@ -26,6 +26,7 @@ namespace MvcMusic.Models
         [StringLength(1000)]
         public string? Description { get; set; }
         public bool IsBanner { get; set; }
+        public string? BannerImageUrl { get; set; }
         public string? BannerDescription { get; set; }
 
         [Range(0, 5)]

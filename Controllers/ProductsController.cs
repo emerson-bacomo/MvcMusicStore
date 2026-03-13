@@ -35,9 +35,9 @@ namespace MvcMusic.Controllers
 
         // GET: /products/admin-products (Admin/SuperAdmin/Staff dashboard - specific access levels)
         [Authorize(Roles = "Admin,SuperAdmin,Staff")]
-        public async Task<IActionResult> AdminProducts()
+        public async Task<IActionResult> Index()
         {
-            return View("AdminProducts", await _context.Product.Include(p => p.ProductImages).ToListAsync());
+            return View("Index", await _context.Product.Include(p => p.ProductImages).ToListAsync());
         }
 
         // GET: /products/details/5 (Users, Admins, SuperAdmins)

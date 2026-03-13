@@ -17,8 +17,6 @@ namespace MvcMusic.Data
                     Price = 9966.26,
                     Stock = 99,
                     Description = "The Squier Sonic Series Stratocaster MN HSS Black according to Fender specifications is not only an optimal entry-level model, but also meets the expectations of experienced guitar lovers:inside with its typical sound palette and design. The poplar body with \"Contour-Body\" provides absolute wearing comfort and shines in a black finish. The bolt-on maple neck in a modern 'C' shape fits comfortably in every hand and ensures easy playability of the 21-fret maple fingerboard. Two Squier single coil pickups sit in neck and middle position and are supported by a humbucker at the bridge, which delivers rocking overdrive tones. With a 5-way switch and Master Volume, Tone 1 and Tone 2 controls, the familiar Stratocaster sound spectrum can still be easily adjusted from bright-bellish to deep-muted tones. Completing the Squier Sonic Strat is a vintage bridge with tremolo arm, the Squier neckplate, skunk stripe and sealed-cast tuning machines.",
-                    IsBanner = true,
-                    BannerDescription = "Rock the Stage with Squier Sonic Strat!",
                     ProductImages = new List<ProductImage> 
                     { 
                         new ProductImage { Url = "https://images.musicstore.de/images/0960/squier-sonic-stratocaster-hss-mn-black_1_GIT0060106-000.jpg" },
@@ -35,6 +33,7 @@ namespace MvcMusic.Data
                     Stock = 99,
                     Description = "The Epiphone Les Paul Standard '50s from the Inspired by Gibson collection offers a fresh take on the classic Fifties-era Les Paul. This model captures the essence of the iconic original Gibson colors, delivering an authentic look and feel. Crafted with proven tonewoods, classic dimensions, and that signature vintage sound, the Les Paul Standard '50s stays true to the golden era of the '50s. However, it also features some innovative enhancements to meet the needs of today’s musicians, ensuring a playing experience that’s both nostalgic and perfectly suited for modern demands. As a bonus, it comes with an Epiphone Premium Gigbag for safe and stylish transportation!",
                     IsBanner = true,
+                    BannerImageUrl = "https://www.rockin.co.jp/shop//files/product_images/res_be58d19200e4df35300a932b23f56f50295de319.jpg",
                     BannerDescription = "Classic Les Paul Tone & Style!",
                     Rating = 5,
                     SoldAmount = 85,
@@ -54,6 +53,7 @@ namespace MvcMusic.Data
                     Stock = 99,
                     Description = "The Ortega R221BK 7/8 Classical Guitar is an affordable instrument perfect for beginners and intermediate players. The tone is derived from a combination of a spruce top and Mahogany back and sides. This guitar also comes with Ortega’s famous 12-hole bridge which offers a groundbreaking improvement for sound; tuning stability and faster response of the guitar top.",
                     IsBanner = true,
+                    BannerImageUrl = "/images/banner-images/ortega-r221bk-7-8-black-highgloss.jpg",
                     BannerDescription = "Perfect Sound for Young Guitarists!",
                     Rating = 5,
                     SoldAmount = 140,
@@ -89,6 +89,7 @@ namespace MvcMusic.Data
                     Stock = 99,
                     Description = "The FP-10 BK is an affordable stage piano for beginners, equipped with a PHA-4 standard keyboard that provides an authentic playing feel. The SuperNATURAL tone generation, which is also integrated into the larger models, provides a very natural, full sound. A powerful speaker system projects a dynamic piano sound into any room. For beginners in piano playing, the Stage Piano offers numerous digital learning functions. A Bluetooth and MIDI interface provides access to the wide world of DAWs (digital audio workstations) and apps. Measuring 128.4 x 25.8 cm, the Roland FP-10 is an optimal solution for anyone looking for a good, but compact stage piano.",
                     IsBanner = true,
+                    BannerImageUrl = "https://www.amazona.de/wp-content/uploads/2024/01/roland-fp-10.jpg",
                     BannerDescription = "Compact Piano with Grand Sound!",
                     Rating = 5,
                     SoldAmount = 40,
@@ -157,8 +158,6 @@ namespace MvcMusic.Data
                     Price = 20889.61,
                     Stock = 99,
                     Description = "The Fame FG20B-RD First Gig Studio Set Red Sparkle is a high-quality complete set for drum set beginners with cymbals, Hardware and stool. The six-ply poplar drum shells deliver a balanced sound with impressive bass content. The cleanly milled 45° burr delivers perfect tunability and clear sound character. The heads lie cleanly on the ridges and are easy to tune. A robust hardware package consisting of two cymbal stands, hi-hat stand, snare stand, drum stool and bass drum pedal ensures a firm stand and individual adjustment options because all stives are infinitely adjustable in height. The bass Drum head is pre-damped, so the sound can be controlled excellently. Good sounding drum cymbals in the form of a 14\" Hi Hat and a 16\" Crash cymbal and the 20\" Ride promise excellent feel and assertive cymbal sound. A matching snare drum in set colour with snare stand is also included.",
-                    IsBanner = true,
-                    BannerDescription = "Complete Drum Set – Ready to Rock Your First Gig!",
                     Rating = 5,
                     SoldAmount = 80,
                     ProductImages = new List<ProductImage> 
@@ -175,8 +174,6 @@ namespace MvcMusic.Data
                     Price = 6349.97,
                     Stock = 99,
                     Description = "The Monzani Capriccio violin set offers a perfect start for beginners entering the world of violin playing. Featuring a well-straightened maple bridge, the violin provides an excellent foundation for developing first playing techniques. Its fully solid construction with a maple body and solid spruce top delivers a surprisingly full and sweet sound. The instrument is equipped with an ebony tailpiece that includes a fine tuner for the high E string, and a Guarneri-style ebony chinrest. The set also comes with a lightweight roundwood bow made from brazilwood, matching rosin, and a sturdy case for easy transport to lessons.",
-                    IsBanner = true,
-                    BannerDescription = "Start Your Musical Journey Today!",
                     Rating = 5,
                     SoldAmount = 200,
                     ProductImages = new List<ProductImage> 
