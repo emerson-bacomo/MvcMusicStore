@@ -1,5 +1,4 @@
 using MvcMusic.Models;
-using System.Collections.Generic;
 
 namespace MvcMusic.Data
 {
@@ -181,6 +180,27 @@ namespace MvcMusic.Data
                         new ProductImage { Url = "https://images.musicstore.de/images/0960/monzani-violinset-capriccio-21-1-8_1_STR0000369-000.jpg" }
                     }
                     // https://www.musicstore.com/en_US/USD/Monzani-Violinset-Capriccio-21-1-8/art-STR0000369-000
+                },
+                new Product
+                {
+                    Name = "Gibson 1968 Les Paul Custom Reissue Ebony",
+                    Category = "Electric Guitar",
+                    Brand = "Gibson",
+                    Price = 350768.69,
+                    Stock = 99,
+                    Description = "A reissue of the 1968 Les Paul Custom featuring a solid body electric guitar design, ebony finish, dual humbucker pickups, and traditional Les Paul hardware and construction.",
+                    Rating = 5,
+                    IsBanner = true,
+                    BannerImageUrl = "/images/banner-images/gibson-bocchi.png",
+                    BannerDescription = "Les Paul Custom style guitar similar to the one featured in Bocchi the Rock! A classic design known for its bold look, powerful humbuckers, and thick rock tones favored by many guitarists.",
+                    SoldAmount = 200,
+                    ProductImages = new List<ProductImage>
+                    {
+                        new ProductImage { Url = "https://images.musicstore.de/images/0960/gibson-1968-les-paul-custom-reissue-ebony-507798_1_GIT0059327-000.jpg" },
+                        new ProductImage { Url = "https://images.musicstore.de/images/0960/gibson-1968-les-paul-custom-reissue-ebony-507798_15_GIT0059327-000.jpg" },
+
+                    }
+                    // https://www.musicstore.com/en_OT/EUR/Gibson-1968-Les-Paul-Custom-Reissue-Ebony-507798/art-GIT0059327-000
                 }
             };
         }

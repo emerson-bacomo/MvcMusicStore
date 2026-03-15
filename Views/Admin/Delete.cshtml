@@ -8,7 +8,7 @@
     <div class="nc-container" style="max-width:560px;">
         <div class="nc-page-header">
             <h1 class="nc-page-title" style="color:var(--nc-error);">Remove Admin</h1>
-            <a asp-action="Index" class="btn-nc-outline">
+            <a href="javascript:history.back()" class="btn-nc-outline">
                 <i class="fa fa-arrow-left me-1"></i> Back
             </a>
         </div>
@@ -44,7 +44,7 @@
                         <button type="submit" class="btn-nc-danger" style="flex:1;padding:0.8rem;">
                             <i class="fa fa-trash me-1"></i> Yes, Remove
                         </button>
-                        <a asp-action="Index" class="btn-nc-outline" style="flex:1;padding:0.8rem;text-align:center;">
+                        <a href="javascript:history.back()" class="btn-nc-outline" style="flex:1;padding:0.8rem;text-align:center; border-radius: var(--nc-radius-sm);">
                             Cancel
                         </a>
                     </div>

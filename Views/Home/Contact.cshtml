@@ -1,0 +1,109 @@
+@{
+    ViewData["Title"] = "Contact Us";
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div class="nc-page-header">
+            <div>
+                <div style="color:var(--nc-text-muted); 
+                            font-size:0.8rem; 
+                            margin-bottom:0.25rem;">
+                    <i class="fa fa-envelope me-1"></i> Support
+                </div>
+                <h1 class="nc-page-title">Get in Touch</h1>
+                <p style="color:var(--nc-text-muted); 
+                          font-size:0.88rem; 
+                          margin-top:0.25rem;">
+                    Our team is here to assist you with any inquiries or support needed.
+                </p>
+            </div>
+        </div>
+
+        <div class="row g-5">
+            <div class="col-lg-5">
+                <div class="nc-card h-100">
+                    <div class="nc-card-body" style="padding: 2.5rem;">
+                        <h3 style="color:var(--nc-primary); 
+                                   margin-bottom:1.5rem;">Contact Information</h3>
+                        
+                        <div class="mb-4">
+                            <label class="nc-label" 
+                                   style="text-transform:uppercase; 
+                                          letter-spacing:0.1em; 
+                                          color:var(--nc-text-muted);">General Support</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="fa fa-envelope" 
+                                   style="color:var(--nc-primary); 
+                                          font-size:1.2rem;"></i>
+                                <span style="font-weight:600; 
+                                             font-size:1.1rem; 
+                                             color:var(--nc-text-primary);">info@nightcord.store</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="nc-label" 
+                                   style="text-transform:uppercase; 
+                                          letter-spacing:0.1em; 
+                                          color:var(--nc-text-muted);">Commercial Inquiries</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="fa fa-briefcase" 
+                                   style="color:var(--nc-primary); 
+                                          font-size:1.2rem;"></i>
+                                <span style="font-weight:600; 
+                                             font-size:1.1rem; 
+                                             color:var(--nc-text-primary);">business@nightcord.store</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="nc-label" 
+                                   style="text-transform:uppercase; 
+                                          letter-spacing:0.1em; 
+                                          color:var(--nc-text-muted);">Regional Headquarters</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="fa fa-location-dot" 
+                                   style="color:var(--nc-primary); 
+                                          font-size:1.2rem;"></i>
+                                <span style="font-weight:400; 
+                                             font-size:1rem; 
+                                             color:var(--nc-text-secondary);">Cebu City</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="nc-card">
+                    <div class="nc-card-body" style="padding: 2.5rem;">
+                        <h3 style="color:var(--nc-text-primary); 
+                                   margin-bottom:2rem;">Send us a Message</h3>
+                        <form onsubmit="event.preventDefault(); alert('Thank you for your message. We will get back to you shortly.');">
+                            <div class="mb-4">
+                                <label class="nc-label">Subject</label>
+                                <select class="nc-select">
+                                    <option>Instrument Inquiry</option>
+                                    <option>Order Status & Support</option>
+                                    <option>Technical Gear Assistance</option>
+                                    <option>Business & Partnerships</option>
+                                    <option>General Feedback</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="nc-label">Message</label>
+                                <textarea class="nc-input" rows="5" placeholder="Write your message here..." required></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="nc-label">Email to send reply to</label>
+                                <input type="email" class="nc-input" placeholder="e.g. john@example.com" required />
+                            </div>
+                            <button type="submit" class="btn-nc-primary w-100" style="padding: 1.25rem;">Submit Message</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

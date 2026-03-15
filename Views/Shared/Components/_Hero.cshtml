@@ -19,110 +19,8 @@
 }
 
 <style>
-    /* ── Hero Carousel Styles ────────────────────────────────────────── */
-    .nc-hero-carousel {
-        position: relative;
-        width: 100%;
-        border-radius: var(--nc-radius);
-        overflow: hidden;
-        border: 1px solid var(--nc-border);
-        aspect-ratio: 16/9;
-        background: var(--nc-bg-secondary);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    }
-
-    .carousel-item-content {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        cursor: pointer;
-    }
-
-    .carousel-item-content img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.5s ease;
-    }
-
-    .nc-hero-carousel:hover .carousel-item-content img {
-        transform: scale(1.05);
-    }
-
-    .nc-carousel-tag {
-        position: absolute;
-        top: 1.5rem;
-        left: 1.5rem;
-        background: var(--nc-primary);
-        color: #fff;
-        padding: 0.4rem 1rem;
-        border-radius: 100px;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        z-index: 4;
-    }
-
-    .nc-carousel-name {
-        color: #fff;
-        font-size: 1.5rem;
-        font-weight: 800;
-        margin-bottom: 0.25rem;
-    }
-
-    .nc-carousel-desc {
-        color: var(--nc-text-secondary);
-        font-size: 0.9rem;
-        margin-bottom: 1rem;
-        max-width: 80%;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: normal;
-    }
-
-    .nc-carousel-price {
-        color: var(--nc-accent);
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-    
-    .nc-carousel-img {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-    }
-    
-    .nc-carousel-overlay {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to top, rgba(10,12,16,0.9) 0%, rgba(10,12,16,0.4) 50%, transparent 100%);
-        pointer-events: none;
-        z-index: 2;
-    }
-    
-    .nc-carousel-inner-content {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        padding: 2rem;
-        z-index: 3;
-    }
-
-    .nc-carousel-control {
-        width: 10%;
-        z-index: 15;
-    }
-    .nc-carousel-icon {
-        filter: drop-shadow(0 0 4px rgba(0,0,0,0.5));
-    }
-
-    /* Stats Card Hover */
+    /* ── Hero Section Local Styles ──────────────────────────────────── */
+    /* Stats Card */
     .nc-stat-card {
         background: var(--nc-bg-card);
         border: 1px solid var(--nc-border);
@@ -132,11 +30,6 @@
         flex-direction: column;
         gap: 0.25rem;
         min-width: 120px;
-        transition: transform 0.3s ease, border-color 0.3s ease;
-    }
-    .nc-stat-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--nc-primary);
     }
     .nc-stat-value {
         font-size: 1.5rem;
@@ -150,7 +43,12 @@
         letter-spacing: 0.05em;
     }
 
-    .nc-hero-title .line-1 { display: block; color: var(--nc-text-primary); }
+    /* Hero Title */
+    .nc-hero-title .line-1 {
+        display: block;
+        color: var(--nc-text-primary);
+    }
+
     .nc-hero-title .line-2 {
         display: block;
         background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent));
@@ -158,47 +56,88 @@
         -webkit-text-fill-color: transparent;
     }
 
+    /* Hero Buttons */
     .btn-hero-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
         background: var(--nc-primary);
         color: white;
-        padding: 1rem 2rem;
+        padding: 1.1rem 2rem 0.9rem 2rem;
         border-radius: var(--nc-radius-sm);
         font-weight: 700;
         transition: all 0.3s ease;
         text-decoration: none;
         box-shadow: 0 4px 15px rgba(123, 171, 221, 0.3);
     }
+
     .btn-hero-primary:hover {
         background: #5c8fc5;
         transform: translateY(-2px);
         color: white;
     }
+
     .btn-hero-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
         background: rgba(255, 255, 255, 0.05);
         color: var(--nc-text-primary);
-        padding: 1rem 2rem;
+        padding: 1.1rem 2rem 0.9rem 2rem;
         border-radius: var(--nc-radius-sm);
         font-weight: 700;
         transition: all 0.3s ease;
         text-decoration: none;
         border: 1px solid var(--nc-border);
     }
+
     .btn-hero-secondary:hover {
         background: rgba(255, 255, 255, 0.1);
         color: white;
     }
+
+    /* ── Hero Mobile Overrides ─────────────────────────────────────── */
+    @@media (max-width: 991px) {
+        .nc-hero-section {
+            padding: 2rem 1rem !important;
+            min-height: auto !important;
+        }
+
+        .nc-hero-title {
+            font-size: clamp(2.5rem, 8vw, 3.5rem) !important;
+        }
+
+        .nc-stat-card {
+            padding: 0.75rem 1rem;
+            min-width: 100px;
+        }
+
+        .nc-stat-value {
+            font-size: 1.25rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .nc-stat-card {
+            flex: 1;
+            min-width: calc(33.33% - 1rem);
+        }
+    }
 </style>
 
-<section style="position: relative; 
-                 width: 100vw; 
-                 margin-left: calc(50% - 50vw); 
-                 min-height: 100vh; 
-                 display: flex; 
-                 flex-direction: column; 
-                 justify-content: center; 
-                 overflow: hidden; 
-                 background: var(--nc-bg-primary); 
-                 padding: 4rem 2rem;">
+<section class="nc-hero-section"
+         style="position: relative; 
+                width: 100vw; 
+                margin-left: calc(50% - 50vw); 
+                min-height: 100vh; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: center; 
+                overflow: hidden; 
+                background: var(--nc-bg-primary); 
+                padding: 4rem 2rem;">
     <div style="position: absolute; 
                  inset: 0; 
                  background: linear-gradient(135deg, var(--nc-bg-primary) 0%, #151a2636 50%, var(--nc-bg-primary) 100%); 
@@ -222,7 +161,7 @@
              style="gap: 1.5rem;">
             <div class="align-self-lg-start align-self-center d-inline-flex align-items-center" 
                  style="gap: 0.5rem; 
-                        padding: 0.5rem 1rem; 
+                        padding: 0.6rem 1rem 0.5rem 1rem; 
                         background: rgba(123, 171, 221, 0.1); 
                         color: var(--nc-primary); 
                         border: 1px solid rgba(123, 171, 221, 0.2); 
@@ -230,7 +169,8 @@
                         font-size: 0.85rem; 
                         font-weight: 700; 
                         text-transform: uppercase; 
-                        letter-spacing: 0.1em;">
+                        letter-spacing: 0.1em;
+                        line-height: 1;">
                 <i class="fa fa-music"></i> Where Music Lives
             </div>
             <h1 class="nc-hero-title" 
@@ -248,7 +188,7 @@
                       color: var(--nc-text-secondary); 
                       line-height: 1.7; 
                       max-width: 500px;">
-                Discover premium instruments curated for every musician &mdash; from first-time players to seasoned performers.
+                Discover premium instruments curated for every musician - from first-time players to seasoned performers.
                 NightCord brings the music to you.
             </p>
 
@@ -256,10 +196,10 @@
                 @if (!User.Identity?.IsAuthenticated ?? true)
                 {
                     <a asp-controller="Account" asp-action="Login" class="btn-hero-primary">
-                        <i class="fa fa-right-to-bracket"></i> Login
+                        <i class="fa fa-right-to-bracket me-2"></i> Login
                     </a>
                     <a asp-controller="Account" asp-action="Register" class="btn-hero-secondary">
-                        <i class="fa fa-user-plus"></i> Join Free
+                        <i class="fa fa-user-plus me-2"></i> Join Free
                     </a>
                 }
             </div>
@@ -275,72 +215,25 @@
                     <div class="nc-stat-card"><span class="nc-stat-value" id="statSold">@initSold</span><span class="nc-stat-label">Sold</span></div>
                     <div class="nc-stat-card">
                         <span class="nc-stat-value d-flex align-items-center" 
-                              style="font-size: 1.2rem;" id="statStock">@initStock</span>
+                              style="font-size: 1.2rem;" 
+                              id="statStock">@initStock</span>
                         <span class="nc-stat-label">Stock</span>
                     </div>
                 </div>
 
-                <div id="heroCarousel" class="carousel slide nc-hero-carousel">
-                    <div class="carousel-inner h-100">
-                        <div class="nc-carousel-overlay"></div>
-                        @for (int i = 0; i < topSellers.Count; i++)
-                        {
-                            var product = topSellers[i];
-                            string pSold = product.SoldAmount >= 1000 ? (product.SoldAmount / 1000.0).ToString("0.#") + "K+" : product.SoldAmount.ToString();
-                            string pRating = product.Rating.ToString("0.#") + "★";
-                            string pStock = product.Stock.ToString();
-
-                            <div class="carousel-item h-100 @(i == 0 ? "active" : "")" 
-                                data-sold="@pSold" 
-                                data-rating="@pRating"
-                                data-stock="@pStock">
-                                <div class="carousel-item-content" onclick="window.location='@Url.Action("Details", "Products", new { id = product.Id })'">
-                                    <!-- Image stays below overlay -->
-                                    <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)" alt="@product.Name" onerror="this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" class="nc-carousel-img" />
-                                    
-                                    <!-- Global Overlay (sits above image, below text) -->
-                                    
-                                    <span class="nc-carousel-tag">@product.Category</span>
-                                    
-                                    <!-- Content Container -->
-                                    <div class="nc-carousel-inner-content">
-                                        <div class="nc-carousel-name">@product.Name</div>
-                                        @if (!string.IsNullOrEmpty(product.Description))
-                                        {
-                                            <div class="nc-carousel-desc">@product.Description</div>
-                                        }
-                                        <div class="nc-carousel-price">₱ @product.Price.ToString("N2")</div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    
-                    <div style="position: absolute; 
-                                 bottom: 0; 
-                                 left: 0; 
-                                 width: 100%; 
-                                 height: 4px; 
-                                 background: rgba(255, 255, 255, 0.1); 
-                                 z-index: 10;">
-                        <div id="carouselProgressBar" 
-                             style="height: 100%; 
-                                    background: #9fdcff56; 
-                                    width: 0%;"></div>
-                    </div>
-
-                    <button class="carousel-control-prev nc-carousel-control" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon nc-carousel-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next nc-carousel-control" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon nc-carousel-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
+                <div class="hero-carousel-wrapper">
+                    <partial name="Components/_Carousel" model="topSellers" 
+                             view-data='new ViewDataDictionary(ViewData) { 
+                                { "CarouselId", "heroCarousel" }, 
+                                { "HideBadge", true },
+                                { "OnSlideChange", "updateHeroStats" },
+                                { "StateKey", "hero_carousel_index" },
+                                { "UseBanner", false }
+                             }' />
                 </div>
             }
             
-            <a asp-controller="Home" asp-action="Index" class="d-inline-flex align-items-center mt-4 text-decoration-none" 
+            <a href="@Url.Action("Index", "Home")#catalog-section" class="d-inline-flex align-items-center text-decoration-none" 
                style="color: var(--nc-primary); 
                       font-weight: 700; 
                       transition: all 0.3s ease;" 
@@ -353,133 +246,27 @@
 </section>
 
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-
-        const bannerCarouselEl = document.getElementById("heroCarousel");
-        const progressEl = document.getElementById("carouselProgressBar");
-
+    // Hook called by the carousel component
+    window.updateHeroStats = function(product, slide) {
         const statRating = document.getElementById("statRating");
         const statSold = document.getElementById("statSold");
         const statStock = document.getElementById("statStock");
+        
+        if (!product) return;
 
-        if (!bannerCarouselEl) return;
-
-        const slides = bannerCarouselEl.querySelectorAll(".carousel-item");
-        const totalSlides = slides.length;
-
-        if (totalSlides <= 1) return;
-
-        const duration = 5000;
-
-        let slideTimer;
-        let slideStartTime;
-
-        const bannerCarousel = new bootstrap.Carousel(bannerCarouselEl, {
-            interval: false,
-            ride: false,
-            pause: false
-        });
-
-        const startProgress = () => {
-
-            slideStartTime = Date.now();
-
-            progressEl.style.transition = "none";
-            progressEl.style.width = "0%";
-
-            requestAnimationFrame(() => {
-                progressEl.style.transition = `width ${duration}ms linear`;
-                progressEl.style.width = "100%";
-            });
-
-            clearTimeout(slideTimer);
-
-            slideTimer = setTimeout(() => {
-                bannerCarousel.next();
-            }, duration);
-        };
-
-        const pauseProgress = () => {
-
-            clearTimeout(slideTimer);
-
-            const timeElapsed = Date.now() - slideStartTime;
-            const percentElapsed = (timeElapsed / duration) * 100;
-            const timeRemaining = duration - timeElapsed;
-
-            bannerCarouselEl.dataset.timeRemaining = Math.max(0, timeRemaining);
-
-            progressEl.style.transition = "none";
-            progressEl.style.width = `${percentElapsed}%`;
-        };
-
-        const resumeProgress = () => {
-
-            let timeRemaining = parseFloat(bannerCarouselEl.dataset.timeRemaining);
-
-            if (isNaN(timeRemaining) || timeRemaining <= 0) {
-                startProgress();
-                return;
-            }
-
-            slideStartTime = Date.now() - (duration - timeRemaining);
-
-            requestAnimationFrame(() => {
-                progressEl.style.transition = `width ${timeRemaining}ms linear`;
-                progressEl.style.width = "100%";
-            });
-
-            clearTimeout(slideTimer);
-
-            slideTimer = setTimeout(() => {
-                bannerCarousel.next();
-            }, timeRemaining);
-        };
-
-        let isSliding = false;
-
-        startProgress();
-
-        bannerCarouselEl.addEventListener("slide.bs.carousel", (event) => {
-
-            const nextSlide = slides[event.to];
-
-            if (nextSlide) {
-                if (statRating) statRating.innerText = nextSlide.dataset.rating;
-                if (statSold) statSold.innerText = nextSlide.dataset.sold;
-                if (statStock) statStock.innerText = nextSlide.dataset.stock;
-            }
-
-            startProgress();
-            isSliding = true;
-        });
-
-        ["mousedown", "touchstart"].forEach((evt) =>
-            bannerCarouselEl.addEventListener(evt, () => {
-                pauseProgress();
-                bannerCarouselEl.style.cursor = "grabbing";
-            })
-        );
-
-        ["mouseup", "touchend", "mouseleave"].forEach((evt) =>
-            bannerCarouselEl.addEventListener(evt, () => {
-
-                if (!isSliding && document.hidden === false && document.hasFocus()) {
-                    resumeProgress();
-                }
-
-                bannerCarouselEl.style.cursor = "default";
-                isSliding = false;
-            })
-        );
-
-        const handlePagePause = () => pauseProgress();
-        const handlePageResume = () => document.hidden === false && document.hasFocus() && resumeProgress();
-
-        const visibilityHandler = () => (document.hidden ? handlePagePause() : handlePageResume());
-
-        document.addEventListener("visibilitychange", visibilityHandler);
-        window.addEventListener("blur", handlePagePause);
-        window.addEventListener("focus", handlePageResume);
-    });
+        if (statRating) {
+            statRating.innerText = (product.rating || 0).toFixed(1) + "★";
+        }
+        
+        if (statSold) {
+            const sold = product.sold || 0;
+            statSold.innerText = sold >= 1000 
+                ? (sold / 1000).toFixed(1) + "K+" 
+                : sold.toString();
+        }
+        
+        if (statStock) {
+            statStock.innerText = product.stock || 0;
+        }
+    };
 </script>

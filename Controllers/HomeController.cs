@@ -30,13 +30,30 @@ namespace MvcMusic.Controllers
             ViewData["CurrentSearch"] = search;
             ViewData["Categories"] = await _context.Product.Select(p => p.Category).Distinct().ToListAsync();
 
-            var bannerProducts = await _context.Product.Include(p => p.ProductImages).Where(p => p.IsBanner).ToListAsync();
+            var bannerProducts = await _context.Product.Include(p => p.ProductImages)
+                .Where(p => p.IsBanner)
+                .ToListAsync();
             ViewData["BannerProducts"] = bannerProducts;
 
             return View(await products.ToListAsync());
         }
 
         public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        public IActionResult About()
+        {
+            return View();
+        }
+
+        public IActionResult Terms()
+        {
+            return View();
+        }
+
+        public IActionResult Contact()
         {
             return View();
         }

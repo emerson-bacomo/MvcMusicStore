@@ -1,72 +1,108 @@
 <style>
     /* ── Why NightCord Scoped Styles ─────────────────────────────── */
     .nc-why {
-        padding: 4rem 2rem;
-        background: var(--nc-bg-secondary);
+        padding: 6rem 2rem;
+        background: var(--nc-bg-primary);
         border-top: 1px solid var(--nc-border);
-        border-bottom: 1px solid var(--nc-border);
+    }
+    .nc-why-inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .nc-section-header {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .nc-section-title {
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        color: var(--nc-text-primary);
+        letter-spacing: -0.02em;
+    }
+    .nc-section-subtitle {
+        font-size: 1.1rem;
+        color: var(--nc-text-secondary);
+        max-width: 600px;
+        line-height: 1.6;
+        margin-left: auto;
+        margin-right: auto;
     }
     .nc-features-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 250px));
-        justify-content: center;
-        gap: 1.5rem;
-        max-width: 1280px;
-        margin: 0 auto;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
     }
     .nc-feature-card {
-        text-align: center;
-        padding: 2rem 1.5rem;
+        text-align: left;
+        padding: 2.5rem 2rem;
         background: var(--nc-bg-card);
         border: 1px solid var(--nc-border);
         border-radius: var(--nc-radius);
         transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    @@media (max-width: 991px) {
+        .nc-feature-card {
+            text-align: center;
+        }
     }
     .nc-feature-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-8px);
         border-color: var(--nc-primary);
+        box-shadow: var(--nc-shadow-glow);
     }
     .nc-feature-icon {
         font-size: 2.5rem;
-        margin-bottom: 1rem;
         display: block;
     }
     .nc-feature-title {
-        font-size: 1rem;
+        font-size: 1.2rem;
         font-weight: 700;
-        margin-bottom: 0.5rem;
         color: var(--nc-text-primary);
     }
     .nc-feature-desc {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
         color: var(--nc-text-secondary);
-        line-height: 1.5;
+        line-height: 1.6;
     }
 </style>
 
 <section class="nc-why">
-    <h2 class="nc-section-title">Why NightCord?</h2>
-    <p class="nc-section-subtitle">Everything a musician needs, in one desaturated corner of the web.</p>
-    <div class="nc-features-grid">
-        <div class="nc-feature-card">
-            <span class="nc-feature-icon">🎸</span>
-            <div class="nc-feature-title">Premium Brands</div>
-            <p class="nc-feature-desc">From Fender Squier to Roland &mdash; we carry trusted names that define your sound.</p>
+    <div class="nc-why-inner">
+        <div class="nc-section-header">
+            <h2 class="nc-section-title">Why NightCord?</h2>
+            <p class="nc-section-subtitle">A professional ecosystem for modern musicians.</p>
         </div>
-        <div class="nc-feature-card">
-            <span class="nc-feature-icon">❄️</span>
-            <div class="nc-feature-title">Cold Aesthetic</div>
-            <p class="nc-feature-desc">Our bluish-grey interface mimics the night sky, keeping your creative focus sharp.</p>
-        </div>
-        <div class="nc-feature-card">
-            <span class="nc-feature-icon">⭐</span>
-            <div class="nc-feature-title">Rated by Experts</div>
-            <p class="nc-feature-desc">Every instrument is reviewed by real musicians. No filler, just the good stuff.</p>
-        </div>
-        <div class="nc-feature-card">
-            <span class="nc-feature-icon">🎵</span>
-            <div class="nc-feature-title">All Levels Welcome</div>
-            <p class="nc-feature-desc">Starter sets to professional gear &mdash; we've got something for every journey.</p>
+        <div class="nc-features-grid">
+            <div class="nc-feature-card">
+                <span class="nc-feature-icon">🎸</span>
+                <div class="nc-feature-title">Premium Brands</div>
+                <p class="nc-feature-desc">From Fender Squier to Roland &mdash; we carry trusted names that define your sound.</p>
+            </div>
+            <div class="nc-feature-card">
+                <span class="nc-feature-icon">💎</span>
+                <div class="nc-feature-title">Premium Dark Design</div>
+                <p class="nc-feature-desc">Our meticulously crafted interface ensures a distraction-free creative experience.</p>
+            </div>
+            <div class="nc-feature-card">
+                <span class="nc-feature-icon">⭐</span>
+                <div class="nc-feature-title">Vetted by Professionals</div>
+                <p class="nc-feature-desc">Every instrument is reviewed by industry experts to ensure quality and reliability.</p>
+            </div>
+            <div class="nc-feature-card">
+                <span class="nc-feature-icon">🎵</span>
+                <div class="nc-feature-title">For Every Journey</div>
+                <p class="nc-feature-desc">Whether starting out or going pro &mdash; we provide the gear you need to succeed.</p>
+            </div>
         </div>
     </div>
 </section>

@@ -8,11 +8,61 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MvcMusic.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    @* Critical script to prevent FOUC when navigating to anchors *@
+    <script>
+        (function() {
+            if (window.location.hash) {
+                const style = document.createElement('style');
+                style.id = 'nc-flicker-preventer';
+                style.innerHTML = 'body { visibility: hidden !important; }';
+                document.documentElement.appendChild(style);
+                
+                window.addEventListener('DOMContentLoaded', function() {
+                    const target = document.querySelector(window.location.hash);
+                    if (target) {
+                        target.scrollIntoView();
+                    }
+                    reveal();
+                });
+
+                // Fail-safe to ensure body is revealed even if DOMContentLoaded is delayed
+                setTimeout(reveal, 1000);
+
+                function reveal() {
+                    const preventer = document.getElementById('nc-flicker-preventer');
+                    if (preventer) preventer.remove();
+                    document.body.style.visibility = 'visible';
+                }
+            }
+        })();
+    </script>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <nav class="nc-navbar navbar navbar-expand-lg">
+    <nav class="navbar navbar-expand-lg" 
+         style="position: fixed; 
+                top: 0; 
+                left: 0; 
+                right: 0; 
+                z-index: 1000; 
+                height: var(--nc-nav-height); 
+                background: rgba(10, 12, 16, 0.95); 
+                backdrop-filter: blur(20px); 
+                border-bottom: 1px solid var(--nc-border); 
+                display: flex; 
+                align-items: center; 
+                padding: 0 2rem; 
+                transition: var(--transition);">
         <div class="container-fluid px-4 mx-auto">
-            <a class="navbar-brand" asp-controller="Landing" asp-action="Hero">
+            <a class="navbar-brand" asp-controller="Landing" asp-action="Hero" 
+               style="font-family: 'Orbitron', sans-serif; 
+                      font-size: 1.5rem; 
+                      font-weight: 900; 
+                      background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent)); 
+                      -webkit-background-clip: text; 
+                      -webkit-text-fill-color: transparent; 
+                      background-clip: text; 
+                      letter-spacing: 2px;">
                 &#9835; NightCord
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
@@ -22,7 +72,7 @@
             <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">
+                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
                             <i class="fa fa-home me-1"></i> Home
                         </a>
                     </li>
@@ -31,41 +81,46 @@
                         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="AdminDashboard" asp-action="Index">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
                                     <i class="fa fa-chart-line me-1"></i> Dashboard
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Products" asp-action="Index">
-                                    <i class="fa fa-box me-1"></i> Products
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Customers" asp-action="CustomerList">
-                                    <i class="fa fa-users me-1"></i> Customers
-                                </a>
-                            </li>
+                             <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-controller="Products" asp-action="Index">
+                                     <i class="fa fa-box me-1"></i> Products
+                                 </a>
+                             </li>
+                             <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="CustomerList">
+                                     <i class="fa fa-users me-1"></i> Customers
+                                 </a>
+                             </li>
+                             <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["action"]?.ToString() == "Orders" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Orders">
+                                     <i class="fa fa-shopping-cart me-1"></i> Orders
+                                 </a>
+                             </li>
                         }
                         @if (User.IsInRole("Staff"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="AdminDashboard" asp-action="Index">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
                                     <i class="fa fa-chart-line me-1"></i> Dashboard
                                 </a>
                             </li>
                         }
                         @if (User.IsInRole("SuperAdmin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Employee" asp-action="EmployeeList">
-                                    <i class="fa fa-user-shield me-1"></i> Employees
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Employee" asp-action="ActivityLogs">
-                                    <i class="fa fa-list-alt me-1"></i> Logs
-                                </a>
-                            </li>
+                             <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" && ViewContext.RouteData.Values["action"]?.ToString() == "EmployeeList" ? "active" : "")" asp-controller="Employee" asp-action="EmployeeList">
+                                     <i class="fa fa-user-shield me-1"></i> Employees
+                                 </a>
+                             </li>
+                             <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" && ViewContext.RouteData.Values["action"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="Employee" asp-action="ActivityLogs">
+                                     <i class="fa fa-list-alt me-1"></i> Logs
+                                 </a>
+                             </li>
                         }
 
                     }
@@ -85,7 +140,13 @@
                             }
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
-                                   style="color: var(--nc-text-primary); font-weight: 600; font-size: 0.85rem; padding: 0.5rem 0.8rem !important; border-radius:100px; background: rgba(255,255,255,0.03); border: 1px solid var(--nc-border);">
+                                   style="color: var(--nc-text-primary); 
+                                          font-weight: 600; 
+                                          font-size: 0.85rem; 
+                                          padding: 0.5rem 0.8rem !important; 
+                                          border-radius:100px; 
+                                          background: rgba(255,255,255,0.03); 
+                                          border: 1px solid var(--nc-border);">
                                     @if (!string.IsNullOrEmpty(currentUser?.ProfilePicture))
                                     {
                                         <img src="@currentUser.ProfilePicture" alt="Profile" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:8px; border: 1.5px solid var(--nc-primary);" />
@@ -96,41 +157,65 @@
                                     }
                                     @displayName
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="profileDropdown">
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="profileDropdown"
+                                    style="background: var(--nc-bg-card); 
+                                           border: 1px solid var(--nc-border); 
+                                           box-shadow: var(--nc-shadow); 
+                                           border-radius: var(--nc-radius-sm); 
+                                           padding: 0.5rem; 
+                                           margin-top: 0.5rem !important; 
+                                           backdrop-filter: blur(15px);">
                                     <li>
-                                        <a class="dropdown-item" asp-controller="Profile" asp-action="Index">
+                                        <a class="dropdown-item" asp-controller="Profile" asp-action="Index"
+                                           style="color: var(--nc-text-primary) !important; 
+                                                  font-size: 0.85rem; 
+                                                  font-weight: 500; 
+                                                  padding: 0.6rem 1rem; 
+                                                  border-radius: 6px; 
+                                                  transition: var(--transition); 
+                                                  display: block;">
                                             <i class="fa fa-user-circle me-2"></i> View Profile
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    <li><hr class="dropdown-divider" 
+                                            style="border-top: 1px solid var(--nc-border); 
+                                                   margin: 0.5rem 0; 
+                                                   opacity: 1;"></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="dropdown-item text-danger d-flex align-items-center w-100 border-0 background-none">
+                                            <button type="submit" class="dropdown-item text-danger d-flex align-items-center w-100 border-0 background-none"
+                                                    style="color: var(--nc-error) !important; 
+                                                           font-size: 0.85rem; 
+                                                           font-weight: 500; 
+                                                           padding: 0.6rem 1rem; 
+                                                           border-radius: 6px; 
+                                                           transition: var(--transition); 
+                                                           background: none;">
                                                 <i class="fa fa-right-from-bracket me-2"></i> Sign Out
                                             </button>
                                         </form>
                                     </li>
                                 </ul>
-
                             </li>
                         }
-
                     }
                     else
                     {
                         <li class="nav-item">
                             <a class="btn-nc-outline" asp-area="" asp-controller="Account" asp-action="Login" 
                                style="margin-right: 0.75rem; 
-                                      padding: 0.4rem 1.25rem; 
+                                      padding: 0.7rem 1.75rem 0.5rem 1.75rem; 
                                       border-radius: var(--nc-radius-sm); 
-                                      font-size: 0.85rem;">Login</a>
+                                      font-size: 0.85rem;
+                                      line-height: 1;">Login</a>
                         </li>
                         <li class="nav-item">
                             <a class="btn-nc-primary text-white" asp-area="" asp-controller="Account" asp-action="Register" 
-                               style="padding: 0.4rem 1.25rem; 
+                               style="padding: 0.7rem 1.75rem 0.5rem 1.75rem; 
                                       border-radius: var(--nc-radius-sm); 
-                                      font-size: 0.85rem;">Register</a>
+                                      font-size: 0.85rem;
+                                      line-height: 1;">Register</a>
                         </li>
                     }
                 </ul>
@@ -140,14 +225,66 @@
 
     @RenderBody()
 
-    <footer class="nc-footer">
-        <div class="nc-footer-brand">&#9835; NightCord</div>
-        <div class="nc-footer-text">&copy; 2026 NightCord. All rights reserved.</div>
+    <footer style="background: #080a0f; 
+                   border-top: 1px solid var(--nc-border); 
+                   padding: 5rem 0 2rem 0; 
+                   margin-top: 6rem;">
+        <div class="nc-container">
+            <!-- Footer Grid -->
+            <div style="display: flex; 
+                        flex-wrap: wrap; 
+                        justify-content: center; 
+                        gap: 5rem; 
+                        margin: 0 auto 4rem auto; 
+                        width: fit-content;
+                        text-align: left;">
+                <!-- Brand Section -->
+                <div>
+                    <div style="font-family: 'Orbitron', sans-serif; 
+                                font-size: 1.5rem; 
+                                font-weight: 900; 
+                                color: var(--nc-text-primary); 
+                                letter-spacing: 2px; 
+                                margin-bottom: 1.25rem;">
+                        &#9835; NightCord
+                    </div>
+                    <p style="color: var(--nc-text-muted); 
+                              font-size: 0.9rem; 
+                              line-height: 1.7; 
+                              max-width: 320px;">
+                        Elevating your musical journey with premium instruments and expert gear curation.
+                    </p>
+                </div>
+
+                <!-- Company Section -->
+                <div class="nc-footer-nav">
+                    <h5 class="nc-footer-heading">Company</h5>
+                    <ul class="nc-footer-links">
+                        <li><a asp-controller="Home" asp-action="About"><i class="fa fa-angle-right me-2"></i> About Us</a></li>
+                        <li><a asp-controller="Home" asp-action="Contact"><i class="fa fa-angle-right me-2"></i> Contact Us</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal Section -->
+                <div class="nc-footer-nav">
+                    <h5 class="nc-footer-heading">Legal</h5>
+                    <ul class="nc-footer-links">
+                        <li><a asp-controller="Home" asp-action="Privacy"><i class="fa fa-angle-right me-2"></i> Privacy Policy</a></li>
+                        <li><a asp-controller="Home" asp-action="Terms"><i class="fa fa-angle-right me-2"></i> Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="padding-top: 2rem; border-top: 1px solid var(--nc-border); text-align: center;">
+                <div style="color: var(--nc-text-muted); font-size: 0.8rem; letter-spacing: 0.05em;">&copy; 2026 NightCord. Crafted for Musicians.</div>
+            </div>
+        </div>
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/state-preservation.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

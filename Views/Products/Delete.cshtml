@@ -1,4 +1,4 @@
-﻿@model MvcMusic.Models.Product
+@model MvcMusic.Models.Product
 
 @{
     ViewData["Title"] = "Terminate Listing";
@@ -39,7 +39,7 @@
                         <button type="submit" class="btn-nc-danger nc-btn-large">
                             <i class="fa fa-trash-alt me-2"></i> Confirm Termination
                         </button>
-                        <a asp-action="Index" class="btn-nc-outline nc-btn-large">
+                        <a href="javascript:history.back()" class="btn-nc-outline nc-btn-large">
                             Cancel
                         </a>
                     </div>

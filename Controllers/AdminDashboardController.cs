@@ -186,6 +186,54 @@ namespace MvcMusic.Controllers
             return Json(result);
         }
 
+        public async Task<IActionResult> Orders()
+        {
+            var orders = await _context.Order
+                .OrderByDescending(o => o.OrderDate)
+                .Join(_context.Users, 
+                    o => o.CustomerId, 
+                    u => u.Id, 
+                    (o, u) => new RecentOrderItem
+                    {
+                        Id = o.Id,
+                        CustomerName = $"{u.FirstName} {u.LastName}",
+                        Amount = o.TotalAmount,
+                        Status = o.Status,
+                        Date = o.OrderDate
+                    })
+                .ToListAsync();
+
+            // Populate product summary for each order
+            foreach (var order in orders)
+            {
+                var items = await _context.OrderItem
+                    .Where(oi => oi.OrderId == order.Id)
+                    .Include(oi => oi.Product)
+                    .ToListAsync();
+                order.Products = string.Join(", ", items.Select(i => i.Product?.Name ?? "—").Distinct());
+                order.TotalQuantity = items.Sum(i => i.Quantity);
+            }
+
+            return View(orders);
+        }
+
+        public async Task<IActionResult> OrderDetail(int id)
+        {
+            var order = await _context.Order
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (order == null) return NotFound();
+
+            var customer = await _context.Users.FindAsync(order.CustomerId);
+            
+            ViewBag.CustomerName = $"{customer?.FirstName} {customer?.LastName}";
+            ViewBag.CustomerEmail = customer?.Email;
+
+            return View(order);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkDelivered(int id)

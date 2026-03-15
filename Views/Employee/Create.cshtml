@@ -8,8 +8,8 @@
 <div class="nc-page">
     <div class="nc-container">
         <div style="margin-bottom:2rem;">
-            <a asp-action="Index" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back to Employees
+            <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
+                <i class="fa fa-arrow-left me-1"></i> Back
             </a>
         </div>
 
@@ -93,7 +93,7 @@
                         <button type="submit" class="btn-nc-primary" style="padding:0.75rem 2rem;border-radius:var(--nc-radius-sm);">
                             <i class="fa fa-user-plus me-2"></i> Create Employee
                         </button>
-                        <a asp-action="Index" class="btn-nc-outline" style="padding:0.75rem 1.5rem;border-radius:var(--nc-radius-sm);">Cancel</a>
+                        <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.75rem 1.5rem;border-radius:var(--nc-radius-sm);">Cancel</a>
                     </div>
                 </form>
             </div>

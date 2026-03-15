@@ -1,0 +1,407 @@
+@using System.Text.Json
+@model IEnumerable<MvcMusic.Models.Product>
+
+@{
+    var carouselId = ViewData["CarouselId"]?.ToString() ?? "nc-carousel";
+    var fixedTag = ViewData["TagLabel"]?.ToString();
+    var hideBadge = ViewData["HideBadge"] as bool? ?? false;
+    var onSlideChange = ViewData["OnSlideChange"]?.ToString(); // JS function name to call
+    var stateKey = ViewData["StateKey"]?.ToString() ?? (carouselId + "_index");
+    var useBanner = ViewData["UseBanner"] as bool? ?? false;
+
+    var products = Model?.ToList() ?? new List<MvcMusic.Models.Product>();
+}
+
+<style>
+    /* ── Carousel Component Styles ─────────────────────────────────── */
+    .nc-hero-carousel {
+        position: relative;
+        width: 100%;
+        border-radius: var(--nc-radius);
+        overflow: hidden;
+        border: 1px solid var(--nc-border);
+        background: var(--nc-bg-secondary);
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        aspect-ratio: 16/9;
+    }
+
+    .carousel-item-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .carousel-item-content img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .nc-hero-carousel:hover .carousel-item-content img {
+        transform: scale(1.05);
+    }
+
+    .carousel-item-content img.nc-img-loading {
+        opacity: 0;
+    }
+
+    .carousel-item-content img.nc-img-loaded {
+        opacity: 1;
+    }
+
+    .nc-carousel-img {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+
+    .nc-carousel-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            to top,
+            rgba(10, 12, 16, 0.9) 0%,
+            rgba(10, 12, 16, 0.4) 50%,
+            transparent 100%
+        );
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .nc-carousel-inner-content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 2rem;
+        z-index: 3;
+    }
+
+    .nc-carousel-tag {
+        position: absolute;
+        top: 1.5rem;
+        left: 1.5rem;
+        background: var(--nc-primary);
+        color: #fff;
+        padding: 0.4rem 1rem;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        z-index: 4;
+    }
+
+    .nc-carousel-name {
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+    }
+
+    .nc-carousel-desc {
+        color: var(--nc-text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        max-width: 80%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        white-space: normal;
+    }
+
+    .nc-carousel-desc.limit-2 {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+
+    .nc-carousel-price {
+        color: var(--nc-accent);
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .nc-carousel-control {
+        width: 10%;
+        z-index: 15;
+    }
+
+    .nc-carousel-icon {
+        filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
+    }
+
+    /* ── Mobile Overrides ────────────────────────────────────────── */
+    @@media (max-width: 768px) {
+        .nc-hero-carousel {
+            aspect-ratio: 4/3;
+        }
+
+        .nc-carousel-inner-content {
+            padding: 1.25rem;
+        }
+
+        .nc-carousel-tag {
+            top: 1rem;
+            left: 1rem;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.6rem;
+        }
+
+        .nc-carousel-name {
+            font-size: 1.25rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .nc-carousel-desc {
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+            max-width: 100%;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+        }
+
+        .nc-carousel-price {
+            font-size: 1rem;
+        }
+
+        .nc-carousel-control {
+            width: 15%;
+        }
+
+        .nc-carousel-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+    }
+</style>
+
+@if (products.Any())
+{
+    <div id="@carouselId" class="carousel slide nc-hero-carousel" data-bs-ride="false" data-on-slide-change="@onSlideChange" data-state-key="@stateKey">
+        <div class="carousel-inner h-100">
+            <div class="nc-carousel-overlay"></div>
+
+            @for (int i = 0; i < products.Count; i++)
+            {
+                var p = products[i];
+                var imgSrc = (useBanner ? p.BannerImageUrl : null)
+                    ?? p.ProductImages?.FirstOrDefault(img => img.IsPrimary)?.Url
+                    ?? p.ProductImages?.FirstOrDefault()?.Url;
+
+                var desc = (useBanner ? p.BannerDescription : null) ?? p.Description ?? string.Empty;
+                var tag  = fixedTag ?? p.Category ?? string.Empty;
+
+                <div class="carousel-item h-100 @(i == 0 ? "active" : "")"
+                     data-product='@JsonSerializer.Serialize(new { 
+                         id = p.Id, 
+                         name = p.Name, 
+                         price = p.Price, 
+                         sold = p.SoldAmount, 
+                         rating = p.Rating, 
+                         stock = p.Stock 
+                     })'>
+                    <div class="carousel-item-content"
+                         onclick="window.location='@Url.Action("Details", "Products", new { id = p.Id })'">
+
+                        <img src="@imgSrc"
+                             alt="@p.Name"
+                             width="800"
+                             height="450"
+                             class="nc-carousel-img nc-img-loading"
+                             onload="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')"
+                             onerror="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')" />
+
+                        @if (!hideBadge)
+                        {
+                            <span class="nc-carousel-tag">@tag</span>
+                        }
+
+                        <div class="nc-carousel-inner-content">
+                            <div class="nc-carousel-name">@p.Name</div>
+                            @if (!string.IsNullOrEmpty(desc))
+                            {
+                                <div class="nc-carousel-desc @(useBanner ? "" : "limit-2")">@desc</div>
+                            }
+                            <div class="nc-carousel-price">₱ @p.Price.ToString("N2")</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Progress bar *@
+        <div style="position: absolute; 
+                    bottom: 0; 
+                    left: 0; 
+                    width: 100%; 
+                    height: 3px; 
+                    background: rgba(255,255,255,0.08); 
+                    z-index: 10;">
+            <div id="@(carouselId)ProgressBar" 
+                 class="nc-carousel-progress-bar" 
+                 style="height: 100%; 
+                        background: var(--nc-primary); 
+                        width: 0%; 
+                        opacity: 0.5;"></div>
+        </div>
+
+        <button class="carousel-control-prev nc-carousel-control" type="button"
+                data-bs-target="#@carouselId" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon nc-carousel-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next nc-carousel-control" type="button"
+                data-bs-target="#@carouselId" data-bs-slide="next">
+            <span class="carousel-control-next-icon nc-carousel-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const carouselId = "@carouselId";
+            const carouselEl = document.getElementById(carouselId);
+            if (!carouselEl) return;
+
+            const progressEl = document.getElementById(carouselId + "ProgressBar");
+            const duration = 5000;
+            const stateKey = carouselEl.dataset.stateKey;
+            const onSlideChangeCallback = carouselEl.dataset.onSlideChange;
+            const slides = carouselEl.querySelectorAll(".carousel-item");
+
+            if (slides.length <= 1) return;
+
+            let slideTimer;
+            let slideStartTime;
+            let isPaused = false;
+
+            const bootstrapCarousel = new bootstrap.Carousel(carouselEl, {
+                interval: false,
+                ride: false,
+                pause: false
+            });
+
+            const startProgress = () => {
+                isPaused = false;
+                slideStartTime = Date.now();
+                if (progressEl) {
+                    progressEl.style.transition = "none";
+                    progressEl.style.width = "0%";
+                    requestAnimationFrame(() => {
+                        progressEl.style.transition = `width ${duration}ms linear`;
+                        progressEl.style.width = "100%";
+                    });
+                }
+                clearTimeout(slideTimer);
+                slideTimer = setTimeout(() => { bootstrapCarousel.next(); }, duration);
+
+                // If mouse is already over when slide starts, pause immediately
+                if (carouselEl.matches(':hover')) {
+                    pauseProgress();
+                }
+            };
+
+            const pauseProgress = () => {
+                if (isPaused) return;
+                isPaused = true;
+                clearTimeout(slideTimer);
+                const timeElapsed = Date.now() - slideStartTime;
+                const percentElapsed = (timeElapsed / duration) * 100;
+                const timeRemaining = duration - timeElapsed;
+                carouselEl.dataset.timeRemaining = Math.max(0, timeRemaining);
+                if (progressEl) {
+                    progressEl.style.transition = "none";
+                    progressEl.style.width = `${percentElapsed}%`;
+                }
+            };
+
+            const resumeProgress = () => {
+                if (!isPaused) return;
+                isPaused = false;
+                let timeRemaining = parseFloat(carouselEl.dataset.timeRemaining);
+                if (isNaN(timeRemaining) || timeRemaining <= 0) {
+                    startProgress();
+                    return;
+                }
+                slideStartTime = Date.now() - (duration - timeRemaining);
+                if (progressEl) {
+                    requestAnimationFrame(() => {
+                        progressEl.style.transition = `width ${timeRemaining}ms linear`;
+                        progressEl.style.width = "100%";
+                    });
+                }
+                clearTimeout(slideTimer);
+                slideTimer = setTimeout(() => { bootstrapCarousel.next(); }, timeRemaining);
+            };
+
+            // State Preservation & Initial Callback
+            let startIndex = 0;
+            if (window.StatePreservation) {
+                const restored = window.StatePreservation.restoreCarouselIndex(carouselEl, stateKey);
+                if (restored !== null && slides[restored]) {
+                    startIndex = restored;
+                }
+            }
+
+            if (onSlideChangeCallback && typeof window[onSlideChangeCallback] === 'function') {
+                try {
+                    const productData = JSON.parse(slides[startIndex].dataset.product || '{}');
+                    window[onSlideChangeCallback](productData, slides[startIndex]);
+                } catch(e) {}
+            }
+
+            startProgress();
+
+            carouselEl.addEventListener("slide.bs.carousel", (event) => {
+                if (window.StatePreservation) {
+                    window.StatePreservation.saveCarouselIndex(stateKey, event.to);
+                }
+
+                const nextSlide = slides[event.to];
+                if (nextSlide && onSlideChangeCallback && typeof window[onSlideChangeCallback] === 'function') {
+                    try {
+                        const productData = JSON.parse(nextSlide.dataset.product || '{}');
+                        window[onSlideChangeCallback](productData, nextSlide);
+                    } catch(e) {}
+                }
+
+                startProgress();
+            });
+
+            carouselEl.addEventListener("mouseenter", pauseProgress);
+            carouselEl.addEventListener("mouseleave", () => {
+                if (!document.hidden && document.hasFocus()) {
+                    resumeProgress();
+                }
+            });
+
+            // Mobile Touch Support
+            carouselEl.addEventListener("touchstart", (e) => {
+                pauseProgress();
+            }, { passive: true });
+
+            carouselEl.addEventListener("touchend", () => {
+                if (!document.hidden && document.hasFocus()) {
+                    resumeProgress();
+                }
+            }, { passive: true });
+
+            carouselEl.addEventListener("touchcancel", () => {
+                if (!document.hidden && document.hasFocus()) {
+                    resumeProgress();
+                }
+            }, { passive: true });
+
+            const handlePagePause = () => pauseProgress();
+            const handlePageResume = () => !document.hidden && document.hasFocus() && resumeProgress();
+
+            document.addEventListener("visibilitychange", () => document.hidden ? handlePagePause() : handlePageResume());
+            window.addEventListener("blur", handlePagePause);
+            window.addEventListener("focus", handlePageResume);
+        });
+    </script>
+}

@@ -18,6 +18,8 @@
         color: var(--nc-text-primary);
     }
     .nc-section-subtitle {
+        display: block;
+        width: 100%;
         text-align: center;
         color: var(--nc-text-secondary);
         margin-bottom: 2.5rem;
@@ -45,8 +47,10 @@
         border-color: var(--nc-primary);
     }
 
-    .nc-banner-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .nc-banner-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease, opacity 0.3s ease; }
     .nc-banner-card:hover img { transform: scale(1.05); }
+    .nc-banner-card img.nc-img-loading { opacity: 0; }
+    .nc-banner-card img.nc-img-loaded { opacity: 1; }
 
     .nc-banner-overlay {
         position: absolute;
@@ -65,8 +69,9 @@
         backdrop-filter: blur(8px);
         border: 1px solid rgba(123, 171, 221, 0.4);
         border-radius: 100px;
-        padding: 0.3rem 0.8rem;
+        padding: 0.4rem 0.8rem 0.3rem 0.8rem;
         font-size: 0.65rem;
+        line-height: 1;
         font-weight: 800;
         color: #fff;
         text-transform: uppercase;
@@ -85,9 +90,8 @@
 </style>
 
 <section class="nc-featured">
-    <p class="nc-section-subtitle">Handpicked for Musicians Like You</p>
-    <h2 class="nc-section-title">Featured Instruments</h2>
-    <p class="nc-section-subtitle" style="margin-top:0.5rem;">Click any instrument to explore</p>
+    <p class="nc-section-subtitle">Market Leaders & Popular Choice</p>
+    <h2 class="nc-section-title">Top Selling Instruments</h2>
     
     <div class="nc-banner-grid" style="margin-top:2rem;">
         @foreach (var product in Model)
@@ -95,7 +99,11 @@
             var detailUrl = Url.Action("Details", "Products", new { id = product.Id });
             
             <div class="nc-banner-card" onclick="window.location='@detailUrl'">
-                <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)" alt="@product.Name" onerror="this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
+                <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)"
+                     alt="@product.Name"
+                     class="nc-img-loading"
+                     onload="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')"
+                     onerror="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded');this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
                 <span class="nc-banner-tag">@product.Category</span>
                 <div class="nc-banner-overlay">
                     <div class="nc-banner-name">@product.Name</div>
@@ -107,5 +115,12 @@
                 </div>
             </div>
         }
+    </div>
+
+    <div style="text-align: center; margin-top: 3rem;">
+        <a href="@Url.Action("Index", "Home")#catalog-section"
+           style="padding: 0.8rem 2.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.75rem;">
+            See All Instruments <i class="fa fa-arrow-right"></i>
+        </a>
     </div>
 </section>

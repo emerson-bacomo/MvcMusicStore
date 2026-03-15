@@ -13,7 +13,7 @@ namespace MvcMusic.Migrations
 {
     [DbContext(typeof(MvcMusicContext))]
     [Migration("20260304053816_identity")]
-    partial class identity
+    partial class Identity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

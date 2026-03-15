@@ -16,8 +16,8 @@
     --nc-accent: #d2dbea;
     --nc-accent-dark: #8c9cb1;
     --nc-text-primary: #e2e8f2;
-    --nc-text-secondary: #aab4cc;
-    --nc-text-muted: #647087;
+    --nc-text-secondary: #d1d9e6;
+    --nc-text-muted: #8ba0c2;
     --nc-success: #81c784;
     --nc-error: #e57373;
     --nc-warning: #ffb74d;
@@ -39,8 +39,8 @@
     padding: 0;
 }
 
-html {
-    scroll-behavior: smooth;
+html, :root, * {
+    scroll-behavior: auto !important;
 }
 
 body {
@@ -67,72 +67,58 @@ a:hover {
     color: var(--nc-accent);
 }
 
-/* ── Navbar ─────────────────────────────────────────────────────── */
-.nc-navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    height: var(--nc-nav-height);
-    background: rgba(10, 12, 16, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--nc-border);
-    display: flex;
-    align-items: center;
-    padding: 0 2rem;
-    transition: var(--transition);
-}
-
-.nc-navbar .navbar-brand {
-    font-family: "Orbitron", sans-serif;
-    font-size: 1.5rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: 2px;
-}
-
-.nc-navbar .nav-link {
-    color: var(--nc-text-primary) !important;
+nav .nav-link {
+    color: #7e8081ff !important;
     font-weight: 500;
     padding: 0.4rem 0.9rem !important;
     border-radius: var(--nc-radius-sm);
     transition: var(--transition);
 }
-.nc-navbar .nav-link:hover,
-.nc-navbar .nav-link.active {
-    color: var(--nc-text-primary) !important;
-    background: var(--nc-primary-glow);
+nav .nav-link:hover,
+nav .nav-link.active {
+    color: #e0edffff !important;
 }
 
-/* ── Dropdowns ─────────────────────────────────────────────────── */
-.dropdown-menu {
-    background: var(--nc-bg-card);
-    border: 1px solid var(--nc-border);
-    box-shadow: var(--nc-shadow);
-    border-radius: var(--nc-radius-sm);
-    padding: 0.5rem;
-    margin-top: 0.5rem !important;
-    backdrop-filter: blur(15px);
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.nc-footer-nav {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
 }
-.dropdown-item {
-    color: var(--nc-text-primary) !important;
+
+.nc-footer-heading {
     font-size: 0.85rem;
-    font-weight: 500;
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--nc-primary);
+    margin-bottom: 1.5rem;
+    font-weight: 800;
+}
+
+.nc-footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.nc-footer-links li {
+    margin-bottom: 0.75rem;
+}
+
+.nc-footer-links a {
+    color: var(--nc-text-secondary);
+    font-size: 0.9rem;
     transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
 }
-.dropdown-item:hover {
-    background: var(--nc-primary-glow);
-    color: var(--nc-primary) !important;
-}
-.dropdown-divider {
-    border-top: 1px solid var(--nc-border);
-    margin: 0.5rem 0;
+
+.nc-footer-links a:hover {
+    color: var(--nc-primary);
+    transform: translateX(5px);
 }
 
 /* ── Buttons ────────────────────────────────────────────────────── */
@@ -140,7 +126,8 @@ a:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.8rem 1.6rem;
+    line-height: 1;
+    padding: 0.85rem 1.6rem 0.75rem 1.6rem;
     background: linear-gradient(135deg, var(--nc-primary), #5b71a8);
     color: #fff !important;
     border: none;
@@ -162,6 +149,7 @@ a:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
     background: transparent;
     color: var(--nc-text-primary) !important;
     border: 1.5px solid var(--nc-primary);
@@ -179,34 +167,15 @@ a:hover {
 }
 
 .nc-card {
-    background: var(--nc-bg-card);
-    border: 1px solid var(--nc-border);
+    background: rgba(30, 35, 45, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--nc-radius);
     overflow: hidden;
     transition: var(--transition);
-    box-shadow: var(--nc-shadow);
 }
-.nc-card:hover { border-color: var(--nc-primary); }
-
-.nc-footer {
-    background: #080a0f;
-    border-top: 1px solid var(--nc-border);
-    padding: 3rem 2rem;
-    text-align: center;
-    margin-top: 4rem;
-}
-.nc-footer-brand {
-    font-family: "Orbitron", sans-serif;
-    font-size: 1.25rem;
-    font-weight: 900;
-    color: var(--nc-text-primary);
-    letter-spacing: 2px;
-    margin-bottom: 0.5rem;
-}
-.nc-footer-text {
-    color: var(--nc-text-muted);
-    font-size: 0.8rem;
-}
+.nc-card:hover { border-color: rgba(123, 171, 221, 0.2); }
 
 /* ── Admin & Catalog Components ───────────────────────────────── */
 .nc-page-header {
@@ -276,7 +245,7 @@ a:hover {
 }
 
 /* Base Form Styles */
-.nc-input {
+.nc-input, .nc-select {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
     border: 1.5px solid var(--nc-border);
@@ -286,7 +255,20 @@ a:hover {
     outline: none;
     transition: var(--transition);
 }
-.nc-input:focus {
+.nc-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238ba0c2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.25rem;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+.nc-select option {
+    background: var(--nc-bg-card);
+    color: var(--nc-text-primary);
+}
+.nc-input:focus, .nc-select:focus {
     border-color: var(--nc-primary);
     box-shadow: 0 0 0 3px var(--nc-primary-glow);
 }
@@ -413,4 +395,26 @@ a:hover {
 * {
     scrollbar-width: thin;
     scrollbar-color: rgba(123, 171, 221, 0.2) var(--nc-bg-primary);
+}
+
+/* Hide number input spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* ── Scroll Offset Fixes ────────────────────────────────────────── */
+#catalog-section {
+    scroll-margin-top: calc(var(--nc-nav-height) + 2rem);
+}
+
+.dropdown-item:hover {
+    background: var(--nc-primary-glow) !important;
+    color: white !important;
 }

@@ -484,6 +484,51 @@
 
         // Initialize drag & drop for existing items purely from razor render
         document.querySelectorAll('.nc-preview-item').forEach(setupDragAndDrop);
+
+        // --- Form Change Detection ---
+        if (typeof isEdit !== 'undefined' && isEdit) {
+            const form = document.getElementById('productForm');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const initialData = new FormData(form);
+            const initialState = {};
+            for (let [key, value] of initialData.entries()) {
+                if (key !== '__RequestVerificationToken') initialState[key] = value;
+            }
+
+            function checkChanges() {
+                const currentData = new FormData(form);
+                let hasChanged = false;
+
+                // Check standard fields
+                for (let [key, value] of currentData.entries()) {
+                    if (key === '__RequestVerificationToken') continue;
+                    if (initialState[key] !== value) {
+                        hasChanged = true;
+                        break;
+                    }
+                }
+
+                // Check image changes (deleted or added)
+                const currentUrls = Array.from(document.querySelectorAll('.nc-preview-item:not(.is-removed)')).map(i => i.dataset.url).join(',');
+                if (!form.dataset.initialUrls) {
+                     form.dataset.initialUrls = Array.from(document.querySelectorAll('.nc-preview-item')).map(i => i.dataset.url).join(',');
+                }
+                if (form.dataset.initialUrls !== currentUrls) hasChanged = true;
+
+                submitBtn.disabled = !hasChanged;
+                submitBtn.style.opacity = hasChanged ? "1" : "0.5";
+                submitBtn.style.cursor = hasChanged ? "pointer" : "not-allowed";
+            }
+
+            form.addEventListener('input', checkChanges);
+            form.addEventListener('change', checkChanges);
+            
+            // Watch for image removals/additions
+            const observer = new MutationObserver(checkChanges);
+            observer.observe(document.getElementById('imagePreviewContainer'), { childList: true, subtree: true, attributes: true });
+
+            checkChanges(); // Initial check
+        }
     });
 </script>
 </div>

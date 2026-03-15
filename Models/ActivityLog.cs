@@ -11,7 +11,6 @@ namespace MvcMusic.Models
         [StringLength(100)]
         public string Action { get; set; } = string.Empty;
 
-        [StringLength(1000)]
         public string? Details { get; set; }
 
         public string? UserId { get; set; }
