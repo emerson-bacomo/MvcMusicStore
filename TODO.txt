@@ -16,3 +16,5 @@ in this setup only show the properties that are important and needs to work with
 
 add SMTP
 make banner description input multiline
+seeding data should produce logs
+logs should have a filter dropdown for each identity role
