@@ -2,108 +2,193 @@
     ViewData["Title"] = "Contact Us";
 }
 
-<div class="nc-page">
-    <div class="nc-container">
-        <div class="nc-page-header">
-            <div>
-                <div style="color:var(--nc-text-muted); 
-                            font-size:0.8rem; 
-                            margin-bottom:0.25rem;">
-                    <i class="fa fa-envelope me-1"></i> Support
-                </div>
-                <h1 class="nc-page-title">Get in Touch</h1>
-                <p style="color:var(--nc-text-muted); 
-                          font-size:0.88rem; 
-                          margin-top:0.25rem;">
-                    Our team is here to assist you with any inquiries or support needed.
-                </p>
-            </div>
-        </div>
-
-        <div class="row g-5">
-            <div class="col-lg-5">
-                <div class="nc-card h-100">
-                    <div class="nc-card-body" style="padding: 2.5rem;">
-                        <h3 style="color:var(--nc-primary); 
-                                   margin-bottom:1.5rem;">Contact Information</h3>
-                        
-                        <div class="mb-4">
-                            <label class="nc-label" 
-                                   style="text-transform:uppercase; 
-                                          letter-spacing:0.1em; 
-                                          color:var(--nc-text-muted);">General Support</label>
-                            <div class="d-flex align-items-center gap-3">
-                                <i class="fa fa-envelope" 
-                                   style="color:var(--nc-primary); 
-                                          font-size:1.2rem;"></i>
-                                <span style="font-weight:600; 
-                                             font-size:1.1rem; 
-                                             color:var(--nc-text-primary);">info@nightcord.store</span>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="nc-label" 
-                                   style="text-transform:uppercase; 
-                                          letter-spacing:0.1em; 
-                                          color:var(--nc-text-muted);">Commercial Inquiries</label>
-                            <div class="d-flex align-items-center gap-3">
-                                <i class="fa fa-briefcase" 
-                                   style="color:var(--nc-primary); 
-                                          font-size:1.2rem;"></i>
-                                <span style="font-weight:600; 
-                                             font-size:1.1rem; 
-                                             color:var(--nc-text-primary);">business@nightcord.store</span>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="nc-label" 
-                                   style="text-transform:uppercase; 
-                                          letter-spacing:0.1em; 
-                                          color:var(--nc-text-muted);">Regional Headquarters</label>
-                            <div class="d-flex align-items-center gap-3">
-                                <i class="fa fa-location-dot" 
-                                   style="color:var(--nc-primary); 
-                                          font-size:1.2rem;"></i>
-                                <span style="font-weight:400; 
-                                             font-size:1rem; 
-                                             color:var(--nc-text-secondary);">Cebu City</span>
-                            </div>
-                        </div>
+<div class="nc-page nc-contact-page">
+    <!-- Hero Section -->
+    <div class="nc-contact-hero">
+        <div class="nc-container">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <div class="nc-badge mb-3">Support Center</div>
+                    <h1 class="display-4 fw-bold mb-4">How can we <span class="nc-text-gradient">help you?</span></h1>
+                    <p class="lead text-muted mb-5">
+                        Whether you're looking for technical support, order inquiries, or just want to chat about gear, our team is ready to assist.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a asp-controller="Chat" asp-action="Index" class="btn-nc-primary px-5 py-3 fs-5">
+                            <i class="fa fa-comments me-2"></i> Start Live Chat
+                        </a>
+                        <a href="#contact-details" class="btn-nc-outline px-5 py-3 fs-5">
+                            View Contact Info
+                        </a>
                     </div>
                 </div>
-            </div>
-
-            <div class="col-lg-7">
-                <div class="nc-card">
-                    <div class="nc-card-body" style="padding: 2.5rem;">
-                        <h3 style="color:var(--nc-text-primary); 
-                                   margin-bottom:2rem;">Send us a Message</h3>
-                        <form onsubmit="event.preventDefault(); alert('Thank you for your message. We will get back to you shortly.');">
-                            <div class="mb-4">
-                                <label class="nc-label">Subject</label>
-                                <select class="nc-select">
-                                    <option>Instrument Inquiry</option>
-                                    <option>Order Status & Support</option>
-                                    <option>Technical Gear Assistance</option>
-                                    <option>Business & Partnerships</option>
-                                    <option>General Feedback</option>
-                                </select>
-                            </div>
-                            <div class="mb-4">
-                                <label class="nc-label">Message</label>
-                                <textarea class="nc-input" rows="5" placeholder="Write your message here..." required></textarea>
-                            </div>
-                            <div class="mb-4">
-                                <label class="nc-label">Email to send reply to</label>
-                                <input type="email" class="nc-input" placeholder="e.g. john@example.com" required />
-                            </div>
-                            <button type="submit" class="btn-nc-primary w-100" style="padding: 1.25rem;">Submit Message</button>
-                        </form>
+                <div class="col-lg-5 d-none d-lg-block">
+                    <div class="nc-hero-visual">
+                        <div class="nc-glow-circle"></div>
+                        <i class="fa fa-headset nc-floating-icon"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Contact Cards -->
+    <div id="contact-details" class="nc-contact-cards py-5">
+        <div class="nc-container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="nc-card h-100 text-center p-4">
+                        <div class="nc-card-icon-wrapper mb-4">
+                            <i class="fa fa-phone"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Call Us</h4>
+                        <p class="text-muted">Available 24/7 for urgent matters</p>
+                        <a href="tel:+639123456789" class="nc-link fs-5 fw-bold">+63 912 345 6789</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="nc-card h-100 text-center p-4">
+                        <div class="nc-card-icon-wrapper mb-4">
+                            <i class="fa fa-envelope"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Email Us</h4>
+                        <p class="text-muted">We typically reply within 2 hours</p>
+                        <a href="mailto:support@nightcord.com" class="nc-link fs-5 fw-bold">support@nightcord.com</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="nc-card h-100 text-center p-4">
+                        <div class="nc-card-icon-wrapper mb-4">
+                            <i class="fa fa-location-dot"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Visit Us</h4>
+                        <p class="text-muted">Stop by our flagship store</p>
+                        <address class="nc-text-primary fs-5 fw-bold m-0">Manila, Philippines</address>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map/CTA Section -->
+    <div class="nc-contact-footer py-5">
+        <div class="nc-container">
+            <div class="nc-cta-card p-5 text-center">
+                <h2 class="fw-bold mb-3">Ready to upgrade your sound?</h2>
+                <p class="text-muted mb-5">Join thousands of musicians who trust NightCord for their gear.</p>
+                <a asp-controller="Home" asp-action="Index" class="btn-nc-primary px-5 py-3">Explore Collections</a>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .nc-contact-page {
+        background: var(--nc-bg-primary);
+        min-height: 100vh;
+    }
+
+    .nc-contact-hero {
+        padding: 5rem 0;
+        background: radial-gradient(circle at 80% 20%, rgba(123, 171, 221, 0.08) 0%, transparent 40%);
+        border-bottom: 1px solid var(--nc-border);
+    }
+
+    .nc-text-gradient {
+        background: linear-gradient(135deg, var(--nc-primary), #fff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .nc-badge {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        background: var(--nc-primary-glow);
+        color: var(--nc-primary);
+        border-radius: 100px;
+        font-weight: 800;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: 1px solid var(--nc-primary);
+    }
+
+    .nc-hero-visual {
+        position: relative;
+        height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nc-glow-circle {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: var(--nc-primary-glow);
+        filter: blur(80px);
+        border-radius: 50%;
+        animation: pulse 4s infinite alternate;
+    }
+
+    .nc-floating-icon {
+        font-size: 8rem;
+        color: var(--nc-primary);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 30px var(--nc-primary-glow));
+        animation: float 6s infinite ease-in-out;
+    }
+
+    .nc-card-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        background: var(--nc-bg-secondary);
+        border: 1px solid var(--nc-border);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-size: 2rem;
+        color: var(--nc-primary);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nc-card:hover .nc-card-icon-wrapper {
+        background: var(--nc-primary);
+        color: #fff;
+        transform: translateY(-10px) rotate(10deg);
+        box-shadow: 0 15px 30px var(--nc-primary-glow);
+    }
+
+    .nc-link {
+        color: var(--nc-text-primary);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .nc-link:hover {
+        color: var(--nc-primary);
+    }
+
+    .nc-cta-card {
+        background: var(--nc-bg-secondary);
+        border: 1px solid var(--nc-border);
+        border-radius: 30px;
+        position: relative;
+        overflow: hidden;
+        background-image: linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(0.95); opacity: 0.5; }
+        100% { transform: scale(1.05); opacity: 1; }
+    }
+
+    @@keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+</style>

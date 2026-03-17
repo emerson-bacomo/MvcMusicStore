@@ -18,19 +18,26 @@ namespace MvcMusic.Controllers
 
         public async Task<IActionResult> Index(string? category, string? search)
         {
-            var products = _context.Product.Include(p => p.ProductImages).AsQueryable();
+            var products = _context.Product
+                .Include(p => p.ProductImages)
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
-                products = products.Where(p => p.Name.Contains(search) || p.Brand.Contains(search));
+                products = products.Where(p => p.Name.Contains(search) || (p.Brand != null && p.Brand.Name.Contains(search)));
 
             if (!string.IsNullOrEmpty(category))
-                products = products.Where(p => p.Category == category);
+                products = products.Where(p => p.Category != null && p.Category.Name == category);
 
             ViewData["CurrentCategory"] = category;
             ViewData["CurrentSearch"] = search;
-            ViewData["Categories"] = await _context.Product.Select(p => p.Category).Distinct().ToListAsync();
+            ViewData["Categories"] = await _context.Category.Select(c => c.Name).ToListAsync();
 
-            var bannerProducts = await _context.Product.Include(p => p.ProductImages)
+            var bannerProducts = await _context.Product
+                .Include(p => p.ProductImages)
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
                 .Where(p => p.IsBanner)
                 .ToListAsync();
             ViewData["BannerProducts"] = bannerProducts;

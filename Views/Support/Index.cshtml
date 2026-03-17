@@ -1,0 +1,299 @@
+@model IEnumerable<MvcMusic.Models.ChatRoom>
+@{
+    ViewData["Title"] = "Customer Support";
+}
+@using MvcMusic.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div class="nc-page-header">
+            <div>
+                <div class="nc-breadcrumb"><i class="fa fa-headset"></i> Support Panel</div>
+                <h1 class="nc-page-title">Customer Support</h1>
+                <p class="nc-page-subtitle">Manage customer inquiries and real-time chats</p>
+            </div>
+        </div>
+
+        <div id="messenger" class="nc-messenger">
+            <!-- Sidebar -->
+            <div class="nc-messenger-sidebar">
+                <div class="nc-messenger-sidebar-header">
+                    <div class="position-relative">
+                        <i class="fa fa-magnifying-glass position-absolute" style="left:1rem; top:50%; transform:translateY(-50%); color:var(--nc-text-muted);"></i>
+                        <input type="text" id="inboxSearch" class="nc-chat-input w-100" style="padding-left:2.5rem;" placeholder="Search conversations...">
+                    </div>
+                </div>
+                <div class="nc-messenger-inbox" id="inboxList">
+                    @foreach (var room in Model)
+                    {
+                        var lastMsg = room.Messages.OrderByDescending(m => m.Timestamp).FirstOrDefault();
+                        <div class="nc-inbox-item" onclick="loadChat(@room.Id, '@room.Subject', '@(room.Customer?.FullName ?? room.Customer?.UserName)')" id="room-item-@room.Id">
+                            <div class="nc-inbox-avatar">
+                                @(room.Customer?.FirstName?.FirstOrDefault().ToString().ToUpper() ?? "?")
+                            </div>
+                            <div class="nc-inbox-info">
+                                <div class="nc-inbox-subject">@room.Subject</div>
+                                <div class="nc-inbox-customer">@(room.Customer?.FullName ?? room.Customer?.UserName)</div>
+                                <div class="nc-inbox-preview">@(lastMsg?.Content ?? "No messages yet")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="nc-messenger-main" id="chatArea">
+                <div class="nc-messenger-empty" id="chatEmptyState">
+                    <i class="fa fa-comments"></i>
+                    <h3>Select a conversation</h3>
+                    <p>Choose a chat from the inbox to start messaging.</p>
+                </div>
+
+                <div id="chatContent" style="display:none; flex:1; flex-direction:column;">
+                    <div class="nc-messenger-header">
+                        <div class="d-flex align-items-center">
+                            <button class="btn-back" onclick="toggleMobileSidebar()">
+                                <i class="fa fa-arrow-left"></i>
+                            </button>
+                            <div>
+                                <h4 id="activeSubject" class="mb-0" style="font-size:1.1rem; font-weight:700;">Subject</h4>
+                                <div id="activeCustomer" style="font-size:0.8rem; color:var(--nc-text-muted);">Customer Name</div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="nc-action-link"><i class="fa fa-phone"></i></button>
+                            <button class="nc-action-link"><i class="fa fa-ellipsis-vertical"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="nc-messenger-body" id="messageList">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                    <div id="typingIndicator" class="nc-typing-indicator mx-3">
+                        <span id="typingName">Someone</span> is typing
+                        <div class="nc-typing-dots"><span></span><span></span><span></span></div>
+                    </div>
+
+                    <div class="nc-messenger-footer">
+                        <form id="chatForm" class="nc-chat-input-wrapper">
+                            <input type="text" id="chatInput" class="nc-chat-input" placeholder="Type a message..." autocomplete="off">
+                            <button type="submit" class="btn-chat-send">
+                                <i class="fa fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Chat.css" />
+}
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let currentRoomId = null;
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        async function start() {
+            try {
+                await connection.start();
+                console.log("SignalR Connected.");
+                await connection.invoke("JoinSupportGroup");
+            } catch (err) {
+                console.log(err);
+                setTimeout(start, 5000);
+            }
+        };
+
+        let typingTimeout;
+        function sendTypingStatus(isTyping) {
+            if (currentRoomId) {
+                connection.invoke("SendTypingStatus", currentRoomId, isTyping).catch(err => console.error(err));
+            }
+        }
+
+        connection.on("ReceiveTypingStatus", function (data) {
+            if (data.roomId === currentRoomId && data.senderId !== '@UserManager.GetUserId(User)') {
+                const indicator = document.getElementById('typingIndicator');
+                const nameSpan = document.getElementById('typingName');
+                if (data.isTyping) {
+                    nameSpan.innerText = data.senderName;
+                    indicator.style.display = 'block';
+                    scrollToBottom();
+                } else {
+                    indicator.style.display = 'none';
+                }
+            }
+        });
+
+        connection.on("ReceiveMessage", function (message) {
+            if (message.roomId === currentRoomId) {
+                appendMessage(message);
+                scrollToBottom();
+            }
+        });
+
+        connection.on("UpdateInbox", function (data) {
+            let roomItem = document.getElementById(`room-item-${data.roomId}`);
+            const inbox = document.getElementById('inboxList');
+            
+            if (!roomItem && inbox) {
+                // New room created, add to list
+                const div = document.createElement('div');
+                div.className = 'nc-inbox-item';
+                div.id = `room-item-${data.roomId}`;
+                div.onclick = () => loadChat(data.roomId, data.subject, data.customerName);
+                div.innerHTML = `
+                    <div class="nc-inbox-avatar"><i class="fa fa-user"></i></div>
+                    <div class="nc-inbox-info">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="nc-inbox-customer text-truncate">${data.customerName}</div>
+                            <div class="nc-inbox-time small text-muted">${new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        <div class="nc-inbox-subject text-truncate small fw-bold text-primary mb-1">${data.subject}</div>
+                        <div class="nc-inbox-preview text-truncate small text-muted">${data.content}</div>
+                    </div>
+                `;
+                inbox.prepend(div);
+                
+                // Optional: Play sound or show notification
+                if (typeof Swal !== 'undefined') {
+                    const toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    toast.fire({
+                        icon: 'info',
+                        title: `New message from ${data.customerName}`
+                    });
+                }
+            } else if (roomItem) {
+                // Update existing room preview
+                const preview = roomItem.querySelector('.nc-inbox-preview');
+                const time = roomItem.querySelector('.nc-inbox-time');
+                if (preview) preview.innerText = data.content;
+                if (time) time.innerText = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                // Move to top
+                inbox.prepend(roomItem);
+            }
+        });
+
+        async function loadChat(roomId, subject, customer) {
+            currentRoomId = roomId;
+            
+            // UI updates
+            document.querySelectorAll('.nc-inbox-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`room-item-${roomId}`).classList.add('active');
+            
+            document.getElementById('chatEmptyState').style.display = 'none';
+            document.getElementById('chatContent').style.display = 'flex';
+            document.getElementById('activeSubject').innerText = subject;
+            document.getElementById('activeCustomer').innerText = customer;
+            
+            if (window.innerWidth < 992) {
+                document.getElementById('messenger').classList.add('show-chat');
+            }
+
+            // Load messages
+            const response = await fetch(`/support/get-messages?roomId=${roomId}`);
+            const messages = await response.json();
+            
+            const list = document.getElementById('messageList');
+            list.innerHTML = '';
+            messages.forEach(appendMessage);
+            scrollToBottom();
+
+            // Join SignalR group
+            await connection.invoke("JoinRoom", roomId);
+        }
+
+        function appendMessage(msg) {
+            const list = document.getElementById('messageList');
+            const div = document.createElement('div');
+            const isMe = msg.senderId === '@UserManager.GetUserId(User)';
+            
+            div.className = `nc-message ${isMe ? 'sent' : 'received'}`;
+            
+            let senderHtml = '';
+            if (!isMe) {
+                senderHtml = `<div class="nc-message-sender">${msg.senderName}</div>`;
+            } else {
+                // For staff side, even sent messages should show "You (Name)" if we want
+                senderHtml = `<div class="nc-message-sender">You</div>`;
+            }
+
+            const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            div.innerHTML = `
+                ${senderHtml}
+                <div class="nc-message-bubble">
+                    ${msg.content}
+                    <div class="nc-message-time">${time}</div>
+                </div>
+            `;
+            list.appendChild(div);
+        }
+
+        function scrollToBottom() {
+            const list = document.getElementById('messageList');
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('messenger').classList.remove('show-chat');
+        }
+
+        document.getElementById('chatForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const content = input.value.trim();
+            
+            if (content && currentRoomId) {
+                input.value = '';
+                sendTypingStatus(false);
+                await connection.invoke("SendMessage", currentRoomId, content);
+            }
+        });
+
+        document.getElementById('chatInput').addEventListener('input', function() {
+            sendTypingStatus(true);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => sendTypingStatus(false), 10000);
+        });
+
+        document.getElementById('chatInput').addEventListener('blur', function() {
+            sendTypingStatus(false);
+        });
+
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Search functionality
+        document.getElementById('inboxSearch').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.nc-inbox-item').forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(term) ? 'flex' : 'none';
+            });
+        });
+
+        start();
+    </script>
+}

@@ -1,5 +1,3 @@
-@model IEnumerable<MvcMusic.Models.Product>
-
 @{
     ViewData["Title"] = "Instrument Management";
 }
@@ -8,6 +6,7 @@
     <div class="container-fluid px-4">
         <div class="nc-page-header">
             <div>
+                <div class="nc-breadcrumb"><i class="fa fa-guitar"></i> Admin Panel</div>
                 <h1 class="nc-page-title">Instrument Management</h1>
                 <p class="nc-page-subtitle">Manage your inventory, pricing, and showcase highlights.</p>
             </div>
@@ -28,88 +27,49 @@
             </div>
         }
 
-        <div class="nc-card nc-table-card">
-            <div class="nc-table-responsive">
-                <table class="nc-table">
-                    <thead>
-                        <tr>
-                            <th>Instrument</th>
-                            <th>Category</th>
-                            <th>Brand</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="nc-table-product">
-                                        <img src="@(item.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? item.ProductImages?.FirstOrDefault()?.Url)" onerror="this.src='https://placehold.co/50x50/1a1f2c/7babdd?text=?'" />
-                                        <div>
-                                            <div class="product-name">@item.Name</div>
-                                            @if (item.IsBanner)
-                                            {
-                                                <span class="badge-banner">Banner</span>
-                                            }
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><span class="nc-text-secondary">@item.Category</span></td>
-                                <td><span class="nc-text-secondary">@item.Brand</span></td>
-                                <td><span class="nc-text-primary fw-bold">₱ @item.Price.ToString("N2")</span></td>
-                                <td>
-                                    <span class="@(item.Stock <= 0 ? "text-danger" : item.Stock < 10 ? "text-warning" : "nc-text-secondary")">
-                                        @item.Stock
-                                    </span>
-                                </td>
-                                <td>
-                                    @if (item.Stock > 0)
-                                    {
-                                        <span class="nc-status-badge status-active">Available</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="nc-status-badge status-inactive">Sold Out</span>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    <div class="nc-action-group">
-                                        <a asp-action="Details" asp-route-id="@item.Id" class="nc-action-link" title="View"><i class="fa fa-eye"></i></a>
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>
-                                        @if (!User.IsInRole("Staff"))
-                                        {
-                                            <a asp-action="Delete" asp-route-id="@item.Id" class="nc-action-link delete" title="Delete"><i class="fa fa-trash"></i></a>
-                                        }
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <div id="products-table"></div>
     </div>
 </div>
 
 <style>
-    .nc-page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+    .nc-page-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: flex-end; 
+        margin-bottom: 2.5rem; 
+        flex-wrap: wrap; 
+        gap: 1rem; 
+    }
     
     .nc-btn-featured {
         padding: 0.9rem 2rem;
         font-size: 1rem;
         box-shadow: 0 0 20px rgba(123, 171, 221, 0.2);
     }
+
     .nc-btn-featured:hover {
         box-shadow: 0 0 30px rgba(123, 171, 221, 0.4);
     }
 
-    .nc-table-product { display: flex; align-items: center; gap: 1rem; }
-    .nc-table-product img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--nc-border); }
-    .product-name { font-weight: 700; color: var(--nc-text-primary); font-size: 0.95rem; }
+    .nc-table-product { 
+        display: flex; 
+        align-items: center; 
+        gap: 1rem; 
+    }
+
+    .nc-table-product img { 
+        width: 44px; 
+        height: 44px; 
+        border-radius: 8px; 
+        object-fit: cover; 
+        border: 1px solid var(--nc-border); 
+    }
+
+    .product-name { 
+        font-weight: 700; 
+        color: var(--nc-text-primary); 
+        font-size: 0.95rem; 
+    }
     
     .badge-banner {
         background: rgba(123, 171, 221, 0.1);
@@ -131,10 +91,25 @@
         font-weight: 700;
         display: inline-block;
     }
-    .status-active { background: rgba(129, 199, 132, 0.1); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.2); }
-    .status-inactive { background: rgba(229, 115, 115, 0.1); color: #e57373; border: 1px solid rgba(229, 115, 115, 0.2); }
 
-    .nc-action-group { display: flex; gap: 0.6rem; justify-content: flex-end; }
+    .status-active { 
+        background: rgba(129, 199, 132, 0.1); 
+        color: #81c784; 
+        border: 1px solid rgba(129, 199, 132, 0.2); 
+    }
+
+    .status-inactive { 
+        background: rgba(229, 115, 115, 0.1); 
+        color: #e57373; 
+        border: 1px solid rgba(229, 115, 115, 0.2); 
+    }
+
+    .nc-action-group { 
+        display: flex; 
+        gap: 0.6rem; 
+        justify-content: flex-end; 
+    }
+
     .nc-action-link {
         width: 36px;
         height: 36px;
@@ -147,7 +122,98 @@
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid var(--nc-border);
     }
-    .nc-action-link:hover { background: var(--nc-primary); color: #fff; transform: translateY(-3px); border-color: var(--nc-primary); box-shadow: 0 4px 12px rgba(123, 171, 221, 0.3); }
-    .nc-action-link.delete { color: rgba(250, 146, 144, 1); }
-    .nc-action-link.delete:hover { background: rgba(250, 146, 144, 1); border-color: rgba(250, 146, 144, 1); color: #fff !important; }
+
+    .nc-action-link:hover { 
+        background: var(--nc-primary); 
+        color: #fff; 
+        transform: translateY(-3px); 
+        border-color: var(--nc-primary); 
+        box-shadow: 0 4px 12px rgba(123, 171, 221, 0.3); 
+    }
+
+    .nc-action-link.delete { 
+        color: rgba(250, 146, 144, 1); 
+    }
+
+    .nc-action-link.delete:hover { 
+        background: rgba(255,107,107, 1); 
+        border-color: rgba(255,107,107, 1); 
+        color: #fff !important; 
+    }
 </style>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/UpdatableTable.css" />
+}
+
+@section Scripts {
+    <script type="module">
+        import UpdatableTable from '/js/UpdatableTable.js';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const isStaff = @User.IsInRole("Staff").ToString().ToLower();
+            
+            const table = new UpdatableTable('#products-table', {
+                label: '',
+                storagePrefix: 'product',
+                request: {
+                    url: '@Url.Action("GetTableData", "Products")' + window.location.search,
+                    type: 'GET'
+                },
+                fieldDefinitions: {
+                    photo: {
+                        label: 'Photo',
+                        renderContent: function(value, col, rowData) {
+                            const imgUrl = value.image || 'https://placehold.co/50x50/1a1f2c/7babdd?text=?';
+                            return `
+                                <div class="nc-table-photo" style="position:relative;">
+                                    <img src="${imgUrl}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;border:1px solid var(--nc-border);" onerror="this.src='https://placehold.co/50x50/1a1f2c/7babdd?text=?'" />
+                                    ${value.isBanner ? '<span class="badge-banner-overlay" title="Featured Banner Product" style="position:absolute;bottom:-3px;right:-3px;background:var(--nc-primary);color:var(--nc-bg-primary);font-size:9px;padding:2px 4px;border-radius:4px;font-weight:900;border:1px solid rgba(255,255,255,0.2);box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:default;">B</span>' : ''}
+                                </div>
+                            `;
+                        }
+                    },
+                    name: { label: 'Instrument' },
+                    category: { label: 'Category' },
+                    brand: { label: 'Brand' },
+                    price: { label: 'Price', renderContent: (val) => `<span class="nc-text-primary fw-bold">₱ ${parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>` },
+                    stock: { 
+                        label: 'Stock',
+                        renderContent: (val) => {
+                            let className = val <= 0 ? "text-danger" : val < 10 ? "text-warning" : "nc-text-secondary";
+                            return `<span class="${className}">${val}</span>`;
+                        }
+                    },
+                    status: {
+                        label: 'Status',
+                        renderContent: (val) => {
+                            if (val === 'Available') return '<span class="nc-status-badge status-active">Available</span>';
+                            return '<span class="nc-status-badge status-inactive">Sold Out</span>';
+                        }
+                    },
+                    actions: {
+                        label: 'Actions',
+                        renderContent: function(value, col, rowData) {
+                            let links = `
+                                <a href="/Products/Details/${rowData.id}" class="nc-action-link" title="View"><i class="fa fa-eye"></i></a>
+                                <a href="/Products/Edit/${rowData.id}" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>
+                            `;
+                            if (!isStaff) {
+                                links += `
+                                    <button type="button" class="nc-action-link delete border-0" title="Delete"
+                                            onclick="window.confirmDelete('${rowData.id}', '@Url.Action("Delete", "Products")', () => table.fetchData())">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                `;
+                            }
+                            return `<div class="nc-action-group justify-content-start">${links}</div>`;
+                        }
+                    }
+                },
+                onSave: function() {
+                    window.location.reload();
+                }
+            });
+        });
+    </script>
+}

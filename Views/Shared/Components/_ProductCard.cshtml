@@ -147,10 +147,10 @@
              class="nc-img-loading"
              onload="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')"
              onerror="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded');this.src='https://placehold.co/400x300/1a1f2c/7babdd?text=NightCord'" />
-        <span class="nc-product-badge">@Model.Category</span>
+        <span class="nc-product-badge">@(Model.Category?.Name ?? "Uncategorized")</span>
     </div>
     <div class="nc-product-body">
-        <div class="nc-product-brand">@Model.Brand</div>
+        <div class="nc-product-brand">@(Model.Brand?.Name ?? "No Brand")</div>
         <div class="nc-product-name">@Model.Name</div>
         <div class="nc-stars d-flex align-items-center gap-1">
             <span style="color: var(--nc-primary); 

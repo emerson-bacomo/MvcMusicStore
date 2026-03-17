@@ -193,7 +193,7 @@
                     ?? p.ProductImages?.FirstOrDefault()?.Url;
 
                 var desc = (useBanner ? p.BannerDescription : null) ?? p.Description ?? string.Empty;
-                var tag  = fixedTag ?? p.Category ?? string.Empty;
+                var tag  = fixedTag ?? p.Category?.Name ?? string.Empty;
 
                 <div class="carousel-item h-100 @(i == 0 ? "active" : "")"
                      data-product='@JsonSerializer.Serialize(new { 
@@ -278,6 +278,7 @@
             let slideTimer;
             let slideStartTime;
             let isPaused = false;
+            let isMouseOver = false;
 
             const bootstrapCarousel = new bootstrap.Carousel(carouselEl, {
                 interval: false,
@@ -300,7 +301,7 @@
                 slideTimer = setTimeout(() => { bootstrapCarousel.next(); }, duration);
 
                 // If mouse is already over when slide starts, pause immediately
-                if (carouselEl.matches(':hover')) {
+                if (isMouseOver) {
                     pauseProgress();
                 }
             };
@@ -372,8 +373,12 @@
                 startProgress();
             });
 
-            carouselEl.addEventListener("mouseenter", pauseProgress);
+            carouselEl.addEventListener("mouseenter", () => {
+                isMouseOver = true;
+                pauseProgress();
+            });
             carouselEl.addEventListener("mouseleave", () => {
+                isMouseOver = false;
                 if (!document.hidden && document.hasFocus()) {
                     resumeProgress();
                 }

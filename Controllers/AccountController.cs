@@ -46,9 +46,9 @@ namespace MvcMusic.Controllers
             
             if (user != null)
             {
-                if (user.IsDisabled)
+                if (user.IsBanned)
                 {
-                    ModelState.AddModelError(string.Empty, "This account has been disabled. Please contact an administrator.");
+                    ModelState.AddModelError(string.Empty, "This account has been banned. Please contact an administrator.");
                     return View(model);
                 }
 
@@ -60,7 +60,7 @@ namespace MvcMusic.Controllers
                     var roles = await _userManager.GetRolesAsync(user);
                     var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
                     if (ip == "::1" || ip == "127.0.0.1") ip = "Localhost";
-                    await _logger.LogAsync("Login", $"User logged in from {ip}", user.Id, user.UserName, roles.FirstOrDefault());
+                    await _logger.LogAsync(ActivityAction.Login, $"User logged in from {ip}", user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);
 
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                         return Redirect(returnUrl);
@@ -105,6 +105,7 @@ namespace MvcMusic.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, "User");
+                await _logger.LogAsync(ActivityAction.Register, "Registered a new account.", user.Id, user.UserName, "User", user.FullName);
                 await _signInManager.SignInAsync(user, isPersistent: false);
                 return RedirectToAction("Index", "Home");
             }
@@ -124,7 +125,7 @@ namespace MvcMusic.Controllers
             if (user != null)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                await _logger.LogAsync("Logout", "User logged out", user.Id, user.UserName, roles.FirstOrDefault());
+                await _logger.LogAsync(ActivityAction.Logout, "User logged out", user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);
             }
 
             await _signInManager.SignOutAsync();

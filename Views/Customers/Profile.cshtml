@@ -39,7 +39,7 @@
                         <div style="text-align:left;border-top:1px solid var(--nc-border);padding-top:1.5rem;">
                             <div style="margin-bottom:1rem;font-size:0.85rem;">
                                 <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Status</span>
-                                @if (customer.IsDisabled)
+                                @if (customer.IsBanned)
                                 {
                                     <span style="color:#e57373;font-weight:700;"><i class="fa fa-ban me-1"></i> Banned / Disabled</span>
                                 }
@@ -61,7 +61,7 @@
                         <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--nc-border);">
                             <form asp-action="ToggleBan" asp-route-id="@customer.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                @if (customer.IsDisabled)
+                                @if (customer.IsBanned)
                                 {
                                     <button type="submit" class="btn btn-success w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
                                         <i class="fa fa-circle-play me-2"></i> Restore Account

@@ -12,7 +12,7 @@ namespace MvcMusic.Models
         /// <summary>Path to profile picture under /uploads/avatars/</summary>
         public string? ProfilePicture { get; set; }
 
-        public bool IsDisabled { get; set; } = false;
+        public bool IsBanned { get; set; } = false;
 
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
     }

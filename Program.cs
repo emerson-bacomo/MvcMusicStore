@@ -43,6 +43,7 @@ builder.Services.AddControllersWithViews(options =>
 });
 
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -74,5 +75,6 @@ app.MapControllerRoute(
     pattern: "{controller=Landing}/{action=Index}/{id?}");
 
 app.MapRazorPages();
+app.MapHub<MvcMusic.Hubs.ChatHub>("/chatHub");
 
 app.Run();

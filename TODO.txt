@@ -9,12 +9,6 @@ add a template system where people can save and load html templates
 instead of making a plain edit page for product, when you are in the product details page, clicking the edit button wont make you go to the edit page but the static product details page would become
 the edit page. the labels become text inputs, just put a label near the input to indicate what property it is. the image viewer main div is divided in half, upper is drag upload local image, bottom is url
 the bottom of the main div becomes the current images section in edit page that is draggable reorder and still with the url edit (make this floating popup near the image instead), etc.
-
-make sure that all data are only soft delete in admin side. add a IsDeleted property, and only show the non deleted data normally. add a filter menu on top right of tables to toggle show deleted, hide certain columns, etc
-refer to SIS project for implementation of table filters, search, column based sorting,. also copy how there are input fields in the table row itself and how all logic work like changes indicator, changes summary on save, etc.
-in this setup only show the properties that are important and needs to work with multi edit like stock, price, etc. description, images and the like are only edited in edit page since theyre too long and complex
-
-add SMTP
-make banner description input multiline
-seeding data should produce logs
-logs should have a filter dropdown for each identity role
+the other properties not in the normal product details page can just be spawned below
+copy how updatable table works with local changes and input indicators and save changes diff
+use products-productid in localStorage to sync changes with updatable table

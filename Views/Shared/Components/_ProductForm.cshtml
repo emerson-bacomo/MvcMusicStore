@@ -22,14 +22,20 @@
             
             <div class="nc-form-grid">
                 <div class="nc-form-group">
-                    <label class="nc-label" asp-for="Brand">Brand</label>
-                    <input asp-for="Brand" class="nc-input" placeholder="e.g. Fender" />
-                    <span asp-validation-for="Brand" class="nc-validation-error"></span>
+                    <label class="nc-label" asp-for="BrandId">Brand</label>
+                    <select asp-for="BrandId" class="nc-input nc-select" 
+                            asp-items="@(new SelectList(ViewBag.Brands ?? new List<Brand>(), "Id", "Name"))">
+                        <option value="">-- Select Brand --</option>
+                    </select>
+                    <span asp-validation-for="BrandId" class="nc-validation-error"></span>
                 </div>
                 <div class="nc-form-group">
-                    <label class="nc-label" asp-for="Category">Category</label>
-                    <input asp-for="Category" class="nc-input" placeholder="e.g. Guitar" />
-                    <span asp-validation-for="Category" class="nc-validation-error"></span>
+                    <label class="nc-label" asp-for="CategoryId">Category</label>
+                    <select asp-for="CategoryId" class="nc-input nc-select" 
+                            asp-items="@(new SelectList(ViewBag.Categories ?? new List<Category>(), "Id", "Name"))">
+                        <option value="">-- Select Category --</option>
+                    </select>
+                    <span asp-validation-for="CategoryId" class="nc-validation-error"></span>
                 </div>
             </div>
         </div>
@@ -126,8 +132,7 @@
                 <span asp-validation-for="Description" class="nc-validation-error"></span>
             </div>
 
-            <div class="nc-form-grid" 
-                 style="margin-top: 1.5rem;">
+            <div class="nc-form-grid nc-banner-section">
                 <label class="nc-form-check">
                     <input asp-for="IsBanner" type="checkbox" />
                     <div>
@@ -140,7 +145,7 @@
                 </label>
                 <div class="nc-form-group">
                     <label class="nc-label" asp-for="BannerDescription">Banner Description</label>
-                    <input asp-for="BannerDescription" class="nc-input" placeholder="e.g. Best for beginners" />
+                    <textarea asp-for="BannerDescription" class="nc-input" rows="2" placeholder="e.g. Best for beginners"></textarea>
                     <span asp-validation-for="BannerDescription" class="nc-validation-error"></span>
                 </div>
             </div>
@@ -168,8 +173,19 @@
     </form>
 </div>
 </div>
+</div>
 
 <style>
+    .nc-banner-section {
+        margin-top: 1.5rem;
+        align-items: start;
+    }
+
+    .nc-form-check {
+        min-height: 80px;
+        align-items: center;
+    }
+
     .nc-upload-zone {
         border: 2px dashed var(--nc-border);
         border-radius: var(--nc-radius-sm);
@@ -179,16 +195,20 @@
         cursor: pointer;
         transition: all 0.3s ease;
     }
-    .nc-upload-zone:hover, .nc-upload-zone.dragover {
+
+    .nc-upload-zone:hover, 
+    .nc-upload-zone.dragover {
         border-color: var(--nc-primary);
         background: rgba(123, 171, 221, 0.05);
     }
+
     .nc-image-preview-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 1rem;
         align-items: start;
     }
+
     .nc-preview-item {
         background: var(--nc-bg-secondary);
         border: 1px solid var(--nc-border);
@@ -198,22 +218,27 @@
         flex-direction: column;
         transition: all 0.3s ease;
     }
+
     .nc-preview-item.is-editing {
         grid-column: 1 / -1;
         flex-direction: row;
         align-items: center;
         gap: 1rem;
     }
+
     .nc-preview-item.is-removed .nc-preview-thumb {
         filter: grayscale(100%) opacity(40%);
     }
+
     .nc-preview-item.is-dragover {
         border-color: var(--nc-primary);
         transform: scale(1.05);
     }
+
     .nc-preview-item.is-dragging {
         opacity: 0.5;
     }
+
     .nc-preview-thumb {
         position: relative;
         aspect-ratio: 1;
@@ -222,48 +247,109 @@
         width: 100%;
         background: var(--nc-bg-primary);
     }
+
     .nc-preview-item.is-editing .nc-preview-thumb {
         width: 140px;
         flex-shrink: 0;
     }
-    .nc-preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    .nc-preview-thumb img { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+    }
     
     .nc-preview-actions {
-        position: absolute; top:0; left:0; right:0;
-        display: flex; justify-content: flex-end; gap: 0.25rem;
-        padding: 0.25rem; background: rgba(0,0,0,0.5); 
-        opacity: 0; transition: opacity 0.2s;
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        right: 0;
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 0.25rem;
+        padding: 0.25rem; 
+        background: rgba(0,0,0,0.5); 
+        opacity: 0; 
+        transition: opacity 0.2s;
     }
-    .nc-preview-thumb:hover .nc-preview-actions { opacity: 1; }
+
+    .nc-preview-thumb:hover .nc-preview-actions { 
+        opacity: 1; 
+    }
     
     .nc-preview-btn {
         background: rgba(255,255,255,0.2);
-        color: white; border: none; border-radius: 4px;
-        width: 26px; height: 26px; font-size: 11px;
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer; transition: background 0.2s;
+        color: white; 
+        border: none; 
+        border-radius: 4px;
+        width: 26px; 
+        height: 26px; 
+        font-size: 11px;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        cursor: pointer; 
+        transition: background 0.2s;
     }
-    .nc-preview-btn:hover { background: var(--nc-primary); }
-    .nc-preview-btn.btn-danger:hover, .nc-preview-item.is-removed .nc-preview-btn.btn-danger { background: #e53935; }
-    .nc-preview-btn.btn-star:hover, .nc-preview-btn.btn-star.active { background: #fbc02d; color:#000; }
-    .nc-preview-item.is-editing .nc-preview-btn.btn-edit { background: var(--nc-primary); }
+
+    .nc-preview-btn:hover { 
+        background: var(--nc-primary); 
+    }
+
+    .nc-preview-btn.btn-danger:hover, 
+    .nc-preview-item.is-removed .nc-preview-btn.btn-danger { 
+        background: #e53935; 
+    }
+
+    .nc-preview-btn.btn-star:hover, 
+    .nc-preview-btn.btn-star.active { 
+        background: #fbc02d; 
+        color: #000; 
+    }
+
+    .nc-preview-item.is-editing .nc-preview-btn.btn-edit { 
+        background: var(--nc-primary); 
+    }
     
     .nc-primary-badge {
-        position: absolute; bottom: 0.25rem; left: 0.25rem;
-        background: #fbc02d; color: #000; font-size: 9px; 
-        padding: 2px 6px; border-radius: 4px; font-weight: 800;
+        position: absolute; 
+        bottom: 0.25rem; 
+        left: 0.25rem;
+        background: #fbc02d; 
+        color: #000; 
+        font-size: 9px; 
+        padding: 2px 6px; 
+        border-radius: 4px; 
+        font-weight: 800;
     }
 
     .nc-preview-edit-area {
         display: none;
         flex: 1;
     }
+
     .nc-preview-item.is-editing .nc-preview-edit-area {
         display: block;
     }
+
     .nc-preview-edit-input {
         width: 100%;
         margin: 0;
+    }
+
+    /* Select Overrides */
+    .nc-select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237babdd' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: calc(100% - 1rem) center;
+        padding-right: 2.5rem !important;
+    }
+
+    .nc-select option {
+        background: var(--nc-bg-card);
+        color: var(--nc-text-primary);
     }
 </style>
 
@@ -531,5 +617,3 @@
         }
     });
 </script>
-</div>
-</div>

@@ -1,0 +1,315 @@
+/* Messenger UI Styles */
+.nc-messenger {
+    display: flex;
+    height: calc(100vh - var(--nc-nav-height) - 4rem);
+    background: var(--nc-bg-card);
+    border: 1px solid var(--nc-border);
+    border-radius: var(--nc-radius);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Sidebar Inbox */
+.nc-messenger-sidebar {
+    width: 360px;
+    border-right: 1px solid var(--nc-border);
+    display: flex;
+    flex-direction: column;
+    background: rgba(20, 26, 40, 0.4);
+    z-index: 10;
+}
+
+.nc-messenger-sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-messenger-inbox {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.nc-inbox-item {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(122, 171, 221, 0.05);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nc-inbox-item:hover {
+    background: rgba(123, 171, 221, 0.08);
+}
+
+.nc-inbox-item.active {
+    background: rgba(123, 171, 221, 0.15);
+    border-left: 4px solid var(--nc-primary);
+}
+
+.nc-inbox-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--nc-primary-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--nc-primary);
+    flex-shrink: 0;
+}
+
+.nc-inbox-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.nc-inbox-subject {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--nc-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.1rem;
+}
+
+.nc-inbox-customer {
+    font-size: 0.85rem;
+    color: var(--nc-text-secondary);
+    margin-bottom: 0.2rem;
+}
+
+.nc-inbox-preview {
+    font-size: 0.8rem;
+    color: var(--nc-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Chat Main Area */
+.nc-messenger-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 12, 16, 0.2);
+    position: relative;
+}
+
+.nc-messenger-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--nc-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(21, 26, 38, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.nc-messenger-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.nc-messenger-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--nc-border);
+    background: rgba(21, 26, 38, 0.8);
+}
+
+/* Message Bubbles */
+.nc-message {
+    max-width: 70%;
+    display: flex;
+    flex-direction: column;
+}
+
+.nc-message.sent {
+    align-self: flex-end;
+}
+
+.nc-message.received {
+    align-self: flex-start;
+}
+
+.nc-message-bubble {
+    padding: 0.8rem 1.2rem;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    position: relative;
+}
+
+.nc-message.sent .nc-message-bubble {
+    background: var(--nc-primary);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.nc-message.received .nc-message-bubble {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--nc-text-primary);
+    border-bottom-left-radius: 4px;
+}
+
+.nc-message-sender {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--nc-text-muted);
+    margin-bottom: 0.25rem;
+    margin-left: 0.5rem;
+}
+
+.nc-message.sent .nc-message-sender {
+    text-align: right;
+    margin-right: 0.5rem;
+    margin-left: 0;
+}
+
+.nc-message-time {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.25rem;
+    align-self: flex-end;
+}
+
+.nc-message.received .nc-message-time {
+    color: var(--nc-text-muted);
+    align-self: flex-start;
+}
+
+/* Chat Input */
+.nc-chat-input-wrapper {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.nc-chat-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--nc-border);
+    border-radius: 24px;
+    padding: 0.75rem 1.25rem;
+    color: var(--nc-text-primary);
+    outline: none;
+    transition: var(--transition);
+}
+
+.nc-chat-input:focus {
+    border-color: var(--nc-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-chat-send {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--nc-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: var(--transition);
+}
+
+.btn-chat-send:hover {
+    transform: scale(1.1);
+    background: #8cbbe6;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 991px) {
+    .nc-messenger-sidebar {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        transition: transform 0.3s ease;
+    }
+
+    .nc-messenger.show-chat .nc-messenger-sidebar {
+        transform: translateX(-100%);
+    }
+
+    .nc-messenger-main {
+        width: 100%;
+    }
+
+    .nc-messenger-header .btn-back {
+        display: block !important;
+    }
+}
+
+.btn-back {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--nc-primary);
+    font-size: 1.25rem;
+    margin-right: 1rem;
+}
+
+/* Placeholder for empty state */
+.nc-messenger-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--nc-text-muted);
+    text-align: center;
+    padding: 2rem;
+}
+
+.nc-messenger-empty i {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.2;
+}
+
+/* Typing Indicator */
+.nc-typing-indicator {
+    display: none;
+    align-self: flex-start;
+    padding: 0.6rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    color: var(--nc-text-muted);
+}
+
+.nc-typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 5px;
+}
+
+.nc-typing-dots span {
+    width: 4px;
+    height: 4px;
+    background: var(--nc-primary);
+    border-radius: 50%;
+    display: inline-block;
+    animation: nc-typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.nc-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.nc-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes nc-typing-bounce {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+}

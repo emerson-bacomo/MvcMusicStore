@@ -1,3 +1,5 @@
+using MvcMusic.Models;
+
 namespace MvcMusic.ViewModels
 {
     public class AdminDashboardViewModel
@@ -21,14 +23,6 @@ namespace MvcMusic.ViewModels
         // Revenue by category
         public List<ChartPoint> RevenueByCategory { get; set; } = new();
 
-        // Recent orders
-        public List<RecentOrderItem> RecentOrders { get; set; } = new();
-    }
-
-    public class ChartPoint
-    {
-        public string Label { get; set; } = string.Empty;
-        public decimal Value { get; set; }
     }
 
     public class RecentOrderItem

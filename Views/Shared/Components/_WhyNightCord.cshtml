@@ -70,6 +70,34 @@
         color: var(--nc-text-secondary);
         line-height: 1.6;
     }
+    @@media (max-width: 768px) {
+        .nc-features-grid {
+            display: none !important;
+        }
+        .nc-features-carousel {
+            display: block !important;
+            margin-top: 2rem;
+        }
+    }
+    .nc-features-carousel {
+        display: none;
+    }
+    .carousel-indicators [data-bs-target] {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--nc-primary);
+        opacity: 0.3;
+        margin: 0 5px;
+        border: none;
+    }
+    .carousel-indicators .active {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    .nc-why .carousel-inner {
+        padding-bottom: 3rem;
+    }
 </style>
 
 <section class="nc-why">
@@ -78,6 +106,8 @@
             <h2 class="nc-section-title">Why NightCord?</h2>
             <p class="nc-section-subtitle">A professional ecosystem for modern musicians.</p>
         </div>
+
+        @* Desktop Grid *@
         <div class="nc-features-grid">
             <div class="nc-feature-card">
                 <div class="nc-feature-title">Premium Brands</div>
@@ -94,6 +124,42 @@
             <div class="nc-feature-card">
                 <div class="nc-feature-title">For Every Journey</div>
                 <p class="nc-feature-desc">Whether starting out or going pro &mdash; we provide the gear you need to succeed.</p>
+            </div>
+        </div>
+
+        @* Mobile Carousel *@
+        <div id="ncWhyCarousel" class="carousel slide nc-features-carousel" data-bs-ride="carousel">
+            <div class="carousel-indicators" style="bottom: -10px;">
+                <button type="button" data-bs-target="#ncWhyCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                <button type="button" data-bs-target="#ncWhyCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                <button type="button" data-bs-target="#ncWhyCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                <button type="button" data-bs-target="#ncWhyCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
+            </div>
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="nc-feature-card">
+                        <div class="nc-feature-title">Premium Brands</div>
+                        <p class="nc-feature-desc">From Fender Squier to Roland &mdash; we carry trusted names that define your sound.</p>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="nc-feature-card">
+                        <div class="nc-feature-title">Premium Dark Design</div>
+                        <p class="nc-feature-desc">Our meticulously crafted interface ensures a distraction-free creative experience.</p>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="nc-feature-card">
+                        <div class="nc-feature-title">Vetted by Professionals</div>
+                        <p class="nc-feature-desc">Every instrument is reviewed by industry experts to ensure quality and reliability.</p>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="nc-feature-card">
+                        <div class="nc-feature-title">For Every Journey</div>
+                        <p class="nc-feature-desc">Whether starting out or going pro &mdash; we provide the gear you need to succeed.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -1,0 +1,547 @@
+@using MvcMusic.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Messages";
+    Layout = "_Layout";
+}
+
+<div class="nc-chat-page">
+    <div class="nc-messenger-full">
+        <!-- Sidebar -->
+        <div class="nc-messenger-sidebar">
+            <div class="nc-messenger-sidebar-header">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0 fw-bold nc-text-primary">Messages</h5>
+                </div>
+                <div class="nc-search-wrapper mb-2">
+                    <i class="fa fa-search nc-search-icon"></i>
+                    <input type="text" class="form-control nc-input-dark ps-5" placeholder="Search conversations...">
+                </div>
+            </div>
+            <div id="roomList" class="nc-messenger-rooms">
+                <!-- Rooms will be loaded here -->
+                <div class="p-4 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+                    <p class="small mb-0">Loading conversations...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="nc-messenger-main">
+            <!-- Empty State -->
+            <div id="chatEmptyState" class="nc-messenger-empty">
+                <div class="text-center">
+                    <div class="nc-empty-icon-wrapper mb-4">
+                        <i class="fa fa-comments"></i>
+                    </div>
+                    <h3 class="fw-bold mb-2">Your Inbox</h3>
+                    <p class="text-muted mb-4">Select a conversation or start a new one to begin chatting.</p>
+                    <div class="nc-topic-selector mx-auto" style="max-width: 400px;">
+                        <label class="form-label small text-muted text-uppercase fw-bold mb-3">Choose a context to start</label>
+                        <select id="chatTopicDropdown" class="form-select nc-input-dark mb-4 p-3 text-center">
+                            <option value="" selected disabled>Select an inquiry topic...</option>
+                            <option value="General Inquiry">General Inquiry</option>
+                            <option value="Technical Support">Technical Support</option>
+                            <option value="Order Tracking">Order Tracking</option>
+                            <option value="Billing & Payments">Billing & Payments</option>
+                            <option value="Returns & Refunds">Returns & Refunds</option>
+                            <option value="Account Issues">Account Issues</option>
+                        </select>
+                        <div class="d-grid">
+                            <button id="startChatBtn" class="btn-nc-primary p-3" onclick="startNewChat()">
+                                Start Support Chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Chat -->
+            <div id="chatContent" class="nc-messenger-content" style="display: none;">
+                <div class="nc-messenger-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="nc-avatar-sm">
+                            <i class="fa fa-headset"></i>
+                        </div>
+                        <div>
+                            <h6 id="chatRoomTitle" class="m-0 fw-bold">Support Session</h6>
+                            <span class="nc-status-indicator online"></span>
+                            <small class="text-muted ms-1">Customer Support</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="messageList" class="nc-messenger-messages">
+                    <!-- Messages will be loaded here -->
+                </div>
+
+                <div id="typingIndicator" class="nc-typing-indicator" style="display: none;">
+                    <span id="typingName">Customer Support</span> is typing
+                    <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+                </div>
+
+                <div class="nc-messenger-footer">
+                    <div class="nc-input-group">
+                        <input type="text" id="messageInput" class="form-control nc-input-dark" placeholder="Write a message..." autocomplete="off">
+                        <button id="sendButton" class="btn-nc-primary">
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nc-chat-page {
+        height: calc(100vh - var(--nc-nav-height));
+        overflow: hidden;
+        background: var(--nc-bg-primary);
+    }
+
+    .nc-messenger-full {
+        display: flex;
+        height: 100%;
+        width: 100%;
+    }
+
+    /* Sidebar */
+    .nc-messenger-sidebar {
+        width: 360px;
+        background: var(--nc-bg-secondary);
+        border-right: 1px solid var(--nc-border);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .nc-messenger-sidebar-header {
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--nc-border);
+    }
+
+    .nc-messenger-rooms {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    /* Main Chat Area */
+    .nc-messenger-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--nc-bg-primary);
+        position: relative;
+    }
+
+    .nc-messenger-empty {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .nc-empty-icon-wrapper {
+        width: 120px;
+        height: 120px;
+        background: var(--nc-primary-glow);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        color: var(--nc-primary);
+        font-size: 3rem;
+        border: 2px dashed var(--nc-primary);
+    }
+
+    .nc-messenger-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .nc-messenger-header {
+        padding: 1rem 1.5rem;
+        background: var(--nc-bg-secondary);
+        border-bottom: 1px solid var(--nc-border);
+        z-index: 10;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .nc-messenger-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        background-image: 
+            radial-gradient(circle at 2px 2px, rgba(255,255,255,0.02) 1px, transparent 0);
+        background-size: 32px 32px;
+    }
+
+    .nc-messenger-footer {
+        padding: 1.5rem;
+        background: var(--nc-bg-secondary);
+        border-top: 1px solid var(--nc-border);
+    }
+
+    .nc-input-group {
+        display: flex;
+        gap: 0.75rem;
+        background: rgba(255,255,255,0.05);
+        padding: 0.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--nc-border);
+    }
+
+    .nc-input-group .form-control {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        color: #fff;
+        padding-left: 1rem;
+    }
+
+    /* Message Bubbles */
+    .nc-message {
+        max-width: 75%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nc-message.sent {
+        align-self: flex-end;
+    }
+
+    .nc-message.received {
+        align-self: flex-start;
+    }
+
+    .nc-message-bubble {
+        padding: 1rem 1.25rem;
+        border-radius: 18px;
+        position: relative;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .sent .nc-message-bubble {
+        background: linear-gradient(135deg, var(--nc-primary), #5a8bbd);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+    }
+
+    .received .nc-message-bubble {
+        background: var(--nc-bg-card);
+        color: var(--nc-text-primary);
+        border: 1px solid var(--nc-border);
+        border-bottom-left-radius: 4px;
+    }
+
+    .nc-message-info {
+        font-size: 0.7rem;
+        color: var(--nc-text-muted);
+        margin-top: 0.4rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .sent .nc-message-info {
+        flex-direction: row-reverse;
+    }
+
+    /* Room Items */
+    .nc-room-item {
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--nc-border);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .nc-room-item:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .nc-room-item.active {
+        background: var(--nc-primary-glow);
+        border-left: 4px solid var(--nc-primary);
+    }
+
+    .nc-room-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--nc-bg-card);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--nc-primary);
+        font-size: 1.2rem;
+        border: 1px solid var(--nc-border);
+    }
+
+    .nc-room-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .nc-room-subject {
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.9rem;
+    }
+
+    .nc-room-last-msg {
+        font-size: 0.8rem;
+        color: var(--nc-text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Typing */
+    .nc-typing-indicator {
+        padding: 0.5rem 2rem;
+        font-size: 0.8rem;
+        color: var(--nc-text-muted);
+        font-style: italic;
+    }
+
+    @@keyframes blink {
+        0% { opacity: 0.2; }
+        20% { opacity: 1; }
+        100% { opacity: 0.2; }
+    }
+    .nc-typing-indicator .dot {
+        animation: blink 1.4s infinite both;
+    }
+    .nc-typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+    .nc-typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    .nc-status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 4px;
+    }
+    .nc-status-indicator.online { background: var(--nc-success); box-shadow: 0 0 10px var(--nc-success); }
+</style>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+    <script>
+        let connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        let currentRoomId = null;
+        const currentUserId = '@UserManager.GetUserId(User)';
+
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("SignalR Connected.");
+                await loadRooms();
+            } catch (err) {
+                console.log(err);
+                setTimeout(startConnection, 5000);
+            }
+        }
+
+        connection.on("ReceiveMessage", function (msg) {
+            if (msg.roomId === currentRoomId) {
+                appendMessage(msg);
+                scrollToBottom();
+            }
+            updateRoomListPreview(msg);
+        });
+
+        connection.on("ReceiveTypingStatus", function (data) {
+            if (data.roomId === currentRoomId && data.senderId !== currentUserId) {
+                const indicator = document.getElementById('typingIndicator');
+                const nameSpan = document.getElementById('typingName');
+                
+                if (data.isTyping && data.senderName === 'Customer Support') {
+                    nameSpan.innerText = data.senderName;
+                    indicator.style.display = 'block';
+                    scrollToBottom();
+                } else if (!data.isTyping) {
+                    indicator.style.display = 'none';
+                }
+            }
+        });
+
+        async function loadRooms(selectFirst = true) {
+            const resp = await fetch('/Chat/GetMyRooms');
+            const rooms = await resp.json();
+            const list = document.getElementById('roomList');
+            
+            if (rooms.length === 0) {
+                list.innerHTML = '<div class="p-4 text-center text-muted small">No conversations yet</div>';
+                return;
+            }
+
+            list.innerHTML = rooms.map(r => `
+                <div class="nc-room-item ${currentRoomId === r.id ? 'active' : ''}" onclick="loadChat(${r.id}, '${r.subject}')" id="room-${r.id}">
+                    <div class="nc-room-icon">
+                        <i class="fa fa-envelope"></i>
+                    </div>
+                    <div class="nc-room-details">
+                        <div class="nc-room-subject">${r.subject}</div>
+                        <div class="nc-room-last-msg" id="last-msg-${r.id}">${r.messages?.[0]?.content || 'No messages yet'}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (selectFirst && rooms.length > 0 && !currentRoomId) {
+                const first = rooms[0];
+                loadChat(first.id, first.subject);
+            }
+        }
+
+        async function loadChat(roomId, subject) {
+            currentRoomId = roomId;
+            document.getElementById('chatEmptyState').style.display = 'none';
+            document.getElementById('chatContent').style.display = 'flex';
+            document.getElementById('chatRoomTitle').innerText = subject;
+            
+            // UI Update
+            document.querySelectorAll('.nc-room-item').forEach(el => el.classList.remove('active'));
+            const activeRoom = document.getElementById(`room-${roomId}`);
+            if (activeRoom) activeRoom.classList.add('active');
+
+            const resp = await fetch(`/Chat/GetMessages?roomId=${roomId}`);
+            const messages = await resp.json();
+            
+            const list = document.getElementById('messageList');
+            list.innerHTML = '';
+            messages.forEach(appendMessage);
+            scrollToBottom();
+
+            await connection.invoke("JoinRoom", roomId);
+        }
+
+        function appendMessage(msg) {
+            const list = document.getElementById('messageList');
+            const div = document.createElement('div');
+            const isMe = msg.senderId === currentUserId;
+            
+            div.className = `nc-message ${isMe ? 'sent' : 'received'}`;
+            div.innerHTML = `
+                <div class="nc-message-bubble">${msg.content}</div>
+                <div class="nc-message-info">
+                    <span>${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <span>•</span>
+                    <span>${isMe ? 'You' : (msg.senderName || 'Support')}</span>
+                </div>
+            `;
+            list.appendChild(div);
+        }
+
+        function updateRoomListPreview(msg) {
+            const lastMsgEl = document.getElementById(`last-msg-${msg.roomId}`);
+            if (lastMsgEl) {
+                lastMsgEl.innerText = msg.content;
+                // Move room to top
+                const roomEl = document.getElementById(`room-${msg.roomId}`);
+                const list = document.getElementById('roomList');
+                if (roomEl && list.firstChild !== roomEl) {
+                    list.prepend(roomEl);
+                }
+            } else {
+                // New room might have been created
+                loadRooms(false);
+            }
+        }
+
+        async function startNewChat() {
+            const subject = document.getElementById('chatTopicDropdown').value;
+            if (!subject) return;
+
+            const btn = document.getElementById('startChatBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Starting...';
+
+            const formData = new FormData();
+            formData.append('subject', subject);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            const response = await fetch('/Chat/StartChat', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                const room = await response.json();
+                currentRoomId = room.id;
+                await loadRooms();
+                await loadChat(room.id, room.subject);
+                document.getElementById('messageInput').focus();
+            }
+            btn.disabled = false;
+            btn.innerText = 'Start Support Chat';
+        }
+
+        function scrollToBottom() {
+            const list = document.getElementById('messageList');
+            list.scrollTop = list.scrollHeight;
+        }
+
+        // Enter to Send
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        document.getElementById('sendButton').addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            if (content && currentRoomId) {
+                input.value = '';
+                await connection.invoke("SendMessage", currentRoomId, content);
+                sendTypingStatus(false);
+            }
+        }
+
+        let typingTimeout;
+        document.getElementById('messageInput').addEventListener('input', () => {
+            if (currentRoomId) {
+                sendTypingStatus(true);
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => sendTypingStatus(false), 3000);
+            }
+        });
+
+        function sendTypingStatus(isTyping) {
+            if (currentRoomId) {
+                connection.invoke("SendTypingStatus", currentRoomId, isTyping);
+            }
+        }
+
+        startConnection();
+    </script>
+}

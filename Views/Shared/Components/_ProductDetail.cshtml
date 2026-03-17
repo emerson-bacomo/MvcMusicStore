@@ -9,7 +9,7 @@
                     var primaryUrl = Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url;
                 }
                 <img id="mainProductImage" src="@primaryUrl" alt="@Model.Name" class="nc-main-image" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
-                <div class="nc-image-badge">@Model.Category</div>
+                <div class="nc-image-badge">@(Model.Category?.Name ?? "Uncategorized")</div>
                 @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
                 {
                     <button type="button" class="nc-img-nav prev" onclick="navigateImage(-1, event)" aria-label="Previous Image">
@@ -72,7 +72,7 @@
                     <div class="nc-meta-stat-icon"><i class="fa fa-tag"></i></div>
                     <div class="nc-meta-stat-content">
                         <span class="nc-meta-stat-label">Manufacturer</span>
-                        <span class="nc-meta-stat-value">@Model.Brand</span>
+                        <span class="nc-meta-stat-value">@(Model.Brand?.Name ?? "No Brand")</span>
                     </div>
                 </div>
             </div>
@@ -81,7 +81,7 @@
         <!-- Info Section -->
         <div class="nc-detail-info">
             <div class="nc-info-header">
-                <div class="nc-detail-brand">@Model.Brand</div>
+                <div class="nc-detail-brand">@(Model.Brand?.Name ?? "No Brand")</div>
                 <h1 class="nc-detail-name">@Model.Name</h1>
                 <div class="nc-detail-price">
                     <span class="nc-currency">₱</span>@Model.Price.ToString("N2")

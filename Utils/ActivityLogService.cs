@@ -5,7 +5,7 @@ namespace MvcMusic.Utils
 {
     public interface IActivityLogService
     {
-        Task LogAsync(string action, string? details, string? userId, string? username, string? role);
+        Task LogAsync(ActivityAction action, string? details, string? userId, string? username, string? role, string? fullName = null);
     }
 
     public class ActivityLogService : IActivityLogService
@@ -17,7 +17,7 @@ namespace MvcMusic.Utils
             _context = context;
         }
 
-        public async Task LogAsync(string action, string? details, string? userId, string? username, string? role)
+        public async Task LogAsync(ActivityAction action, string? details, string? userId, string? username, string? role, string? fullName = null)
         {
             var log = new ActivityLog
             {
@@ -25,6 +25,7 @@ namespace MvcMusic.Utils
                 Details = details,
                 UserId = userId,
                 Username = username,
+                UserFullName = fullName,
                 Role = role,
                 Timestamp = DateTime.UtcNow
             };

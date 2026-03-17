@@ -10,10 +10,13 @@ namespace MvcMusic.Models
         [StringLength(50, MinimumLength = 3)]
         public required string Name { get; set; }
 
-        [StringLength(30)]
-        public required string Category { get; set; }
+        [Required]
+        public int CategoryId { get; set; }
+        public virtual Category? Category { get; set; }
 
-        public required string Brand { get; set; }
+        [Required]
+        public int BrandId { get; set; }
+        public virtual Brand? Brand { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
         [Range(0, double.MaxValue, ErrorMessage = "Value cannot be negative.")]
@@ -40,6 +43,8 @@ namespace MvcMusic.Models
 
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
         public DateTime? DateModified { get; set; }
+
+        public RecordStatus RecordStatus { get; set; } = RecordStatus.Active;
 
         public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     }

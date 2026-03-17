@@ -35,11 +35,20 @@
                                 <tbody>
                                     @foreach (var item in Model.OrderItems)
                                     {
+                                        var primaryImage = item.Product?.ProductImages?.FirstOrDefault(img => img.IsPrimary)?.Url 
+                                                         ?? item.Product?.ProductImages?.FirstOrDefault()?.Url;
                                         <tr class="order-item-row" onclick="location.href='@Url.Action("Details", "Products", new { id = item.ProductId })'" style="cursor:pointer;">
                                             <td>
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="product-icon-box">
-                                                        <i class="fa fa-box"></i>
+                                                        @if (!string.IsNullOrEmpty(primaryImage))
+                                                        {
+                                                            <img src="@primaryImage" alt="@item.Product?.Name" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="fa fa-box"></i>
+                                                        }
                                                     </div>
                                                     <div>
                                                         <div style="font-weight:600;">@item.Product?.Name</div>
@@ -78,24 +87,32 @@
                         </div>
                         <div class="info-group">
                             <label class="nc-label">Status</label>
-                            <span class="cust-badge @(Model.Status switch { "Delivered" => "active", "OnDelivery" => "delivery", "Pending" => "pending", _ => "" })">
+                            <span class="cust-badge @(Model.Status switch { "Delivered" => "active", "OnDelivery" => "delivery", "Pending" => "pending", "Cancelled" => "cancelled", _ => "" })">
                                 @(Model.Status == "OnDelivery" ? "On Delivery" : Model.Status)
                             </span>
                         </div>
                     </div>
                 </div>
 
-                @if (Model.Status != "Delivered")
+                @if (Model.Status != "Delivered" && Model.Status != "Cancelled")
                 {
                     <div class="nc-card">
                         <div class="nc-card-body">
                             <h3 class="nc-form-section-title">Actions</h3>
-                            <form asp-action="MarkDelivered" asp-route-id="@Model.Id" method="post">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn-nc-primary w-100">
-                                    <i class="fa fa-check-circle me-1"></i> Mark as Delivered
-                                </button>
-                            </form>
+                            <div class="d-flex flex-column gap-2">
+                                <form asp-action="MarkDelivered" asp-route-id="@Model.Id" method="post" class="w-100">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-nc-primary w-100">
+                                        <i class="fa fa-check-circle me-1"></i> Mark as Delivered
+                                    </button>
+                                </form>
+                                <form asp-action="CancelOrder" asp-route-id="@Model.Id" method="post" class="w-100" onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-nc-outline w-100" style="color:var(--nc-error); border-color:var(--nc-error);">
+                                        <i class="fa fa-times-circle me-1"></i> Cancel Order
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 }
@@ -106,10 +123,11 @@
 
 <style>
     .order-item-row:hover { background: rgba(123, 171, 221, 0.08) !important; }
-    .product-icon-box { width: 40px; height: 40px; background: rgba(123, 171, 221, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--nc-primary); border: 1px solid var(--nc-border); }
-    .cust-badge { font-size: 0.73rem; padding: 0.2rem 0.7rem; border-radius: 100px; font-weight: 700; display: inline-block; }
-    .cust-badge.active { background: rgba(129, 199, 132, 0.1); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.2); }
+    .product-icon-box { width: 44px; height: 44px; background: rgba(123, 171, 221, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--nc-primary); border: 1px solid var(--nc-border); overflow: hidden; }
+    .cust-badge { font-size: 0.73rem; padding: 0.2rem 0.7rem; border-radius: 100px; font-weight: 700; display: inline-block; text-transform: uppercase; }
+    .cust-badge.active { background: rgba(129, 199, 132, 0.1); color: #81c784; border: 1px solid rgba(129,199,132,0.2); }
     .cust-badge.delivery { background: rgba(123, 171, 221, 0.1); color: #7babdd; border: 1px solid rgba(123, 171, 221, 0.2); }
-    .cust-badge.pending { background: rgba(255, 183, 77,0.1); color: #ffb74d; border: 1px solid rgba(255, 183, 77, 0.2); }
+    .cust-badge.pending { background: rgba(255, 183, 77, 0.1); color: #ffb74d; border: 1px solid rgba(255,183,77,0.2); }
+    .cust-badge.cancelled { background: rgba(244, 67, 54, 0.1); color: #f44336; border: 1px solid rgba(244, 67, 54, 0.2); }
     .nc-form-section-title { font-size: 0.8rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--nc-border); padding-bottom: 0.5rem; margin-bottom: 1.25rem; color: var(--nc-primary); text-transform: uppercase; }
 </style>

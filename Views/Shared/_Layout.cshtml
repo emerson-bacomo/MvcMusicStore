@@ -54,21 +54,22 @@
                 padding: 0 2rem; 
                 transition: var(--transition);">
         <div class="container-fluid px-4 mx-auto">
-            <a class="navbar-brand" asp-controller="Landing" asp-action="Hero" 
-               style="font-family: 'Orbitron', sans-serif; 
-                      font-size: 1.5rem; 
-                      font-weight: 900; 
-                      background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent)); 
-                      -webkit-background-clip: text; 
-                      -webkit-text-fill-color: transparent; 
-                      background-clip: text; 
-                      letter-spacing: 2px;">
-                &#9835; NightCord
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
-                    aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex align-items-center">
+                <button class="nc-mobile-menu-toggle d-lg-none me-3" type="button" id="ncMobileMenuToggle" aria-label="Open Menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand m-0" asp-controller="Landing" asp-action="Hero" 
+                   style="font-family: 'Orbitron', sans-serif; 
+                          font-size: 1.5rem; 
+                          font-weight: 900; 
+                          background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent)); 
+                          -webkit-background-clip: text; 
+                          -webkit-text-fill-color: transparent; 
+                          background-clip: text; 
+                          letter-spacing: 2px;">
+                    &#9835; NightCord
+                </a>
+            </div>
             <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
@@ -85,19 +86,34 @@
                                     <i class="fa fa-chart-line me-1"></i> Dashboard
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")" asp-controller="Categories" asp-action="Index">
+                                     <i class="fa fa-box me-1"></i> Categories
+                                 </a>
+                             </li>
+                            <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Brands" ? "active" : "")" asp-controller="Brands" asp-action="Index">
+                                     <i class="fa fa-box me-1"></i> Brands
+                                 </a>
+                             </li>
                              <li class="nav-item">
                                  <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-controller="Products" asp-action="Index">
                                      <i class="fa fa-box me-1"></i> Products
                                  </a>
                              </li>
                              <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="CustomerList">
-                                     <i class="fa fa-users me-1"></i> Customers
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
+                                     <i class="fa fa-users me-1"></i> Employees
                                  </a>
                              </li>
                              <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["action"]?.ToString() == "Orders" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Orders">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index">
                                      <i class="fa fa-shopping-cart me-1"></i> Orders
+                                 </a>
+                             </li>
+                             <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
+                                     <i class="fa fa-headset me-1"></i> Support
                                  </a>
                              </li>
                         }
@@ -108,16 +124,21 @@
                                     <i class="fa fa-chart-line me-1"></i> Dashboard
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
+                                     <i class="fa fa-headset me-1"></i> Support
+                                 </a>
+                             </li>
                         }
                         @if (User.IsInRole("SuperAdmin"))
                         {
                              <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" && ViewContext.RouteData.Values["action"]?.ToString() == "EmployeeList" ? "active" : "")" asp-controller="Employee" asp-action="EmployeeList">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Employee" asp-action="Index">
                                      <i class="fa fa-user-shield me-1"></i> Employees
                                  </a>
                              </li>
                              <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" && ViewContext.RouteData.Values["action"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="Employee" asp-action="ActivityLogs">
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="ActivityLogs" asp-action="Index">
                                      <i class="fa fa-list-alt me-1"></i> Logs
                                  </a>
                              </li>
@@ -223,6 +244,100 @@
         </div>
     </nav>
 
+    <!-- Mobile Off-canvas Menu -->
+    <div id="ncMobileMenu" class="nc-mobile-menu d-lg-none">
+        <div class="nc-mobile-menu-header">
+            <div style="font-family: 'Orbitron', sans-serif; font-weight: 900; color: var(--nc-primary); letter-spacing: 1px;">MENU</div>
+            <button id="ncMobileMenuClose" class="btn p-0 border-0 bg-transparent text-white">
+                <i class="fas fa-times fs-5"></i>
+            </button>
+        </div>
+        <div class="nc-mobile-menu-body">
+            <ul class="nc-mobile-nav-list">
+                <li class="nc-mobile-nav-item">
+                    <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                        <i class="fa fa-home"></i> Home
+                    </a>
+                </li>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
+                                <i class="fa fa-chart-line"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-controller="Products" asp-action="Index">
+                                <i class="fa fa-box"></i> Products
+                            </a>
+                        </li>
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index">
+                                <i class="fa fa-shopping-cart"></i> Orders
+                            </a>
+                        </li>
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
+                                <i class="fa fa-headset"></i> Support
+                            </a>
+                        </li>
+                    }
+                    @if (User.IsInRole("Staff"))
+                    {
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
+                                <i class="fa fa-headset"></i> Support
+                            </a>
+                        </li>
+                    }
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
+                                <i class="fa fa-user-shield"></i> Employees
+                            </a>
+                        </li>
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
+                                <i class="fa fa-headset"></i> Support
+                            </a>
+                        </li>
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="ActivityLogs" asp-action="Index">
+                                <i class="fa fa-list-alt"></i> Logs
+                            </a>
+                        </li>
+                    }
+                }
+            </ul>
+
+            <div class="nc-mobile-menu-footer">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="nc-mobile-nav-link" asp-controller="Profile" asp-action="Index">
+                        <i class="fa fa-user-circle"></i> Profile
+                    </a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="mt-2">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-nc-outline w-100 text-danger border-danger" style="font-size: 0.85rem;">
+                            <i class="fa fa-right-from-bracket me-2"></i> Sign Out
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2 mt-3">
+                        <a class="btn-nc-outline text-center" asp-controller="Account" asp-action="Login">Login</a>
+                        <a class="btn-nc-primary text-center" asp-controller="Account" asp-action="Register">Register</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div id="ncMobileMenuOverlay" class="nc-mobile-menu-overlay"></div>
+
     @RenderBody()
 
     <footer style="background: #080a0f; 
@@ -280,9 +395,40 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        window.showToast = function(message, type = 'success') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                background: '#1a1f2c',
+                color: '#fff',
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        };
+
+        // Handle TempData notifications
+        $(document).ready(function() {
+            const success = '@TempData["Success"]';
+            const error = '@TempData["Error"]';
+            if (success) window.showToast(success, 'success');
+            if (error) window.showToast(error, 'error');
+        });
+    </script>
     <script src="~/js/state-preservation.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

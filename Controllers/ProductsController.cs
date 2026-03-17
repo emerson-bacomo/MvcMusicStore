@@ -10,8 +10,15 @@ using MvcMusic.Data;
 using MvcMusic.Models;
 using MvcMusic.Utils;
 
+using System.Text.Json;
+
 namespace MvcMusic.Controllers
 {
+    public class UpdateTableRequest
+    {
+        public Dictionary<string, Dictionary<string, string>>? Changes { get; set; }
+    }
+
     public class ProductsController : Controller
     {
         private readonly MvcMusicContext _context;
@@ -25,28 +32,149 @@ namespace MvcMusic.Controllers
             _userManager = userManager;
         }
 
-        private async Task<(string? id, string? name, string? role)> CurrentEmployeeInfoAsync()
+        private async Task<(string? id, string? name, string? role, string? fullName)> CurrentEmployeeInfoAsync()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return (null, null, null);
+            if (user == null) return (null, null, null, null);
             var roles = await _userManager.GetRolesAsync(user);
-            return (user.Id, user.UserName, roles.FirstOrDefault());
+            return (user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);
         }
 
-        // GET: /products/admin-products (Admin/SuperAdmin/Staff dashboard - specific access levels)
+        // GET: /products/admin-products
         [Authorize(Roles = "Admin,SuperAdmin,Staff")]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            return View("Index", await _context.Product.Include(p => p.ProductImages).ToListAsync());
+            return View("Index");
         }
 
-        // GET: /products/details/5 (Users, Admins, SuperAdmins)
+        [HttpGet]
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+        public async Task<IActionResult> GetTableData(int? categoryId = null, int? brandId = null)
+        {
+            var query = _context.Product
+                .Include(p => p.ProductImages)
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
+                .AsQueryable();
+
+            if (categoryId.HasValue) query = query.Where(p => p.CategoryId == categoryId.Value);
+            if (brandId.HasValue) query = query.Where(p => p.BrandId == brandId.Value);
+
+            var validationRules = ValidationHelper.GetValidationRules(typeof(Product));
+
+            var products = await query.ToListAsync();
+            var categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
+            var brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
+
+            var columns = new List<object>
+            {
+                new { id = "id", hidden = true },
+                new { id = "photo", updatable = false, widthPercentage = "60px", label = "Photo" },
+                new { 
+                    id = "name", 
+                    updatable = true, 
+                    widthPercentage = "20%",
+                    validation = validationRules.GetValueOrDefault("name")
+                },
+                new { 
+                    id = "category", 
+                    updatable = true, 
+                    type = "select", 
+                    options = categories.Select(c => new { value = c.Id, label = c.Name }),
+                    validation = validationRules.GetValueOrDefault("categoryid")
+                },
+                new { 
+                    id = "brand", 
+                    updatable = true, 
+                    type = "select", 
+                    options = brands.Select(b => new { value = b.Id, label = b.Name }),
+                    validation = validationRules.GetValueOrDefault("brandid")
+                },
+                new { 
+                    id = "price", 
+                    updatable = true,
+                    validation = validationRules.GetValueOrDefault("price")
+                },
+                new { 
+                    id = "stock", 
+                    updatable = true,
+                    validation = validationRules.GetValueOrDefault("stock")
+                },
+                new { id = "status", updatable = false },
+                new { id = "actions", updatable = false }
+            };
+
+            var rows = new Dictionary<string, object>();
+            foreach (var p in products)
+            {
+                var primaryImage = p.ProductImages.FirstOrDefault(img => img.IsPrimary)?.Url ?? p.ProductImages.FirstOrDefault()?.Url;
+                rows[p.Id.ToString()] = new {
+                    id = p.Id,
+                    photo = new { image = primaryImage, isBanner = p.IsBanner },
+                    name = p.Name,
+                    category = p.CategoryId,
+                    categoryLabel = p.Category?.Name ?? "Uncategorized",
+                    brand = p.BrandId,
+                    brandLabel = p.Brand?.Name ?? "No Brand",
+                    price = p.Price,
+                    stock = p.Stock,
+                    status = p.Stock > 0 ? "Available" : "Sold Out",
+                    recordStatus = p.RecordStatus.ToString()
+                };
+            }
+
+            return Json(new {
+                columns = columns,
+                rows = rows,
+                updateRequest = Url.Action("UpdateTableData")
+            });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+        public async Task<IActionResult> UpdateTableData([FromBody] UpdateTableRequest request)
+        {
+            if (request == null || request.Changes == null) return BadRequest();
+
+            foreach(var rowChange in request.Changes)
+            {
+                if (int.TryParse(rowChange.Key, out int id))
+                {
+                    var product = await _context.Product.FindAsync(id);
+                    if (product != null)
+                    {
+                        foreach(var colChange in rowChange.Value)
+                        {
+                            var colName = colChange.Key.ToLower();
+                            var valueStr = colChange.Value?.ToString();
+
+                            if (colName == "category" && int.TryParse(valueStr, out int catId)) product.CategoryId = catId;
+                            else if (colName == "brand" && int.TryParse(valueStr, out int brId)) product.BrandId = brId;
+                            else if (colName == "name") product.Name = valueStr ?? product.Name;
+                            else if (colName == "price" && double.TryParse(valueStr, out double price)) product.Price = price;
+                            else if (colName == "stock" && int.TryParse(valueStr, out int stock)) product.Stock = stock;
+                            else if (colName == "recordstatus" && Enum.TryParse(valueStr, out RecordStatus status)) product.RecordStatus = status;
+                        }
+                    }
+                }
+            }
+            await _context.SaveChangesAsync();
+            
+            var (cId, cName, cRole, cFullName) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.UpdateTable, $"Performed mass update on {request.Changes.Count} products.", cId, cName, cRole, cFullName);
+
+            return Json(new { success = true });
+        }
+
+        // GET: /products/details/5
         [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null) return NotFound();
-
-            var product = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _context.Product
+                .Include(p => p.ProductImages)
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
+                .FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
 
             product.ProductImages = product.ProductImages.OrderBy(p => p.SortOrder).ToList();
@@ -56,8 +184,10 @@ namespace MvcMusic.Controllers
 
         // GET: /products/create
         [Authorize(Roles = "Admin,SuperAdmin")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
             return View();
         }
 
@@ -65,7 +195,7 @@ namespace MvcMusic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Create([Bind("Id,Name,Category,Brand,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? primaryImage, string? imageOrder)
         {
             if (ModelState.IsValid)
             {
@@ -106,21 +236,25 @@ namespace MvcMusic.Controllers
                 product.DateCreated = DateTime.UtcNow;
                 _context.Add(product);
                 await _context.SaveChangesAsync();
-                var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync("Create Product", $"Created product '{product.Name}' (ID: {product.Id})", cId, cName, cRole);
+                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync(ActivityAction.CreateProduct, $"Created product <a href='/products/details/{product.Id}' class='product-link'>{product.Name}</a>.", cId, cName, cRole, cFull);
                 TempData["Success"] = $"Product '{product.Name}' created successfully.";
                 return RedirectToAction(nameof(Index));
             }
             return View(product);
         }
 
-        // GET: /products/edit/5 (Admin, SuperAdmin, Staff)
+        // GET: /products/edit/5
         [Authorize(Roles = "Admin,SuperAdmin,Staff")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
             var product = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
             if (product == null) return NotFound();
+            
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
+            
             product.ProductImages = product.ProductImages.OrderBy(p => p.SortOrder).ToList();
             return View(product);
         }
@@ -129,7 +263,7 @@ namespace MvcMusic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin,Staff")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,Brand,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
         {
             if (id != product.Id) return NotFound();
 
@@ -194,7 +328,6 @@ namespace MvcMusic.Controllers
                     {
                         _context.Entry(existingProduct).CurrentValues.SetValues(product);
                         
-                        // Sync navigation property
                         _context.ProductImage.RemoveRange(existingProduct.ProductImages);
                         foreach (var img in product.ProductImages)
                         {
@@ -221,8 +354,8 @@ namespace MvcMusic.Controllers
 
                         existingProduct.DateModified = DateTime.UtcNow;
                         await _context.SaveChangesAsync();
-                        var (cId2, cName2, cRole2) = await CurrentEmployeeInfoAsync();
-                        await _logger.LogAsync("Edit Product", $"Edited product '{product.Name}' (ID: {id})", cId2, cName2, cRole2);
+                        var (cId2, cName2, cRole2, cFull2) = await CurrentEmployeeInfoAsync();
+                        await _logger.LogAsync(ActivityAction.EditProduct, $"Edited product <a href='/products/details/{id}' class='product-link'>{product.Name}</a>.", cId2, cName2, cRole2, cFull2);
                         TempData["Success"] = $"Product '{product.Name}' updated successfully.";
                     }
                 }
@@ -269,11 +402,15 @@ namespace MvcMusic.Controllers
             var product = await _context.Product.FindAsync(id);
             if (product != null)
             {
-                var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync("Delete Product", $"Deleted product '{product.Name}' (ID: {id})", cId, cName, cRole);
-                _context.Product.Remove(product);
+                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync(ActivityAction.DeleteProduct, $"Deleted product '{product.Name}' (ID: {id})", cId, cName, cRole, cFull);
+                product.RecordStatus = RecordStatus.Deleted;
                 await _context.SaveChangesAsync();
-                TempData["Success"] = "Product deleted successfully.";
+                
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = true });
+
+                TempData["Success"] = "Product deleted successfully (soft-delete).";
             }
             return RedirectToAction(nameof(Index));
         }

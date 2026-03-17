@@ -22,15 +22,15 @@
             
             <div class="nc-delete-content">
                 <div class="nc-delete-meta">
-                    <span class="nc-delete-tag">@Model.Category</span>
-                    <span class="nc-delete-brand">@Model.Brand</span>
+                    <span class="nc-delete-tag">@(Model.Category?.Name ?? "Uncategorized")</span>
+                    <span class="nc-delete-brand">@(Model.Brand?.Name ?? "No Brand")</span>
                 </div>
                 <h2 class="nc-delete-name">@Model.Name</h2>
                 <div class="nc-delete-price">₱ @Model.Price.ToString("N2")</div>
                 
                 <div class="nc-warning-box">
                     <i class="fa fa-info-circle"></i>
-                    <span>This action is irreversible. All related data and media associations will be lost.</span>
+                    <span>This action will mark the instrument as <strong>Deleted</strong>. It will be hidden from the catalog but remain in records.</span>
                 </div>
 
                 <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="nc-delete-form">

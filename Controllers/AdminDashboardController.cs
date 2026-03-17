@@ -12,12 +12,10 @@ namespace MvcMusic.Controllers
     public class AdminDashboardController : Controller
     {
         private readonly MvcMusicContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminDashboardController(MvcMusicContext context, UserManager<ApplicationUser> userManager)
+        public AdminDashboardController(MvcMusicContext context)
         {
             _context = context;
-            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(int ordersCount = 10)
@@ -89,194 +87,21 @@ namespace MvcMusic.Controllers
                 .Select(p => new ChartPoint { Label = p.Name.Length > 28 ? p.Name.Substring(0, 28) + "…" : p.Name, Value = (decimal)p.SoldAmount })
                 .ToListAsync();
 
-            // ── Revenue By Category (Database GroupBy) ──────────────────
-            vm.RevenueByCategory = await _context.OrderItem
-                .Include(i => i.Product)
-                .Where(i => i.Product != null)
-                .GroupBy(i => i.Product!.Category)
-                .Select(g => new ChartPoint 
-                { 
-                    Label = g.Key ?? "Unknown", 
-                    Value = g.Sum(i => (decimal)i.Product!.Price * i.Quantity) 
-                })
-                .OrderByDescending(c => c.Value)
+            // ── Revenue By Category ──────────────────
+            vm.RevenueByCategory = await _context.Set<ChartPoint>()
+                .FromSqlRaw(@"
+                    SELECT 
+                        c.Name AS Label,
+                        SUM(p.Price * oi.Quantity) AS Value
+                    FROM OrderItem oi
+                    INNER JOIN Product p ON oi.ProductId = p.Id
+                    INNER JOIN Category c ON p.CategoryId = c.Id
+                    GROUP BY c.Id, c.Name
+                    ORDER BY Value DESC
+                ")
                 .ToListAsync();
-
-            // ── Recent Orders (Optimized Fetch + Fix N+1) ───────────────
-            var recentOrdersList = await _context.Order
-                .OrderByDescending(o => o.OrderDate)
-                .Take(ordersCount)
-                .Join(_context.Users, 
-                    o => o.CustomerId, 
-                    u => u.Id, 
-                    (o, u) => new { Order = o, User = u })
-                .ToListAsync();
-
-            vm.RecentOrders = new List<RecentOrderItem>();
-            foreach (var item in recentOrdersList)
-            {
-                var o = item.Order;
-                var u = item.User;
-                
-                // Fetch items for specific recent orders to avoid loading ALL items
-                var items = await _context.OrderItem
-                    .Where(oi => oi.OrderId == o.Id)
-                    .Include(oi => oi.Product)
-                    .ToListAsync();
-
-                var productNames = items.Select(i => i.Product?.Name ?? "—").Distinct().ToList();
-                var productsDisplay = string.Join(", ", productNames);
-
-                vm.RecentOrders.Add(new RecentOrderItem
-                {
-                    Id = o.Id,
-                    CustomerName = $"{u.FirstName} {u.LastName}",
-                    Products = productsDisplay,
-                    TotalQuantity = items.Sum(i => i.Quantity),
-                    Amount = o.TotalAmount,
-                    Status = o.Status,
-                    Date = o.OrderDate
-                });
-            }
 
             return View(vm);
-        }
-
-        // AJAX endpoint for "Show More"
-        [HttpGet]
-        public async Task<IActionResult> GetMoreOrders(int skip, int take = 10)
-        {
-            var orders = await _context.Order
-                .OrderByDescending(o => o.OrderDate)
-                .Skip(skip)
-                .Take(take)
-                .Join(_context.Users, 
-                    o => o.CustomerId, 
-                    u => u.Id, 
-                    (o, u) => new { Order = o, User = u })
-                .ToListAsync();
-
-            var result = new List<object>();
-            foreach (var item in orders)
-            {
-                var o = item.Order;
-                var u = item.User;
-                
-                var items = await _context.OrderItem
-                    .Where(oi => oi.OrderId == o.Id)
-                    .Include(oi => oi.Product)
-                    .ToListAsync();
-
-                var productNames = items.Select(i => i.Product?.Name ?? "—").Distinct().ToList();
-                
-                result.Add(new
-                {
-                    id = o.Id,
-                    customerName = $"{u.FirstName} {u.LastName}",
-                    products = string.Join(", ", productNames),
-                    totalQuantity = items.Sum(i => i.Quantity),
-                    amount = o.TotalAmount.ToString("N2"),
-                    status = o.Status,
-                    statusLabel = o.Status == "OnDelivery" ? "On Delivery" : o.Status,
-                    statusClass = o.Status switch { "Delivered" => "status-delivered", "OnDelivery" => "status-delivery", "Pending" => "status-pending", _ => "" },
-                    date = o.OrderDate.ToString("MMM d, yyyy")
-                });
-            }
-
-            return Json(result);
-        }
-
-        public async Task<IActionResult> Orders()
-        {
-            var orders = await _context.Order
-                .OrderByDescending(o => o.OrderDate)
-                .Join(_context.Users, 
-                    o => o.CustomerId, 
-                    u => u.Id, 
-                    (o, u) => new RecentOrderItem
-                    {
-                        Id = o.Id,
-                        CustomerName = $"{u.FirstName} {u.LastName}",
-                        Amount = o.TotalAmount,
-                        Status = o.Status,
-                        Date = o.OrderDate
-                    })
-                .ToListAsync();
-
-            // Populate product summary for each order
-            foreach (var order in orders)
-            {
-                var items = await _context.OrderItem
-                    .Where(oi => oi.OrderId == order.Id)
-                    .Include(oi => oi.Product)
-                    .ToListAsync();
-                order.Products = string.Join(", ", items.Select(i => i.Product?.Name ?? "—").Distinct());
-                order.TotalQuantity = items.Sum(i => i.Quantity);
-            }
-
-            return View(orders);
-        }
-
-        public async Task<IActionResult> OrderDetail(int id)
-        {
-            var order = await _context.Order
-                .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Product)
-                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (order == null) return NotFound();
-
-            var customer = await _context.Users.FindAsync(order.CustomerId);
-            
-            ViewBag.CustomerName = $"{customer?.FirstName} {customer?.LastName}";
-            ViewBag.CustomerEmail = customer?.Email;
-
-            return View(order);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MarkDelivered(int id)
-        {
-            var order = await _context.Order
-                .Include(o => o.OrderItems)
-                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (order == null) return NotFound();
-
-            if (order.Status != "Delivered")
-            {
-                order.Status = "Delivered";
-                
-                // Increment SoldAmount for each product in the order
-                foreach (var item in order.OrderItems)
-                {
-                    var product = await _context.Product.FindAsync(item.ProductId);
-                    if (product != null)
-                    {
-                        product.SoldAmount += item.Quantity;
-                        
-                        // Increment rating count (assume every delivered order eventually adds a review/rating interaction)
-                        product.RatingsCount++;
-
-                        // If it's the first rating, give it a base high rating as per theme (4.9)
-                        if (product.Rating < 4.9)
-                        {
-                            product.Rating = 4.9;
-                        }
-                        else if (product.Rating < 5.0)
-                        {
-                            // Slowly creep towards 5.0
-                            product.Rating = Math.Min(5.0, product.Rating + 0.01);
-                        }
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-                TempData["Success"] = $"Order #{id} marked as Delivered and sales updated.";
-            }
-
-            return RedirectToAction(nameof(Index));
         }
     }
 }

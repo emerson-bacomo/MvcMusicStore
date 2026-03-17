@@ -191,6 +191,19 @@ nav .nav-link.active {
     font-weight: 800;
     letter-spacing: -0.02em;
 }
+.nc-page-subtitle {
+    color: var(--nc-text-muted);
+    font-size: 0.88rem;
+    margin-top: 0.25rem;
+}
+.nc-breadcrumb {
+    color: var(--nc-text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+.nc-breadcrumb i {
+    margin-right: 0.25rem;
+}
 
 .nc-card-body {
     padding: 1.5rem;
@@ -417,4 +430,43 @@ input[type=number] {
 .dropdown-item:hover {
     background: var(--nc-primary-glow) !important;
     color: white !important;
+}
+
+/* ── Mobile & Responsive Refinements ──────────────────────────────── */
+@media (max-width: 768px) {
+    .nc-page { padding-top: calc(var(--nc-nav-height) + 1rem); }
+    .nc-container, .container-fluid { padding-left: 1rem !important; padding-right: 1rem !important; }
+    
+    .nc-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .nc-page-title { font-size: 1.5rem; }
+    
+    .btn-nc-primary, .btn-nc-outline {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.8rem;
+    }
+    
+    .nc-card-body { padding: 1rem; }
+    
+    /* Navbar compacting */
+    nav.navbar { padding: 0 1rem !important; }
+}
+
+@media (max-width: 576px) {
+    .nc-form-grid { grid-template-columns: 1fr; }
+    
+    /* Stats and Charts on Dashboard */
+    .dash-stats-grid { grid-template-columns: 1fr !important; }
+    .dash-management-row { grid-template-columns: 1fr !important; }
+    
+    .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
 }

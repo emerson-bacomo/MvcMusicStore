@@ -25,29 +25,20 @@ namespace MvcMusic.Controllers
             _logger = logger;
         }
 
-        private async Task<(string? id, string? name, string? role)> CurrentEmployeeInfoAsync()
+        private async Task<(string? id, string? name, string? role, string? fullName)> CurrentEmployeeInfoAsync()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return (null, null, null);
+            if (user == null) return (null, null, null, null);
             var roles = await _userManager.GetRolesAsync(user);
-            return (user.Id, user.UserName, roles.FirstOrDefault());
+            return (user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);
         }
 
         // GET: /employees
-        // GET: /employees
-        public async Task<IActionResult> EmployeeList()
+        public async Task<IActionResult> Index()
         {
-            var admins = await _userManager.GetUsersInRoleAsync("Admin");
-            var staffs = await _userManager.GetUsersInRoleAsync("Staff");
-            var superAdmins = await _userManager.GetUsersInRoleAsync("SuperAdmin");
-
-            var allEmployees = admins.Select(u => (user: u, role: "Admin"))
-                .Concat(staffs.Select(u => (user: u, role: "Staff")))
-                .Concat(superAdmins.Select(u => (user: u, role: "SuperAdmin")))
-                .OrderBy(e => e.role).ThenBy(e => e.user.UserName)
-                .ToList();
-
-            return View("EmployeeList", allEmployees);
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.CurrentUserId = user?.Id;
+            return View();
         }
 
         // GET: /employees/create
@@ -83,10 +74,10 @@ namespace MvcMusic.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, model.Role);
-                var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync("Create Employee", $"Created {model.Role} account for {model.Email} ({code})", cId, cName, cRole);
+                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync(ActivityAction.CreateEmployee, $"Created {model.Role} account for {model.Email} ({code})", cId, cName, cRole, cFull);
                 TempData["Success"] = $"Employee {code} ({model.FirstName} {model.LastName}) created successfully.";
-                return RedirectToAction(nameof(EmployeeList));
+                return RedirectToAction(nameof(Index));
             }
 
             foreach (var error in result.Errors)
@@ -139,27 +130,31 @@ namespace MvcMusic.Controllers
                 await _userManager.AddToRoleAsync(user, model.Role);
             }
 
-            var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync("Edit Employee", $"Edited employee {user.UserName} ({user.Email}), set role to {model.Role}", cId, cName, cRole);
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.EditEmployee, $"Edited employee {user.UserName} ({user.Email}), set role to {model.Role}", cId, cName, cRole, cFull);
             TempData["Success"] = "Employee updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /employees/disable/{id}
+        // POST: /employees/ban/{id}
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleDisable(string id)
+        public async Task<IActionResult> ToggleBan(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            user.IsDisabled = !user.IsDisabled;
+            user.IsBanned = !user.IsBanned;
             await _userManager.UpdateAsync(user);
 
-            var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-            var action = user.IsDisabled ? "Disable Employee" : "Enable Employee";
-            await _logger.LogAsync(action, $"{action}: {user.UserName} ({user.Email})", cId, cName, cRole);
-            TempData["Success"] = $"Employee {(user.IsDisabled ? "disabled" : "enabled")} successfully.";
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            var actorDesc = !string.IsNullOrEmpty(cFull) ? $"{cFull} ({cName})" : (cName ?? "SuperAdmin");
+            var action = user.IsBanned ? ActivityAction.BanEmployee : ActivityAction.UnbanEmployee;
+            var details = user.IsBanned 
+                ? $"<b>{actorDesc}</b> banned employee: {user.UserName} ({user.Email})" 
+                : $"<b>{actorDesc}</b> unbanned employee: {user.UserName} ({user.Email})";
+            await _logger.LogAsync(action, details, cId, cName, cRole, cFull);
+            TempData["Success"] = $"Employee {(user.IsBanned ? "banned" : "unbanned")} successfully.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -187,10 +182,10 @@ namespace MvcMusic.Controllers
 
             if (result.Succeeded)
             {
-                var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync("Reset Password", $"Password reset for {user.UserName} ({user.Email})", cId, cName, cRole);
+                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync(ActivityAction.ResetPassword, $"Password reset for {user.UserName} ({user.Email})", cId, cName, cRole, cFull);
                 TempData["Success"] = $"Password for {user.UserName} reset successfully.";
-                return RedirectToAction(nameof(EmployeeList));
+                return RedirectToAction(nameof(Index));
             }
 
             foreach (var error in result.Errors)
@@ -218,31 +213,58 @@ namespace MvcMusic.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            var (cId, cName, cRole) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync("Delete Employee", $"Deleted employee {user.UserName} ({user.Email})", cId, cName, cRole);
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.DeleteEmployee, $"Deleted employee {user.UserName} ({user.Email})", cId, cName, cRole, cFull);
 
             await _userManager.DeleteAsync(user);
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true });
+
             TempData["Success"] = "Employee account deleted.";
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /employees/activity-logs/{id?}
+        // AJAX endpoint for UpdatableTable
         [HttpGet]
-        public async Task<IActionResult> ActivityLogs(string? id)
+        public async Task<IActionResult> GetTableData()
         {
-            IQueryable<ActivityLog> query = _context.ActivityLog.OrderByDescending(l => l.Timestamp);
+            var admins = await _userManager.GetUsersInRoleAsync("Admin");
+            var staffs = await _userManager.GetUsersInRoleAsync("Staff");
+            var superAdmins = await _userManager.GetUsersInRoleAsync("SuperAdmin");
 
-            ApplicationUser? employee = null;
-            if (!string.IsNullOrEmpty(id))
+            var allEmployees = admins.Select(u => (user: u, role: "Admin"))
+                .Concat(staffs.Select(u => (user: u, role: "Staff")))
+                .Concat(superAdmins.Select(u => (user: u, role: "SuperAdmin")))
+                .OrderBy(e => e.role).ThenBy(e => e.user.UserName)
+                .ToList();
+
+            var columns = new List<object>
             {
-                employee = await _userManager.FindByIdAsync(id);
-                if (employee != null)
-                    query = query.Where(l => l.UserId == id);
-            }
+                new { id = "code", label = "Code", widthPercentage = "10%", sortable = true },
+                new { id = "name", label = "Name", widthPercentage = "20%", sortable = true },
+                new { id = "username", label = "Username", widthPercentage = "15%", sortable = true },
+                new { id = "email", label = "Email", widthPercentage = "20%", sortable = true },
+                new { id = "role", label = "Role", widthPercentage = "10%", sortable = true },
+                new { id = "status", label = "Status", widthPercentage = "10%", sortable = true },
+                new { id = "actions", label = "Actions", widthPercentage = "15%", sortable = false }
+            };
 
-            ViewBag.Employee = employee;
-            var logs = await query.Take(200).ToListAsync();
-            return View(logs);
+            var rows = allEmployees.ToDictionary(e => e.user.Id, e => (object)new
+            {
+                code = e.user.UserName,
+                name = $"{e.user.FirstName} {e.user.LastName}",
+                username = e.user.UserName,
+                email = e.user.Email,
+                role = e.role,
+                status = e.user.IsBanned ? "Banned" : "Active",
+                id = e.user.Id,
+                isBanned = e.user.IsBanned,
+                profilePicture = e.user.ProfilePicture,
+                firstName = string.IsNullOrEmpty(e.user.FirstName) ? "User" : e.user.FirstName
+            });
+
+            return Json(new { columns, rows });
         }
 
         private async Task<string> GenerateEmployeeCodeAsync(string role)
