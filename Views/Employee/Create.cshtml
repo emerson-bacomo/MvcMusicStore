@@ -7,7 +7,7 @@
 
 <div class="nc-page">
     <div class="nc-container">
-        <div style="margin-bottom:2rem;">
+        <div class="mb-4">
             <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
                 <i class="fa fa-arrow-left me-1"></i> Back
             </a>
@@ -15,7 +15,7 @@
 
         <div class="nc-page-header">
             <div>
-                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;"><i class="fa fa-user-plus me-1"></i> SuperAdmin Panel</div>
+                <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-user-plus me-1"></i> SuperAdmin Panel</div>
                 <h1 class="nc-page-title">Add Employee</h1>
             </div>
         </div>
@@ -60,9 +60,9 @@
                                         <option value="@r">@r</option>
                                     }
                                 </select>
-                                <div class="nc-role-info" style="margin-top:0.75rem; font-size:0.8rem; color:var(--nc-text-muted);">
+                                <div class="nc-text-muted mt-2" style="font-size:0.8rem;">
                                     <div id="role-desc-Admin" class="role-desc" style="display:none;">
-                                        <i class="fa fa-shield-halved me-1" style="color:var(--nc-primary);"></i> <strong>Admin:</strong> Full CRUD authority (Create, Read, Update, Delete) for products and customer management.
+                                        <i class="fa fa-shield-halved me-1 nc-text-primary"></i> <strong>Admin:</strong> Full CRUD authority (Create, Read, Update, Delete) for products and customer management.
                                     </div>
                                     <div id="role-desc-Staff" class="role-desc" style="display:none;">
                                         <i class="fa fa-user-pen me-1" style="color:#81c784;"></i> <strong>Staff:</strong> Update authority only (Restock, change prices, update descriptions, Manage banners). Cannot create or delete products.
@@ -89,7 +89,7 @@
                         </div>
                     </div>
 
-                    <div style="display:flex;gap:1rem;">
+                    <div class="d-flex gap-3">
                         <button type="submit" class="btn-nc-primary" style="padding:0.75rem 2rem;border-radius:var(--nc-radius-sm);">
                             <i class="fa fa-user-plus me-2"></i> Create Employee
                         </button>
@@ -101,9 +101,14 @@
     </div>
 </div>
 
-<style>
-    .nc-select option { background: var(--nc-bg-card); color: var(--nc-text-primary); }
-</style>
+@section Styles {
+    <style>
+        .nc-select option {
+            background: var(--nc-bg-card);
+            color: var(--nc-text-primary);
+        }
+    </style>
+}
 
 @section Scripts { 
     <partial name="_ValidationScriptsPartial" /> 

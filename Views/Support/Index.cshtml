@@ -166,18 +166,8 @@
                 inbox.prepend(div);
                 
                 // Optional: Play sound or show notification
-                if (typeof Swal !== 'undefined') {
-                    const toast = Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
-                    toast.fire({
-                        icon: 'info',
-                        title: `New message from ${data.customerName}`
-                    });
+                if (typeof window.showToast === 'function') {
+                    window.showToast(`New message from ${data.customerName}`, 'info');
                 }
             } else if (roomItem) {
                 // Update existing room preview

@@ -2,7 +2,7 @@
 @using MvcMusic.Data
 @inject MvcMusicContext Db
 @{
-    var topSellers = await Db.Product.Include(p => p.ProductImages).OrderByDescending(p => p.SoldAmount).Take(10).ToListAsync();
+    var topSellers = await Db.Product.Include(p => p.ProductImages).Include(p => p.Category).Include(p => p.Brand).OrderByDescending(p => p.SoldAmount).Take(10).ToListAsync();
     var firstProduct = topSellers.FirstOrDefault();
 
     // Default to the first product's stats if any
@@ -128,66 +128,82 @@
 </style>
 
 <section class="nc-hero-section"
-         style="position: relative; 
-                width: 100vw; 
-                margin-left: calc(50% - 50vw); 
-                min-height: 100vh; 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: center; 
-                overflow: hidden; 
-                background: var(--nc-bg-primary); 
-                padding: 4rem 2rem;">
-    <div style="position: absolute; 
-                 inset: 0; 
-                 background: linear-gradient(135deg, var(--nc-bg-primary) 0%, #151a2636 50%, var(--nc-bg-primary) 100%); 
-                 z-index: 1;"></div>
-    <div style="position: absolute; 
-                 inset: 0; 
-                 background-image: linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px); 
-                 background-size: 40px 40px; 
-                 z-index: 1; 
-                 mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%); 
-                 -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);"></div>
+         style="
+             position: relative; 
+             width: 100vw; 
+             margin-left: calc(50% - 50vw); 
+             min-height: 100vh; 
+             display: flex; 
+             flex-direction: column; 
+             justify-content: center; 
+             overflow: hidden; 
+             background: var(--nc-bg-primary); 
+             padding: 4rem 2rem;
+         ">
+    <div style="
+             position: absolute; 
+             inset: 0; 
+             background: linear-gradient(135deg, var(--nc-bg-primary) 0%, #151a2636 50%, var(--nc-bg-primary) 100%); 
+             z-index: 1;
+         "></div>
+    <div style="
+             position: absolute; 
+             inset: 0; 
+             background-image: linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px); 
+             background-size: 40px 40px; 
+             z-index: 1; 
+             mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%); 
+             -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);
+         "></div>
     
     @await Html.PartialAsync("_FloatingNotes", new ViewDataDictionary(ViewData) { { "NotesId", "heroNotes" }, { "NoteCount", 20 } })
 
     <div class="row align-items-center w-100 mx-auto" 
-         style="position: relative; 
-                z-index: 5; 
-                max-width: 1400px; 
-                gap: 3rem;">
+         style="
+             position: relative; 
+             z-index: 5; 
+             max-width: 1400px; 
+             gap: 3rem;
+         ">
         <div class="col-lg-5 col-12 d-flex flex-column text-lg-start text-center" 
-             style="gap: 1.5rem;">
+             style="
+                 gap: 1.5rem;
+             ">
             <div class="align-self-lg-start align-self-center d-inline-flex align-items-center" 
-                 style="gap: 0.5rem; 
-                        padding: 0.6rem 1rem 0.5rem 1rem; 
-                        background: rgba(123, 171, 221, 0.1); 
-                        color: var(--nc-primary); 
-                        border: 1px solid rgba(123, 171, 221, 0.2); 
-                        border-radius: 100px; 
-                        font-size: 0.85rem; 
-                        font-weight: 700; 
-                        text-transform: uppercase; 
-                        letter-spacing: 0.1em;
-                        line-height: 1;">
+                 style="
+                     gap: 0.5rem; 
+                     padding: 0.6rem 1rem 0.5rem 1rem; 
+                     background: rgba(123, 171, 221, 0.1); 
+                     color: var(--nc-primary); 
+                     border: 1px solid rgba(123, 171, 221, 0.2); 
+                     border-radius: 100px; 
+                     font-size: 0.85rem; 
+                     font-weight: 700; 
+                     text-transform: uppercase; 
+                     letter-spacing: 0.1em;
+                     line-height: 1;
+                 ">
                 <i class="fa fa-music"></i> Where Music Lives
             </div>
             <h1 class="nc-hero-title" 
-                style="font-size: clamp(3rem, 5vw, 5rem); 
-                       line-height: 1.1; 
-                       font-weight: 900; 
-                       text-transform: uppercase; 
-                       letter-spacing: -0.02em; 
-                       margin: 0;">
+                style="
+                    font-size: clamp(3rem, 5vw, 5rem); 
+                    line-height: 1.1; 
+                    font-weight: 900; 
+                    text-transform: uppercase; 
+                    letter-spacing: -0.02em; 
+                    margin: 0;
+                ">
                 <span class="line-1">Play the</span>
                 <span class="line-2">Night Away.</span>
             </h1>
             <p class="mx-auto ms-lg-0" 
-               style="font-size: 1.1rem; 
-                      color: var(--nc-text-secondary); 
-                      line-height: 1.7; 
-                      max-width: 500px;">
+               style="
+                   font-size: 1.1rem; 
+                   color: var(--nc-text-secondary); 
+                   line-height: 1.7; 
+                   max-width: 500px;
+               ">
                 Discover premium instruments curated for every musician - from first-time players to seasoned performers.
                 NightCord brings the music to you.
             </p>
@@ -206,16 +222,22 @@
         </div>
 
         <div class="col-lg-6 col-12 position-relative d-flex flex-column ms-auto" 
-             style="gap: 2rem;">
+             style="
+                 gap: 2rem;
+             ">
             @if (topSellers.Any())
             {
                 <div class="d-flex flex-wrap justify-content-center justify-content-lg-start" 
-                     style="gap: 1.5rem;">
+                     style="
+                         gap: 1.5rem;
+                     ">
                     <div class="nc-stat-card"><span class="nc-stat-value" id="statRating">@initRating</span><span class="nc-stat-label">Rating</span></div>
                     <div class="nc-stat-card"><span class="nc-stat-value" id="statSold">@initSold</span><span class="nc-stat-label">Sold</span></div>
                     <div class="nc-stat-card">
                         <span class="nc-stat-value d-flex align-items-center" 
-                              style="font-size: 1.2rem;" 
+                              style="
+                                  font-size: 1.2rem;
+                              " 
                               id="statStock">@initStock</span>
                         <span class="nc-stat-label">Stock</span>
                     </div>
@@ -234,9 +256,11 @@
             }
             
             <a href="@Url.Action("Index", "Home")#catalog-section" class="d-inline-flex align-items-center text-decoration-none" 
-               style="color: var(--nc-primary); 
-                      font-weight: 700; 
-                      transition: all 0.3s ease;" 
+               style="
+                   color: var(--nc-primary); 
+                   font-weight: 700; 
+                   transition: all 0.3s ease;
+               " 
                onmouseover="this.style.color = 'var(--nc-text-primary)'" 
                onmouseout="this.style.color = 'var(--nc-primary)'">
                 See All Instruments <i class="fa fa-arrow-right ms-2"></i>

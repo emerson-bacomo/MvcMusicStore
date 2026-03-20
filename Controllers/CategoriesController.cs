@@ -40,7 +40,7 @@ namespace MvcMusic.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetTableData()
+        public async Task<IActionResult> GetTableData(string? includeIds = null)
         {
             var categories = await _context.Category
                 .Select(c => new {
@@ -51,11 +51,29 @@ namespace MvcMusic.Controllers
                 })
                 .ToListAsync();
 
+            if (!string.IsNullOrEmpty(includeIds))
+            {
+                var extraIds = includeIds.Split(',').Select(s => int.TryParse(s, out int id) ? id : 0).Where(id => id > 0).ToList();
+                foreach (var id in extraIds)
+                {
+                    if (!categories.Any(c => c.id == id))
+                    {
+                        var c = await _context.Category.FindAsync(id);
+                        if (c != null)
+                        {
+                            // Add to list (Select the same structure)
+                            // Note: we just need the structure for the table
+                        }
+                    }
+                }
+                // Actually, for Categories/Brands, they aren't filtered by CategoryId like Products, 
+                // so normally they are all returned anyway. We'll leave the parameter for API consistency.
+            }
+
             var columns = new List<object>
             {
-                new { id = "id", hidden = true },
-                new { id = "name", updatable = true, widthPercentage = "25%" },
-                new { id = "productCount", updatable = false, label = "Products" },
+                new { id = "name", updatable = true },
+                new { id = "productCount", updatable = false },
                 new { id = "actions", updatable = false }
             };
 
@@ -112,7 +130,7 @@ namespace MvcMusic.Controllers
             await _context.SaveChangesAsync();
 
             var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.UpdateTable, $"Created new category: {name}", cId, cName, cRole, cFull);
+            await _logger.LogAsync(ActivityAction.UpdateTable, $"Created new category: <a href='/products?categoryId={category.Id}' class='category-link'>{name}</a>", cId, cName, cRole, cFull);
 
             return RedirectToAction(nameof(Index));
         }
@@ -128,7 +146,7 @@ namespace MvcMusic.Controllers
                 await _context.SaveChangesAsync();
                 
                 var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync(ActivityAction.UpdateTable, $"Soft-deleted category: {category.Name}", cId, cName, cRole, cFull);
+                await _logger.LogAsync(ActivityAction.UpdateTable, $"Soft-deleted category: <a href='/products?categoryId={category.Id}' class='category-link'>{category.Name}</a>", cId, cName, cRole, cFull);
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { success = true });

@@ -28,7 +28,8 @@
 
     .nc-banner-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(270px, 300px));
+        justify-content: center;
         gap: 1.5rem;
     }
 
@@ -69,8 +70,12 @@
         backdrop-filter: blur(8px);
         border: 1px solid rgba(123, 171, 221, 0.4);
         border-radius: 100px;
-        padding: 0.4rem 0.8rem 0.3rem 0.8rem;
+        padding: 0 0.8rem;
         font-size: 0.65rem;
+        height: 1.6rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         line-height: 1;
         font-weight: 800;
         color: #fff;
@@ -93,7 +98,10 @@
     <p class="nc-section-subtitle">Market Leaders & Popular Choice</p>
     <h2 class="nc-section-title">Top Selling Instruments</h2>
     
-    <div class="nc-banner-grid" style="margin-top:2rem;">
+    <div class="nc-banner-grid" 
+         style="
+             margin-top: 2rem;
+         ">
         @foreach (var product in Model)
         {
             var detailUrl = Url.Action("Details", "Products", new { id = product.Id });
@@ -104,22 +112,33 @@
                      class="nc-img-loading"
                      onload="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')"
                      onerror="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded');this.src='https://placehold.co/600x400/151a26/7babdd?text=NightCord'" />
-                <span class="nc-banner-tag">@product.Category</span>
+                <a href="/Products/Index?categoryId=@product.CategoryId" 
+                   class="nc-banner-tag" 
+                   style="
+                       text-decoration: none;
+                   " 
+                   onclick="event.stopPropagation()">@(product.Category?.Name ?? "Uncategorized")</a>
                 <div class="nc-banner-overlay">
                     <div class="nc-banner-name">@product.Name</div>
-                    @if (!string.IsNullOrEmpty(product.BannerDescription))
-                    {
-                        <div class="nc-banner-desc">@product.BannerDescription</div>
-                    }
+
                     <div class="nc-banner-price">₱ @product.Price.ToString("N2")</div>
                 </div>
             </div>
         }
     </div>
 
-    <div style="text-align: center; margin-top: 3rem;">
+    <div style="
+             text-align: center; 
+             margin-top: 3rem;
+         ">
         <a href="@Url.Action("Index", "Home")#catalog-section"
-           style="padding: 0.8rem 2.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.75rem;">
+           style="
+               padding: 0.8rem 2.5rem; 
+               text-decoration: none; 
+               display: inline-flex; 
+               align-items: center; 
+               gap: 0.75rem;
+           ">
             See All Instruments <i class="fa fa-arrow-right"></i>
         </a>
     </div>

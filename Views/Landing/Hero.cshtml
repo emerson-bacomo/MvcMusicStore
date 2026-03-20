@@ -5,7 +5,7 @@
 @{
     ViewData["Title"] = "NightCord — Instruments That Speak";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var bannerProducts = await Db.Product.Include(p => p.ProductImages).OrderByDescending(p => p.SoldAmount).Take(4).ToListAsync();
+    var bannerProducts = await Db.Product.Include(p => p.ProductImages).Include(p => p.Category).Include(p => p.Brand).Where(p => p.RecordStatus == RecordStatus.Active).OrderByDescending(p => p.SoldAmount).Take(4).ToListAsync();
 }
 
 <!DOCTYPE html>

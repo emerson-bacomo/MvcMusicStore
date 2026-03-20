@@ -36,11 +36,20 @@ builder.Services.Configure<RouteOptions>(options =>
     options.LowercaseQueryStrings = true;
 });
 
-// Add services to the container.
-builder.Services.AddControllersWithViews(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.Conventions.Add(new RouteTokenTransformerConvention(new KebabCaseTransformer()));
-});
+    builder.Services.AddControllersWithViews(options =>
+    {
+        options.Conventions.Add(new RouteTokenTransformerConvention(new KebabCaseTransformer()));
+    }).AddRazorRuntimeCompilation();
+}
+else
+{
+    builder.Services.AddControllersWithViews(options =>
+    {
+        options.Conventions.Add(new RouteTokenTransformerConvention(new KebabCaseTransformer()));
+    });
+}
 
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 builder.Services.AddSignalR();

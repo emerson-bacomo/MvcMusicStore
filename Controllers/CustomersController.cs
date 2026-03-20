@@ -31,10 +31,10 @@ namespace MvcMusic.Controllers
         }
 
         // GET: /customers
-        public async Task<IActionResult> CustomerList()
+        public async Task<IActionResult> Index()
         {
             var customers = await _userManager.GetUsersInRoleAsync("User");
-            return View("CustomerList", customers.OrderByDescending(c => c.DateCreated).ToList());
+            return View(customers.OrderByDescending(c => c.DateCreated).ToList());
         }
 
         // GET: /customers/profile/{id}
@@ -48,14 +48,12 @@ namespace MvcMusic.Controllers
                     .ThenInclude(oi => oi.Product)
                 .Where(o => o.CustomerId == id)
                 .OrderByDescending(o => o.OrderDate)
-                .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
             ViewBag.Customer = customer;
             return View(orders);
         }
 
-        // POST: /customers/toggle-ban/{id}
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleBan(string id)
@@ -68,32 +66,90 @@ namespace MvcMusic.Controllers
 
             var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
             var action = customer.IsBanned ? ActivityAction.BanCustomer : ActivityAction.UnbanCustomer;
-            var details = customer.IsBanned ? $"Banned customer: {customer.Email}" : $"Unbanned customer: {customer.Email}";
+            var details = customer.IsBanned ? $"Banned customer: <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>" : $"Unbanned customer: <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>";
             await _logger.LogAsync(action, details, cId, cName, cRole, cFull);
             TempData["Success"] = $"Customer {(customer.IsBanned ? "banned" : "unbanned")} successfully.";
-            return RedirectToAction(nameof(CustomerList));
+            return RedirectToAction(nameof(Index));
+        }
+
+        // POST: /customers/delete/{id}
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(string id)
+        {
+            var customer = await _userManager.FindByIdAsync(id);
+            if (customer == null) return NotFound();
+
+            customer.RecordStatus = RecordStatus.Deleted;
+            await _userManager.UpdateAsync(customer);
+
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.DeleteCustomer, $"Soft-deleted customer <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>", cId, cName, cRole, cFull);
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true });
+
+            TempData["Success"] = "Customer account soft-deleted.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // POST: /customers/restore/{id}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Restore(string id)
+        {
+            var customer = await _userManager.FindByIdAsync(id);
+            if (customer == null) return NotFound();
+
+            customer.RecordStatus = RecordStatus.Active;
+            await _userManager.UpdateAsync(customer);
+
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.UpdateTable, $"Restored customer <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>", cId, cName, cRole, cFull);
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true });
+
+            TempData["Success"] = "Customer account restored.";
+            return RedirectToAction(nameof(Index));
         }
         // AJAX endpoint for UpdatableTable
         [HttpGet]
-        public async Task<IActionResult> GetTableData()
+        public async Task<IActionResult> GetTableData(string? includeIds = null)
         {
-            var data = await FetchCustomersTableData();
+            var data = await FetchCustomersTableData(includeIds);
             return Json(data);
         }
 
-        private async Task<object> FetchCustomersTableData()
+        private async Task<object> FetchCustomersTableData(string? includeIds = null)
         {
             var customers = await _userManager.GetUsersInRoleAsync("User");
             var sorted = customers.OrderByDescending(c => c.DateCreated).ToList();
 
+            if (!string.IsNullOrEmpty(includeIds))
+            {
+                var extraIds = includeIds.Split(',').Select(s => s.Trim()).ToList();
+                foreach (var id in extraIds)
+                {
+                    if (!sorted.Any(u => u.Id == id))
+                    {
+                        var extraUser = await _userManager.FindByIdAsync(id);
+                        if (extraUser != null && await _userManager.IsInRoleAsync(extraUser, "User"))
+                        {
+                            sorted.Add(extraUser);
+                        }
+                    }
+                }
+            }
+
             var columns = new List<object>
             {
-                new { id = "customer", label = "Customer", widthPercentage = "25%", sortable = true },
-                new { id = "username", label = "Username", widthPercentage = "15%", sortable = true },
-                new { id = "email", label = "Email", widthPercentage = "25%", sortable = true },
-                new { id = "status", label = "Status", widthPercentage = "10%", sortable = true },
-                new { id = "joined", label = "Joined", widthPercentage = "15%", sortable = true },
-                new { id = "actions", label = "Actions", widthPercentage = "10%", sortable = false }
+                new { id = "customer", updatable = false },
+                new { id = "username", updatable = false },
+                new { id = "email", updatable = false },
+                new { id = "status", updatable = false },
+                new { id = "joined", updatable = false },
+                new { id = "actions", updatable = false }
             };
 
             var rows = sorted.ToDictionary(c => c.Id, c => (object)new
@@ -105,7 +161,8 @@ namespace MvcMusic.Controllers
                 joined = c.DateCreated.ToString("MMM d, yyyy"),
                 profilePicture = c.ProfilePicture,
                 id = c.Id,
-                isBanned = c.IsBanned
+                isBanned = c.IsBanned,
+                recordStatus = c.RecordStatus.ToString()
             });
 
             return new { columns, rows };

@@ -23,21 +23,15 @@
         <!-- Page Header -->
         <div class="dash-header">
             <div>
-                <div class="dash-breadcrumb"><i class="fa fa-chart-line me-1"></i> Admin Panel</div>
+                <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-shield-halved me-1"></i> SuperAdmin Panel</div>
                 <h1 class="nc-page-title">Analytics Dashboard</h1>
+                <span class="nc-text-muted">Welcome back,</span> <span style="font-weight:700;color:var(--nc-primary);">@ViewData["CurrentUserName"]</span>
             </div>
             <div class="dash-header-time">
                 <i class="fa fa-clock me-1"></i>
                 <span id="liveTime"></span>
             </div>
         </div>
-
-        @if (TempData["Success"] != null)
-        {
-            <div class="nc-alert nc-alert-success mb-4">
-                <i class="fa fa-circle-check"></i> @TempData["Success"]
-            </div>
-        }
 
         <!-- Stat Cards -->
         <div class="dash-stats-grid">
@@ -294,107 +288,243 @@
     </script>
 }
 
-<style>
-    .dash-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 2.5rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--nc-border);
-    }
-    .dash-breadcrumb { color: var(--nc-text-muted); font-size: 0.8rem; margin-bottom: 0.25rem; }
-    .dash-header-time { color: var(--nc-text-muted); font-size: 0.85rem; }
+@section Styles {
+    <style>
+        .dash-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
 
-    .dash-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-    }
-    @@media (max-width: 1200px) { .dash-stats-grid { grid-template-columns: repeat(3, 1fr); } }
-    @@media (max-width: 768px) { .dash-stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--nc-border);
+        }
 
-    .dash-stat-card {
-        background: var(--nc-bg-card);
-        border: 1px solid var(--nc-border);
-        border-radius: 14px;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        transition: var(--transition);
-        position: relative;
-        overflow: hidden;
-    }
-    .dash-stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: var(--nc-primary);
-        opacity: 0;
-        transition: var(--transition);
-    }
-    .dash-stat-card:hover { transform: translateY(-3px); border-color: var(--nc-primary); box-shadow: 0 8px 24px rgba(123,171,221,0.12); }
-    .dash-stat-card:hover::before { opacity: 1; }
+        .dash-header-time {
+            padding: 0.5rem 1rem;
+            background: rgba(122, 171, 221, 0.05);
+            border: 1px solid var(--nc-border);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            color: var(--nc-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-    .dash-stat-icon {
-        width: 52px; height: 52px;
-        border-radius: 12px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.3rem;
-        flex-shrink: 0;
-    }
-    .revenue .dash-stat-icon { background: rgba(123,171,221,0.12); color: var(--nc-primary); }
-    .orders .dash-stat-icon { background: rgba(129,199,132,0.12); color: #81c784; }
-    .customers .dash-stat-icon { background: rgba(255,183,77,0.12); color: #ffb74d; }
-    .products .dash-stat-icon { background: rgba(186,104,200,0.12); color: #ba68c8; }
-    .employees .dash-stat-icon { background: rgba(77,208,225,0.12); color: #4dd0e1; }
+        .dash-stat-card {
+            background: var(--nc-bg-card);
+            border: 1px solid var(--nc-border);
+            border-radius: var(--nc-radius);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
 
-    .dash-stat-label { font-size: 0.75rem; color: var(--nc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-    .dash-stat-value { font-size: 1.5rem; font-weight: 800; color: var(--nc-text-primary); line-height: 1; }
-    .dash-stat-sub { font-size: 0.72rem; color: var(--nc-text-muted); margin-top: 0.25rem; }
+        .dash-stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--nc-primary);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
 
-    .dash-charts-row {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    .dash-charts-row .dash-chart-card:only-child,
-    .dash-charts-row .dash-chart-card.full { grid-column: 1 / -1; }
-    .dash-charts-row:has(.dash-chart-card:nth-child(2):last-child) { grid-template-columns: 1fr 1fr; }
-    @@media (max-width: 992px) { .dash-charts-row { grid-template-columns: 1fr; } }
+        .dash-stat-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            background: rgba(122, 171, 221, 0.1);
+            color: var(--nc-primary);
+            border: 1px solid rgba(122, 171, 221, 0.2);
+        }
 
-    .dash-chart-card {
-        background: var(--nc-bg-card);
-        border: 1px solid var(--nc-border);
-        border-radius: 16px;
-        overflow: hidden;
-        transition: var(--transition);
-    }
-    .dash-chart-card:hover { border-color: rgba(122,171,221,0.3); }
-    .dash-chart-card.wide { grid-column: span 1; }
+        .revenue .dash-stat-icon { color: var(--nc-success); background: rgba(129, 199, 132, 0.1); border-color: rgba(129, 199, 132, 0.2); }
+        .orders .dash-stat-icon { color: var(--nc-primary); }
+        .customers .dash-stat-icon { color: var(--nc-warning); background: rgba(255, 183, 77, 0.1); border-color: rgba(255, 183, 77, 0.2); }
+        .products .dash-stat-icon { color: #8c9cb1; }
+        .employees .dash-stat-icon { color: #818cf8; background: rgba(129, 140, 248, 0.1); border-color: rgba(129, 140, 248, 0.2); }
 
-    .dash-chart-header {
-        padding: 1.25rem 1.5rem 0.75rem;
-        border-bottom: 1px solid var(--nc-border);
-    }
-    .dash-chart-title { font-size: 0.95rem; font-weight: 700; color: var(--nc-text-primary); }
-    .dash-chart-sub { font-size: 0.75rem; color: var(--nc-text-muted); margin-top: 0.2rem; }
-    .dash-chart-body { padding: 1.25rem; height: 240px; position: relative; }
-    .dash-chart-body canvas { max-height: 100%; }
+        .dash-stat-body {
+            display: flex;
+            flex-direction: column;
+        }
 
-    .nc-order-badge { font-size: 0.75rem; padding: 0.2rem 0.75rem; border-radius: 100px; font-weight: 700; display: inline-block; }
-    .status-delivered { background: rgba(129,199,132,0.1); color: #81c784; border: 1px solid rgba(129,199,132,0.2); }
-    .status-delivery { background: rgba(255,183,77,0.1); color: #ffb74d; border: 1px solid rgba(255,183,77,0.2); }
-    .status-pending { background: rgba(123, 171, 221, 0.1); color: var(--nc-primary); border: 1px solid rgba(123, 171, 221, 0.2); }
+        .dash-stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--nc-text-muted);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
 
-    .dash-management-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-    .nc-card-tiny { background: var(--nc-bg-card); border: 1px solid var(--nc-border); border-radius: 12px; padding: 1rem 1.5rem; transition: var(--transition); }
-    .nc-card-tiny:hover { border-color: var(--nc-primary); transform: translateY(-2px); }
-    .nc-icon-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-    .nc-icon-circle.primary { background: rgba(123,171,221,0.1); color: var(--nc-primary); }
-    .nc-icon-circle.secondary { background: rgba(129,199,132,0.1); color: #81c784; }
-</style>
+        .dash-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .dash-stat-sub {
+            font-size: 0.7rem;
+            color: var(--nc-text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Chart Section */
+        .dash-charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dash-chart-card {
+            background: var(--nc-bg-card);
+            border: 1px solid var(--nc-border);
+            border-radius: var(--nc-radius);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .dash-chart-card.wide {
+            grid-column: span 2;
+        }
+
+        @@media (max-width: 1200px) {
+            .dash-chart-card.wide {
+                grid-column: span 1;
+            }
+        }
+
+        .dash-chart-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--nc-border);
+        }
+
+        .dash-chart-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+        }
+
+        .dash-chart-sub {
+            font-size: 0.8rem;
+            color: var(--nc-text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .dash-chart-body {
+            flex-grow: 1;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .dash-management-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .mgmt-card {
+            background: var(--nc-bg-card);
+            border: 1px solid var(--nc-border);
+            border-radius: var(--nc-radius);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            transition: var(--transition);
+            text-decoration: none !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mgmt-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--nc-primary);
+            box-shadow: var(--nc-shadow-glow);
+        }
+
+        .mgmt-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--nc-primary-glow) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+            transition: var(--transition);
+            opacity: 0;
+        }
+
+        .mgmt-card:hover::before {
+            opacity: 1;
+        }
+
+        .mgmt-icon {
+            font-size: 2.5rem;
+            color: var(--nc-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .mgmt-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .mgmt-desc {
+            color: var(--nc-text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        .mgmt-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--nc-primary);
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: auto;
+        }
+
+        .mgmt-card:hover .mgmt-link {
+            color: #fff;
+        }
+
+        .mgmt-link i {
+            transition: transform 0.2s;
+        }
+
+        .mgmt-card:hover .mgmt-link i {
+            transform: translateX(5px);
+        }
+    </style>
+}

@@ -53,13 +53,14 @@
         backdrop-filter: blur(8px);
         border: 1px solid rgba(123, 171, 221, 0.4);
         border-radius: 100px;
-        padding: 0.15rem 0.85rem 0.05rem 0.85rem;
-        height: 1.8rem;
+        padding: 0.15rem 0.8rem 0 0.8rem;
+        height: 1.6rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 800;
+        line-height: 1;
         color: #fff;
         text-transform: uppercase;
         letter-spacing: 0.1em;
@@ -147,36 +148,55 @@
              class="nc-img-loading"
              onload="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')"
              onerror="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded');this.src='https://placehold.co/400x300/1a1f2c/7babdd?text=NightCord'" />
-        <span class="nc-product-badge">@(Model.Category?.Name ?? "Uncategorized")</span>
+        <span class="nc-product-badge" 
+              style="
+                  cursor: pointer;
+              " 
+              onclick="event.preventDefault(); event.stopPropagation(); window.location='/Products/Index?categoryId=@Model.CategoryId';">@(Model.Category?.Name ?? "Uncategorized")</span>
     </div>
     <div class="nc-product-body">
-        <div class="nc-product-brand">@(Model.Brand?.Name ?? "No Brand")</div>
+        <span class="nc-product-brand" 
+              style="
+                  cursor: pointer;
+              " 
+              onclick="event.preventDefault(); event.stopPropagation(); window.location='/Products/Index?brandId=@Model.BrandId';">@(Model.Brand?.Name ?? "No Brand")</span>
         <div class="nc-product-name">@Model.Name</div>
         <div class="nc-stars d-flex align-items-center gap-1">
-            <span style="color: var(--nc-primary); 
-                         font-weight: 700; 
-                         font-size: 0.85rem;">
-                @(Model.SoldAmount > 0 ? Model.Rating.ToString("F1") : "-")
-            </span>
+            <span class="nc-product-rating" 
+                  style="
+                      color: var(--nc-primary); 
+                      font-weight: 700; 
+                      font-size: 0.85rem;
+                  ">@(Model.SoldAmount > 0 ? Model.Rating.ToString("F1") : "-")</span>
             <div>
                 @if (Model.SoldAmount > 0)
                 {
                     @for (int i = 0; i < (int)Math.Floor(Model.Rating); i++) { <span class="filled">★</span> }
                     @for (int i = (int)Math.Floor(Model.Rating); i < 5; i++) { 
-                        <span style="opacity: 0.2;">★</span> 
+                        <span style="
+                                  opacity: 0.2;
+                              ">★</span> 
                     }
                 }
                 else
                 {
-                    @for (int i = 0; i < 5; i++) { <span style="opacity: 0.1;">★</span> }
+                    @for (int i = 0; i < 5; i++) { <span style="
+                            opacity: 0.1;
+                        ">★</span> }
                 }
             </div>
-            <span style="color: var(--nc-text-muted);
-                         font-size: 0.7rem;
-                         margin-left: 0.25rem;">(@Model.RatingsCount)</span>
-            <span style="color: var(--nc-text-muted);
-                         font-size: 0.7rem;
-                         margin-left: auto;">@Model.SoldAmount sold</span>
+            <span class="nc-product-ratings-count" 
+                  style="
+                      color: var(--nc-text-muted);
+                      font-size: 0.7rem;
+                      margin-left: 0.25rem;
+                  ">(@Model.RatingsCount)</span>
+            <span class="nc-product-sold" 
+                  style="
+                      color: var(--nc-text-muted);
+                      font-size: 0.7rem;
+                      margin-left: auto;
+                  ">@Model.SoldAmount sold</span>
         </div>
         <div class="nc-product-price">₱ @Model.Price.ToString("N2")</div>
     </div>

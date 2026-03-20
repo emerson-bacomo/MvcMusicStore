@@ -40,7 +40,7 @@ namespace MvcMusic.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetTableData()
+        public async Task<IActionResult> GetTableData(string? includeIds = null)
         {
             var brands = await _context.Brand
                 .Select(b => new {
@@ -53,9 +53,8 @@ namespace MvcMusic.Controllers
 
             var columns = new List<object>
             {
-                new { id = "id", hidden = true },
-                new { id = "name", updatable = true, widthPercentage = "25%" },
-                new { id = "productCount", updatable = false, label = "Products" },
+                new { id = "name", updatable = true },
+                new { id = "productCount", updatable = false },
                 new { id = "actions", updatable = false }
             };
 
@@ -114,7 +113,7 @@ namespace MvcMusic.Controllers
             await _context.SaveChangesAsync();
 
             var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.UpdateTable, $"Created new brand: {name}", cId, cName, cRole, cFull);
+            await _logger.LogAsync(ActivityAction.UpdateTable, $"Created new brand: <a href='/products?brandId={brand.Id}' class='brand-link'>{name}</a>", cId, cName, cRole, cFull);
 
             return RedirectToAction(nameof(Index));
         }
@@ -130,7 +129,7 @@ namespace MvcMusic.Controllers
                 await _context.SaveChangesAsync();
                 
                 var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync(ActivityAction.UpdateTable, $"Soft-deleted brand: {brand.Name}", cId, cName, cRole, cFull);
+                await _logger.LogAsync(ActivityAction.UpdateTable, $"Soft-deleted brand: <a href='/products?brandId={brand.Id}' class='brand-link'>{brand.Name}</a>", cId, cName, cRole, cFull);
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { success = true });

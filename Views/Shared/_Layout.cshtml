@@ -36,6 +36,7 @@
             }
         })();
     </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
@@ -58,7 +59,7 @@
                 <button class="nc-mobile-menu-toggle d-lg-none me-3" type="button" id="ncMobileMenuToggle" aria-label="Open Menu">
                     <i class="fas fa-bars"></i>
                 </button>
-                <a class="navbar-brand m-0" asp-controller="Landing" asp-action="Hero" 
+                <a class="navbar-brand m-0 me-5" asp-controller="Landing" asp-action="Hero" 
                    style="font-family: 'Orbitron', sans-serif; 
                           font-size: 1.5rem; 
                           font-weight: 900; 
@@ -102,8 +103,8 @@
                                  </a>
                              </li>
                              <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
-                                     <i class="fa fa-users me-1"></i> Employees
+                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                                     <i class="fa fa-users me-1"></i> Customers
                                  </a>
                              </li>
                              <li class="nav-item">
@@ -337,6 +338,7 @@
         </div>
     </div>
     <div id="ncMobileMenuOverlay" class="nc-mobile-menu-overlay"></div>
+    <div id="ncGlobalOverlay" class="nc-global-overlay"></div>
 
     @RenderBody()
 
@@ -395,30 +397,44 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script>
         window.showToast = function(message, type = 'success') {
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                background: '#1a1f2c',
-                color: '#fff',
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
-                }
-            });
+            let bgColor = 'var(--nc-primary)';
+            let iconHtml = '<i class="fa fa-info-circle me-2" style="font-size: 1.1rem;"></i>';
+            
+            if (type === 'success') {
+                bgColor = 'var(--nc-primary)';
+                iconHtml = '<i class="fa fa-check-circle me-2" style="font-size: 1.1rem;"></i>';
+            } else if (type === 'error') {
+                bgColor = 'var(--nc-error)';
+                iconHtml = '<i class="fa fa-exclamation-circle me-2" style="font-size: 1.1rem;"></i>';
+            } else if (type === 'info') {
+                bgColor = '#1a1f2c';
+            }
 
-            Toast.fire({
-                icon: type,
-                title: message
-            });
+            Toastify({
+                text: `<div style="display: flex; align-items: center;">${iconHtml}<span>${message}</span></div>`,
+                duration: 4000,
+                close: true,
+                gravity: "top", 
+                position: "right",
+                escapeMarkup: false,
+                style: {
+                    background: bgColor,
+                    borderRadius: "12px",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+                    padding: "12px 20px",
+                    color: "white",
+                    fontFamily: "var(--nc-font-family)",
+                    fontSize: "0.9rem",
+                    fontWeight: "500",
+                    border: "1px solid rgba(255,255,255,0.1)"
+                }
+            }).showToast();
         };
 
         // Handle TempData notifications

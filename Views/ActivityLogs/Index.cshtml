@@ -7,13 +7,10 @@
 
 <div class="nc-page">
     <div class="container-fluid px-4">
-        <div style="margin-bottom:2rem; display: flex; justify-content: space-between; align-items: center;">
-            <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem; border-radius:var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back
-            </a>
+        <div style="margin-bottom:2rem; display: flex; justify-content: flex-end; align-items: center;">
             @if (emp != null)
             {
-                <a asp-action="Index" class="btn-nc-outline" style="font-size: 0.8rem;">
+                <a asp-action="Index" class="btn-nc-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
                     <i class="fa fa-globe me-1"></i> View All Logs
                 </a>
             }
@@ -21,11 +18,11 @@
 
         <div class="nc-page-header">
             <div>
-                <div class="nc-breadcrumb"><i class="fa fa-list-check me-1"></i> Admin Panel</div>
+                <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-clipboard-list me-1"></i> System Audits</div>
                 <h1 class="nc-page-title">
                     @if (emp != null)
                     {
-                        <span>Activity Logs — <span style="color:var(--nc-primary);font-family:'Orbitron',monospace;font-size:1.4rem;">@emp.UserName</span></span>
+                        <span>Activity Logs — <span style="color:var(--nc-primary);font-size:1.4rem;">@emp.UserName</span></span>
                     }
                     else
                     {
@@ -35,161 +32,103 @@
             </div>
         </div>
 
-        <form method="get" id="logs-filter-form" class="ut-header-row">
-            <div></div> @* Spacer *@
-            <div class="ut-top-controls">
-                <div class="ut-search-wrapper">
-                    <i class="fa fa-search ut-search-icon"></i>
-                    <input type="text" name="searchTerm" class="ut-search-input" placeholder="Search logs..." value="@ViewBag.SearchTerm">
-                </div>
-                
-                <div class="ut-filter-container">
-                    <select name="actionFilter" class="ut-input ut-select" style="min-width: 200px; height: 40px;" onchange="this.form.submit()">
-                        <option value="">All Actions</option>
-                        @foreach (var action in ViewBag.Actions as List<string>)
-                        {
-                            <!option value="@action" @(ViewBag.ActionFilter == action ? "selected" : "")>@action</!option>
-                        }
-                    </select>
-                </div>
-
-                @if (!string.IsNullOrEmpty(ViewBag.UserId))
-                {
-                    <input type="hidden" name="userId" value="@ViewBag.UserId" />
-                }
-
-                @if (!string.IsNullOrEmpty(ViewBag.SearchTerm) || !string.IsNullOrEmpty(ViewBag.ActionFilter))
-                {
-                    <a asp-action="Index" asp-route-userId="@ViewBag.UserId" class="btn-nc-outline" style="border-color:var(--nc-error); color:var(--nc-error); height: 40px; display: flex; align-items: center; border-radius: var(--nc-radius-sm);">
-                        <i class="fa fa-times me-1"></i> Clear
-                    </a>
-                }
-            </div>
-        </form>
-
-        <div class="ut-wrapper">
-            <div class="ut-table-container">
-                @if (!Model.Any())
-                {
-                    <div style="text-align:center;padding:3rem;color:var(--nc-text-muted);">
-                        <i class="fa fa-inbox" style="font-size:2.5rem;display:block;margin-bottom:1rem;"></i>
-                        <p>No activity logs found.</p>
-                    </div>
-                }
-                else
-                {
-                    <div class="nc-table-responsive">
-                        <table class="nc-table">
-                            <thead>
-                                <tr>
-                                    <th><i class="fa fa-calendar me-1"></i> Timestamp</th>
-                                    <th><i class="fa fa-user me-1"></i> Username</th>
-                                    <th><i class="fa fa-id-card me-1"></i> Full Name</th>
-                                    <th><i class="fa fa-shield-halved me-1"></i> Role</th>
-                                    <th><i class="fa fa-bolt me-1"></i> Action</th>
-                                    <th><i class="fa fa-circle-info me-1"></i> Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var log in Model)
-                                {
-                                    <tr>
-                                        <td style="color:var(--nc-text-muted);font-size:0.8rem;white-space:nowrap;">
-                                            @log.Timestamp.ToString("yy-MM-dd HH:mm:ss")
-                                        </td>
-
-                                        <td style="color:var(--nc-text-secondary);font-size:0.9rem;">@(log.Username ?? "—")</td>
-                                        <td style="color:var(--nc-text-secondary);font-size:0.9rem;">@(log.UserFullName ?? "—")</td>
-                                        <td>
-                                            @if (!string.IsNullOrEmpty(log.Role))
-                                            {
-                                                <span class="role-badge role-@log.Role.ToLower()">@log.Role</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <span class="log-action">@log.Action</span>
-                                        </td>
-                                        <td style="color:var(--nc-text-muted);font-size:0.85rem;max-width:300px;">@Html.Raw(log.Details)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination Controls -->
-                    @if (ViewBag.TotalPages > 1)
-                    {
-                        <div class="d-flex justify-content-between align-items-center mt-4 px-3 pb-3">
-                            <div class="nc-text-muted" style="font-size: 0.85rem;">
-                                Showing page <strong>@ViewBag.CurrentPage</strong> of <strong>@ViewBag.TotalPages</strong>
-                            </div>
-                            <nav aria-label="Activity log pagination">
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
-                                        <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage - 1)" 
-                                           asp-route-userId="@ViewBag.UserId" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-actionFilter="@ViewBag.ActionFilter"
-                                           tabindex="-1" 
-                                           style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
-                                            <i class="fa fa-angle-left"></i>
-                                        </a>
-                                    </li>
-                                    
-                                    @{
-                                        int startPage = Math.Max(1, ViewBag.CurrentPage - 2);
-                                        int endPage = Math.Min(ViewBag.TotalPages, ViewBag.CurrentPage + 2);
-                                    }
-
-                                    @if (startPage > 1)
-                                    {
-                                        <li class="page-item"><a class="page-link" asp-action="Index" asp-route-page="1" asp-route-userId="@ViewBag.UserId" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-actionFilter="@ViewBag.ActionFilter" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">1</a></li>
-                                        @if (startPage > 2) { <li class="page-item disabled"><span class="page-link" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-muted);">...</span></li> }
-                                    }
-
-                                    @for (int i = startPage; i <= endPage; i++)
-                                    {
-                                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                            <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-userId="@ViewBag.UserId" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-actionFilter="@ViewBag.ActionFilter"
-                                               style="@(i == ViewBag.CurrentPage ? "background: var(--nc-primary); border-color: var(--nc-primary); color: #fff;" : "background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);")">
-                                                @i
-                                            </a>
-                                        </li>
-                                    }
-
-                                    @if (endPage < ViewBag.TotalPages)
-                                    {
-                                        @if (endPage < ViewBag.TotalPages - 1) { <li class="page-item disabled"><span class="page-link" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-muted);">...</span></li> }
-                                        <li class="page-item"><a class="page-link" asp-action="Index" asp-route-page="@ViewBag.TotalPages" asp-route-userId="@ViewBag.UserId" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-actionFilter="@ViewBag.ActionFilter" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">@ViewBag.TotalPages</a></li>
-                                    }
-
-                                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-                                        <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage + 1)" asp-route-userId="@ViewBag.UserId" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-actionFilter="@ViewBag.ActionFilter"
-                                           style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
-                                            <i class="fa fa-angle-right"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
+        <div id="logs-table"></div>
     </div>
 </div>
 
 @section Styles {
     <link rel="stylesheet" href="~/css/UpdatableTable.css" />
+    <style>
+        .log-action {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--nc-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: inline-block;
+        }
+
+        .role-badge {
+            font-size: 0.70rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 100px;
+            font-weight: 600;
+        }
+
+        .role-admin { background: rgba(229, 115, 115, 0.15); color: #e57373; }
+        .role-superadmin { background: rgba(186, 104, 200, 0.15); color: #ba68c8; }
+        .role-staff { background: rgba(79, 195, 247, 0.15); color: #4fc3f7; }
+        .role-user { background: rgba(129, 199, 132, 0.15); color: #81c784; }
+    </style>
 }
 
-<style>
-    .nc-table-responsive { overflow-x: auto; }
-    .nc-card-body.p-0 { padding: 0; }
-    .nc-table { background: transparent !important; border: none !important; }
-    .nc-table thead th { border-top: none !important; }
-    .emp-code-sm { font-family:'Orbitron',monospace; font-size:0.72rem; color:var(--nc-primary); background:rgba(123,171,221,0.1); padding:0.15rem 0.5rem; border-radius:4px; font-weight:700; }
-    .role-badge { font-size:0.73rem; padding:0.2rem 0.7rem; border-radius:100px; font-weight:700; display:inline-block; text-transform:uppercase; letter-spacing:0.05em; }
-    .role-admin { background:rgba(123,171,221,0.15); color:var(--nc-primary); border:1px solid rgba(123,171,221,0.3); }
-    .role-staff { background:rgba(129,199,132,0.15); color:#81c784; border:1px solid rgba(129,199,132,0.3); }
-    .role-superadmin { background:rgba(255,183,77,0.15); color:#ffb74d; border:1px solid rgba(255,183,77,0.3); }
-    .log-action { font-size:0.82rem; font-weight:700; color:var(--nc-text-primary); background:rgba(255,255,255,0.04); padding:0.2rem 0.6rem; border-radius:4px; }
-</style>
+@section Scripts {
+    <script type="module">
+        import UpdatableTable from '/js/UpdatableTable.js';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const actions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.Actions));
+            const roles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.Roles));
+
+            const table = new UpdatableTable('#logs-table', {
+                label: '',
+                storagePrefix: 'activityLog',
+                request: {
+                    url: '@Url.Action("GetTableData", "ActivityLogs")' + window.location.search,
+                    type: 'GET'
+                },
+                fieldDefinitions: {
+                    timestamp: { 
+                        label: 'Timestamp',
+                        widthPercentage: '12%',
+                        cellClass: 'ut-min-w-fit nc-text-muted text-nowrap',
+                        renderContent: (val) => `<span style="font-size:0.85rem;">${val}</span>`
+                    },
+                    username: { 
+                        label: 'User',
+                        widthPercentage: '10%',
+                        cellClass: 'ut-min-w-fit',
+                        renderContent: (val) => `<span class="nc-text-secondary">${val || "—"}</span>`
+                    },
+                    fullname: { 
+                        label: 'Full Name',
+                        widthPercentage: '12%',
+                        cellClass: 'ut-min-w-fit',
+                        renderContent: (val) => `<span class="nc-text-secondary">${val || "—"}</span>`
+                    },
+                    role: { 
+                        label: 'Role',
+                        widthPercentage: '8%',
+                        cellClass: 'ut-min-w-fit',
+                        type: 'select',
+                        options: roles.map(r => ({value: r, label: r})),
+                        renderContent: (val) => {
+                            if (!val) return '';
+                            const rCode = val.toLowerCase();
+                            return `<span class="nc-text-muted" style="font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">${val}</span>`;
+                        }
+                    },
+                    action: {
+                        label: 'Action',
+                        widthPercentage: '10%',
+                        cellClass: 'ut-min-w-fit',
+                        type: 'select',
+                        options: actions.map(a => ({value: a, label: a})),
+                        renderContent: (val) => `<span style="font-weight:600; font-size:0.85rem;">${val}</span>`
+                    },
+                    details: {
+                        label: 'Details',
+                        widthPercentage: '48%',
+                        renderContent: (val) => `<span class="nc-text-muted" style="font-size:0.85rem;">${val}</span>`
+                    }
+                },
+                canAdd: false,
+                canEdit: false,
+                canDelete: false,
+                itemsPerPage: 20
+            });
+        });
+    </script>
+}

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MvcMusic.Data;
 
@@ -11,9 +12,11 @@ using MvcMusic.Data;
 namespace MvcMusic.Migrations
 {
     [DbContext(typeof(MvcMusicContext))]
-    partial class MvcMusicContextModelSnapshot : ModelSnapshot
+    [Migration("20260320040440_AddOrderSnapshots")]
+    partial class AddOrderSnapshots
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -252,9 +255,6 @@ namespace MvcMusic.Migrations
 
                     b.Property<string>("ProfilePicture")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RecordStatus")
-                        .HasColumnType("int");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");

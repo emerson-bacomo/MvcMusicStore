@@ -7,7 +7,7 @@
 
 <div class="nc-page">
     <div class="nc-container">
-        <div style="margin-bottom:2rem;">
+        <div class="mb-4">
             <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
                 <i class="fa fa-arrow-left me-1"></i> Back
             </a>
@@ -15,7 +15,7 @@
 
         <div class="nc-page-header">
             <div>
-                <div style="color:var(--nc-text-muted);font-size:0.8rem;margin-bottom:0.25rem;"><i class="fa fa-pen me-1"></i> SuperAdmin Panel</div>
+                <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-pen me-1"></i> SuperAdmin Panel</div>
                 <h1 class="nc-page-title">Edit Employee</h1>
                 @if (!string.IsNullOrEmpty(Model.UserName))
                 {
@@ -36,8 +36,8 @@
                         <div class="nc-form-section-title">Account Identity (Read-only)</div>
                         <div class="nc-form-group">
                             <label class="nc-label">Username</label>
-                            <input value="@Model.UserName" class="nc-input" readonly style="opacity:0.6;cursor:not-allowed;" />
-                            <small style="color:var(--nc-text-muted);font-size:0.75rem;">Username cannot be changed by admins.</small>
+                            <input value="@Model.UserName" class="nc-input opacity-75" readonly style="cursor:not-allowed;" />
+                            <small class="nc-text-muted" style="font-size:0.75rem;">Username cannot be changed by admins.</small>
                         </div>
                     </div>
 
@@ -79,7 +79,7 @@
                         </div>
                     </div>
 
-                    <div style="display:flex;gap:1rem;">
+                    <div class="d-flex gap-3">
                         <button type="submit" class="btn-nc-primary" style="padding:0.75rem 2rem;border-radius:var(--nc-radius-sm);">
                             <i class="fa fa-floppy-disk me-2"></i> Save Changes
                         </button>
@@ -91,9 +91,25 @@
     </div>
 </div>
 
-<style>
-    .emp-code-display { font-family:'Orbitron',monospace; font-size:0.9rem; color:var(--nc-primary); background:rgba(123,171,221,0.1); padding:0.3rem 0.8rem; border-radius:6px; font-weight:700; display:inline-block; margin-top:0.5rem; }
-    .nc-select option { background:var(--nc-bg-card); color:var(--nc-text-primary); }
-</style>
+@section Styles {
+    <style>
+        .emp-code-display {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            color: var(--nc-primary);
+            background: rgba(123, 171, 221, 0.1);
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        .nc-select option {
+            background: var(--nc-bg-card);
+            color: var(--nc-text-primary);
+        }
+    </style>
+}
 
 @section Scripts { <partial name="_ValidationScriptsPartial" /> }

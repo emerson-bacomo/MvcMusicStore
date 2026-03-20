@@ -1,0 +1,191 @@
+@model List<MvcMusic.Models.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Customer Management";
+}
+
+<div class="nc-page">
+    <div class="container-fluid px-4">
+        <div class="nc-page-header">
+            <div>
+                <div class="nc-breadcrumb"><i class="fa fa-users"></i> Admin Panel</div>
+                <h1 class="nc-page-title">Customer Management</h1>
+                <p class="nc-page-subtitle">Handle your registered customer base</p>
+            </div>
+        </div>
+
+        <div id="customers-table-container"></div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/UpdatableTable.css" />
+    <style>
+        .nc-table-responsive {
+            overflow-x: auto;
+        }
+
+        .nc-card-body.p-0 {
+            padding: 0;
+        }
+
+        .cust-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid var(--nc-border);
+        }
+
+        .cust-avatar-placeholder {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(123, 171, 221, 0.15);
+            color: var(--nc-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+            border: 1.5px solid var(--nc-border);
+        }
+
+        .cust-badge {
+            font-size: 0.73rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 100px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .cust-badge.active {
+            background: rgba(129, 199, 132, 0.1);
+            color: #81c784;
+            border: 1px solid rgba(129, 199, 132, 0.2);
+        }
+
+        .cust-badge.banned {
+            background: rgba(229, 115, 115, 0.1);
+            color: #e57373;
+            border: 1px solid rgba(229, 115, 115, 0.2);
+        }
+
+        .nc-action-link {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--nc-bg-secondary);
+            color: var(--nc-text-secondary);
+            transition: all 0.25s;
+            border: 1px solid var(--nc-border);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .nc-action-link:hover {
+            background: var(--nc-primary);
+            color: #fff;
+            transform: translateY(-2px);
+            border-color: var(--nc-primary);
+        }
+
+        .nc-action-link.delete:hover {
+            background: #e57373;
+            border-color: #e57373;
+        }
+
+        .nc-action-link.enable:hover {
+            background: #81c784;
+            border-color: #81c784;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script type="module">
+        import UpdatableTable from '/js/UpdatableTable.js';
+
+        const table = new UpdatableTable('#customers-table-container', {
+            label: 'Customers',
+            request: {
+                url: '@Url.Action("GetTableData", "Customers")',
+                type: 'GET'
+            },
+            fieldDefinitions: {
+                customer: {
+                    label: 'Customer',
+                    widthPercentage: '25%',
+                    renderContent: (val, col, row) => `
+                        <div class="d-flex align-items-center gap-2">
+                            ${row.profilePicture ? `<img src="${row.profilePicture}" class="cust-avatar" />` : `<div class="cust-avatar-placeholder">${val.charAt(0).toUpperCase()}</div>`}
+                            <div class="fw-semibold">${val}</div>
+                        </div>
+                    `
+                },
+                username: {
+                    label: 'Username',
+                    widthPercentage: '15%',
+                    renderContent: (val) => `<span class="nc-text-muted" style="font-size:0.85rem;">${val}</span>`
+                },
+                email: {
+                    label: 'Email',
+                    widthPercentage: '25%',
+                    renderContent: (val) => `<span class="nc-text-secondary" style="font-size:0.9rem;">${val}</span>`
+                },
+                status: {
+                    label: 'Status',
+                    widthMinimum: '150px',
+                    widthPercentage: '10%',
+                    renderContent: (val) => {
+                        const css = val === 'Active' ? 'active' : 'banned';
+                        const icon = val === 'Active' ? 'fa-circle-check' : 'fa-ban';
+                        return `<span class="cust-badge ${css}"><i class="fa ${icon} me-1"></i>${val}</span>`;
+                    }
+                },
+                joined: {
+                    label: 'Joined',
+                    widthPercentage: '15%',
+                    renderContent: (val) => `<span class="nc-text-muted" style="font-size:0.8rem;">${val}</span>`
+                },
+                actions: {
+                    label: 'Actions',
+                    widthPercentage: '1%',
+                    spanStyle: 'padding: 0; display: flex; justify-content: flex-start;',
+                    renderContent: (val, col, row) => {
+                        let links = `
+                            <a href="/Customers/Profile/${row.id}" class="nc-action-link" title="View Profile"><i class="fa fa-eye"></i></a>
+                            <form action="/Customers/ToggleBan/${row.id}" method="post" style="display:inline;" onsubmit="event.preventDefault(); window.confirmBan(this);" data-type="customer">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="nc-action-link ${row.isBanned ? 'enable' : 'ban'}" title="${row.isBanned ? 'Unban' : 'Ban'}">
+                                    <i class="fa ${row.isBanned ? 'fa-circle-check' : 'fa-ban'}"></i>
+                                </button>
+                            </form>
+                        `;
+
+                        if (row.recordStatus === 'Deleted') {
+                            links += `
+                                <button type="button" class="nc-action-link restore border-0" title="Restore"
+                                        onclick="window.updatableTables['customers-table-container'].confirmRestore('${row.id}', '@Url.Action("Restore", "Customers")', this)">
+                                    <i class="fa fa-trash-restore"></i>
+                                </button>
+                            `;
+                        } else {
+                            links += `
+                                <button type="button" class="nc-action-link delete border-0" title="Delete"
+                                        onclick="window.updatableTables['customers-table-container'].confirmDelete('${row.id}', '@Url.Action("Delete", "Customers")', this)">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            `;
+                        }
+
+                        return `<div class="d-flex gap-2 justify-content-start">${links}</div>`;
+                    }
+                }
+            }
+        });
+    </script>
+}

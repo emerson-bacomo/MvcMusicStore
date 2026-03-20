@@ -9,12 +9,13 @@
 }
 
 @section Styles {
-    @* Home Carousel Overrides *@
     <style>
+        /* Home Carousel Overrides */
         #homeCarousel {
             aspect-ratio: 21/9;
             margin-bottom: 3rem;
         }
+
         #homeCarousel .nc-carousel-inner-content {
             padding: 3rem;
         }
@@ -30,6 +31,7 @@
         #homeCarousel .nc-carousel-price {
             font-size: 1.3rem;
         }
+
         #homeCarousel .nc-carousel-overlay {
             background: linear-gradient(
                 to top,
@@ -45,9 +47,15 @@
                 aspect-ratio: 4/3;
                 margin-bottom: 2rem;
             }
-            #homeCarousel .nc-carousel-name { font-size: 1.5rem; }
-            #homeCarousel .nc-carousel-desc { font-size: 0.85rem; }
-            #homeCarousel .nc-carousel-price { font-size: 1.1rem; }
+            #homeCarousel .nc-carousel-name {
+                font-size: 1.5rem;
+            }
+            #homeCarousel .nc-carousel-desc {
+                font-size: 0.85rem;
+            }
+            #homeCarousel .nc-carousel-price {
+                font-size: 1.1rem;
+            }
         }
     </style>
 }
@@ -70,9 +78,7 @@
 
         <div class="nc-page-header" id="catalog-section">
             <div>
-                <div style="color:var(--nc-text-muted); 
-                            font-size:0.8rem; 
-                            margin-bottom:0.25rem;">
+                <div class="mb-1" style="color:var(--nc-text-muted); font-size:0.8rem;">
                     <i class="fa fa-fire me-1"></i> Handpicked for Musicians Like You
                 </div>
                 <h1 class="nc-page-title">Explore Featured Instruments</h1>
@@ -80,44 +86,42 @@
         </div>
 
         <!-- Filter Bar -->
-        <form method="get" asp-action="Index">
-            <div style="display: flex; 
-                        gap: 1rem; 
-                        align-items: center; 
-                        margin-bottom: 2rem; 
-                        flex-wrap: wrap;">
-                <div style="position: relative; 
-                            flex: 1; 
-                            min-width: 250px;">
-                    <i class="fa fa-search" 
-                       style="position: absolute; 
-                              left: 0.75rem; 
-                              top: 50%; 
-                              transform: translateY(-50%); 
-                              color: var(--nc-text-muted); 
-                              font-size: 0.9rem;"></i>
-                    <input type="text" 
+        <form id="homeFilterForm" method="get" asp-action="Index">
+            <div class="d-flex align-items-stretch flex-wrap gap-3 mb-4">
+                <div class="position-relative flex-grow-1" style="min-width: 250px;">
+                    <i class="fa fa-search position-absolute top-50 translate-middle-y" 
+                       style="
+                           left: 0.75rem; 
+                           color: var(--nc-text-muted); 
+                           font-size: 0.9rem;
+                       "></i>
+                    <input id="homeSearchInput" 
+                           type="text" 
                            name="search" 
                            value="@currentSearch" 
-                           class="nc-input" 
-                           style="padding-left: 2.5rem;
-                                  width: 100%;" 
-                           placeholder="Search by name or brand..." />
+                           class="nc-input w-100" 
+                           style="
+                               padding-left: 2.5rem;
+                           " 
+                           placeholder="Search by name or brand..." 
+                           autocomplete="off" />
                 </div>
-                <div class="d-flex gap-2 flex-grow-1 flex-sm-grow-0">
-                    <select name="category" 
-                            onchange="this.form.submit()" 
-                            style="background: rgba(255, 255, 255, 0.05); 
-                                   border: 1.5px solid var(--nc-border); 
-                                   border-radius: var(--nc-radius-sm); 
-                                   color: var(--nc-text-primary); 
-                                   padding: 0.7rem 1rem; 
-                                   font-family: inherit; 
-                                   font-size: 0.9rem; 
-                                   outline: none; 
-                                   cursor: pointer; 
-                                   transition: var(--transition);
-                                   flex: 1;">
+                <div class="d-flex align-items-stretch gap-2 flex-grow-1 flex-sm-grow-0">
+                    <select id="homeCategorySelect"
+                            name="category" 
+                            class="flex-grow-1"
+                            style="
+                                background: rgba(255, 255, 255, 0.05); 
+                                border: 1.5px solid var(--nc-border); 
+                                border-radius: var(--nc-radius-sm); 
+                                color: var(--nc-text-primary); 
+                                padding: 0.7rem 1rem; 
+                                font-family: inherit; 
+                                font-size: 0.9rem; 
+                                outline: none; 
+                                cursor: pointer; 
+                                transition: var(--transition);
+                            ">
                         <option value="" style="background: var(--nc-bg-card);">All Categories</option>
                         @foreach (var cat in categories)
                         {
@@ -132,57 +136,159 @@
                         }
                     </select>
                     <button type="submit" 
-                            class="btn-nc-primary" 
-                            style="white-space: nowrap; 
-                                   padding: 0.7rem 1.5rem; 
-                                   border-radius: var(--nc-radius-sm);">
+                            class="btn-nc-primary text-nowrap" 
+                            style="
+                                padding: 0.7rem 1.5rem; 
+                                border: 1.5px solid transparent; 
+                                border-radius: var(--nc-radius-sm);
+                            ">
                         <i class="fa fa-search me-1"></i>
                     </button>
-                    @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(currentCategory))
-                    {
-                        <a asp-action="UserHome" 
-                           class="btn-nc-outline" 
-                           style="white-space: nowrap; 
-                                  padding: 0.7rem 1.2rem; 
-                                  border-radius: var(--nc-radius-sm);
-                                  display: flex;
-                                  align-items: center;
-                                  justify-content: center;">
-                            <i class="fa fa-xmark"></i>
-                        </a>
-                    }
+                    <button type="button" id="homeClearSearch" 
+                            class="btn-nc-outline text-nowrap d-flex align-items-center justify-content-center @(string.IsNullOrEmpty(currentSearch) && string.IsNullOrEmpty(currentCategory) ? "d-none" : "")" 
+                            style="
+                                padding: 0.7rem 1.2rem; 
+                                border: 1.5px solid var(--nc-primary); 
+                                border-radius: var(--nc-radius-sm);
+                            ">
+                        <i class="fa fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         </form>
 
-        @if (!Model.Any())
-        {
-            <div style="text-align: center; 
-                        padding: 4rem 0; 
-                        color: var(--nc-text-muted);">
-                <i class="fa fa-guitar" 
-                   style="font-size: 3rem; 
-                          margin-bottom: 1rem; 
-                          display: block;"></i>
-                <p style="font-size: 1rem;">No instruments found matching your criteria.</p>
-                <a asp-action="UserHome" 
-                   class="btn-nc-outline" 
-                   style="margin-top: 1rem; 
-                          display: inline-block; 
-                          padding: 0.6rem 1.2rem; 
-                          border-radius: var(--nc-radius-sm);">View All</a>
-            </div>
-        }
-        else
-        {
-            <div style="display: grid; 
+        <div id="homeCatalogContainer">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5" style="color: var(--nc-text-muted);">
+                    <i class="fa fa-guitar d-block mb-3" style="font-size: 3rem;"></i>
+                    <p style="font-size: 1rem;">No instruments found matching your criteria.</p>
+                    <button type="button" id="homeViewAll" 
+                       class="btn-nc-outline d-inline-block mt-3" 
+                       style="
+                           padding: 0.6rem 1.2rem; 
+                           border-radius: var(--nc-radius-sm);
+                       ">View All</button>
+                </div>
+            }
+            else
+            {
+                <div style="
+                        display: grid; 
                         grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); 
-                        gap: 1.5rem;">
-                @foreach (var product in Model)
-                {
-                    <partial name="Components/_ProductCard" model="product" />
-                }
-            </div>
-        }
+                        gap: 1.5rem;
+                    ">
+                    @foreach (var product in Model)
+                    {
+                        <partial name="Components/_ProductCard" model="product" />
+                    }
+                </div>
+            }
+        </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const filterForm = document.getElementById("homeFilterForm");
+        const searchInput = document.getElementById("homeSearchInput");
+        const categorySelect = document.getElementById("homeCategorySelect");
+        const catalogContainer = document.getElementById("homeCatalogContainer");
+
+        let searchDebounceTimer;
+
+        // Debounce helper
+        function debounce(func, delay) {
+            return function(...args) {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        function applyAllHighlights(query) {
+            if (!query) return;
+            const targets = catalogContainer.querySelectorAll(`
+                .nc-product-name, 
+                .nc-product-brand, 
+                .nc-product-badge, 
+                .nc-product-price, 
+                .nc-product-stock, 
+                .nc-product-rating, 
+                .nc-product-ratings-count, 
+                .nc-product-sold
+            `);
+            targets.forEach(el => window.ncHighlightElement(el, query));
+        }
+
+        function updateClearButton() {
+            const hasQuery = searchInput.value.trim() !== "";
+            const hasCategory = categorySelect.value !== "";
+            const clearBtn = document.getElementById("homeClearSearch");
+            if (clearBtn) {
+                if (hasQuery || hasCategory) clearBtn.classList.remove("d-none");
+                else clearBtn.classList.add("d-none");
+            }
+        }
+
+        async function performSearch() {
+            updateClearButton();
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
+
+            // Update URL visually
+            window.history.replaceState({}, "", url);
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Search failed");
+                
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, "text/html");
+                const newContent = doc.getElementById("homeCatalogContainer");
+
+                if (newContent) {
+                    catalogContainer.innerHTML = newContent.innerHTML;
+                    applyAllHighlights(searchInput.value.trim());
+                }
+            } catch (err) {
+                console.error("Home Search Error:", err);
+            }
+        }
+
+        // Listeners
+        searchInput.addEventListener("input", debounce(performSearch, 400));
+        categorySelect.addEventListener("change", performSearch);
+
+        const clearBtn = document.getElementById("homeClearSearch");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", () => {
+                searchInput.value = "";
+                categorySelect.value = "";
+                performSearch();
+            });
+        }
+
+        const viewAllBtn = document.getElementById("homeViewAll");
+        // Use event delegation for View All since it's replaced by AJAX
+        document.addEventListener("click", (e) => {
+            if (e.target.id === "homeViewAll") {
+                searchInput.value = "";
+                categorySelect.value = "";
+                performSearch();
+            }
+        });
+
+        // Prevent form submission
+        filterForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            performSearch();
+        });
+
+        // Initial highlight if query exists from page load
+        if (searchInput.value.trim()) {
+            applyAllHighlights(searchInput.value.trim());
+        }
+    });
+</script>

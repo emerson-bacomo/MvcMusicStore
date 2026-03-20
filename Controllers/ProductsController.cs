@@ -49,7 +49,7 @@ namespace MvcMusic.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin,SuperAdmin,Staff")]
-        public async Task<IActionResult> GetTableData(int? categoryId = null, int? brandId = null)
+        public async Task<IActionResult> GetTableData(int? categoryId = null, int? brandId = null, string? includeIds = null)
         {
             var query = _context.Product
                 .Include(p => p.ProductImages)
@@ -60,20 +60,31 @@ namespace MvcMusic.Controllers
             if (categoryId.HasValue) query = query.Where(p => p.CategoryId == categoryId.Value);
             if (brandId.HasValue) query = query.Where(p => p.BrandId == brandId.Value);
 
-            var validationRules = ValidationHelper.GetValidationRules(typeof(Product));
+            if (!string.IsNullOrEmpty(includeIds))
+            {
+                var extraIds = includeIds.Split(',').Select(s => int.TryParse(s, out int id) ? id : 0).Where(id => id > 0).ToList();
+                if (extraIds.Any())
+                {
+                    query = _context.Product
+                        .Include(p => p.ProductImages).Include(p => p.Category).Include(p => p.Brand)
+                        .Where(p => extraIds.Contains(p.Id) || (
+                            (!categoryId.HasValue || p.CategoryId == categoryId.Value) && 
+                            (!brandId.HasValue || p.BrandId == brandId.Value)
+                        ));
+                }
+            }
 
+            var validationRules = ValidationHelper.GetValidationRules(typeof(Product));
             var products = await query.ToListAsync();
             var categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
             var brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
 
             var columns = new List<object>
             {
-                new { id = "id", hidden = true },
-                new { id = "photo", updatable = false, widthPercentage = "60px", label = "Photo" },
+                new { id = "image", updatable = false },
                 new { 
                     id = "name", 
-                    updatable = true, 
-                    widthPercentage = "20%",
+                    updatable = false, 
                     validation = validationRules.GetValueOrDefault("name")
                 },
                 new { 
@@ -93,11 +104,13 @@ namespace MvcMusic.Controllers
                 new { 
                     id = "price", 
                     updatable = true,
+                    isNumeric = true,
                     validation = validationRules.GetValueOrDefault("price")
                 },
                 new { 
                     id = "stock", 
                     updatable = true,
+                    isNumeric = true,
                     validation = validationRules.GetValueOrDefault("stock")
                 },
                 new { id = "status", updatable = false },
@@ -110,7 +123,7 @@ namespace MvcMusic.Controllers
                 var primaryImage = p.ProductImages.FirstOrDefault(img => img.IsPrimary)?.Url ?? p.ProductImages.FirstOrDefault()?.Url;
                 rows[p.Id.ToString()] = new {
                     id = p.Id,
-                    photo = new { image = primaryImage, isBanner = p.IsBanner },
+                    image = new { image = primaryImage, isBanner = p.IsBanner },
                     name = p.Name,
                     category = p.CategoryId,
                     categoryLabel = p.Category?.Name ?? "Uncategorized",
@@ -119,7 +132,11 @@ namespace MvcMusic.Controllers
                     price = p.Price,
                     stock = p.Stock,
                     status = p.Stock > 0 ? "Available" : "Sold Out",
-                    recordStatus = p.RecordStatus.ToString()
+                    recordStatus = p.RecordStatus.ToString(),
+                    _isExtra = !string.IsNullOrEmpty(includeIds) && (
+                        (categoryId.HasValue && p.CategoryId != categoryId.Value) || 
+                        (brandId.HasValue && p.BrandId != brandId.Value)
+                    ) && includeIds.Split(',').Contains(p.Id.ToString())
                 };
             }
 
@@ -153,7 +170,11 @@ namespace MvcMusic.Controllers
                             else if (colName == "name") product.Name = valueStr ?? product.Name;
                             else if (colName == "price" && double.TryParse(valueStr, out double price)) product.Price = price;
                             else if (colName == "stock" && int.TryParse(valueStr, out int stock)) product.Stock = stock;
-                            else if (colName == "recordstatus" && Enum.TryParse(valueStr, out RecordStatus status)) product.RecordStatus = status;
+                        }
+                        
+                        if (!TryValidateModel(product))
+                        {
+                            return BadRequest(ModelState);
                         }
                     }
                 }
@@ -383,34 +404,47 @@ namespace MvcMusic.Controllers
             return "/uploads/products/" + fileName;
         }
 
-        // GET: /products/delete/5
-        [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Delete(int? id)
+
+
+        // POST: /products/restore/5
+        [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+        public async Task<IActionResult> Restore(int id)
         {
-            if (id == null) return NotFound();
-            var product = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(m => m.Id == id);
-            if (product == null) return NotFound();
-            return View(product);
+            var product = await _context.Product.FindAsync(id);
+            if (product != null)
+            {
+                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync(ActivityAction.UpdateTable, $"Restored product <a href='/products/details/{id}' class='product-link'>{product.Name}</a>", cId, cName, cRole, cFull);
+                product.RecordStatus = RecordStatus.Active;
+                await _context.SaveChangesAsync();
+                
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = true });
+
+                TempData["Success"] = "Product restored successfully.";
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // POST: /products/delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var product = await _context.Product.FindAsync(id);
             if (product != null)
             {
                 var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync(ActivityAction.DeleteProduct, $"Deleted product '{product.Name}' (ID: {id})", cId, cName, cRole, cFull);
+                await _logger.LogAsync(ActivityAction.DeleteProduct, $"Deleted product <a href='/products/details/{id}' class='product-link'>{product.Name}</a>", cId, cName, cRole, cFull);
                 product.RecordStatus = RecordStatus.Deleted;
                 await _context.SaveChangesAsync();
                 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { success = true });
 
-                TempData["Success"] = "Product deleted successfully (soft-delete).";
+                TempData["Success"] = "Product deleted successfully.";
             }
             return RedirectToAction(nameof(Index));
         }

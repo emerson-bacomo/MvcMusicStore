@@ -1,9 +1,17 @@
 /* ================================================================
    Updatable Table — NightCord Management Styles
    ================================================================ */
+:root {
+    --ut-table-bg: #101218ff;
+    --ut-table-header-bg: #192029ff;
+    --ut-table-row-hover-bg: #222732;
+    --ut-table-header-hover-bg: #2e3947;
+    --ut-table-deleted-bg: #090a0eff;
+    --ut-btn-hover-bg: #292e37;
+}
 
 .ut-wrapper {
-    background: rgba(30, 35, 45, 0.45);
+    background: var(--nc-bg-card);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -14,11 +22,18 @@
     width: 100%;
 }
 
+
+
+.ut-table-container {
+    width: 100%;
+    overflow-x: auto; /* Ensure horizontal scroll if fixed layout exceeds width */
+}
+
 .ut-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0.25rem 1.25rem 0.25rem;
+    padding: 1.25rem 0.25rem;
     margin-bottom: 0.5rem;
     flex-wrap: wrap;
     gap: 1rem;
@@ -34,8 +49,8 @@
 .ut-top-controls {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 0.75rem;
+    flex-wrap: nowrap; /* Prevent buttons from stacking */
 }
 
 .ut-search-wrapper {
@@ -102,22 +117,21 @@
     right: 0;
     width: 240px;
     background: var(--nc-bg-card);
-    border: 1.5px solid var(--nc-border);
+    border: 1.5px solid var(--nc-popup-border);
     border-radius: var(--nc-radius);
     box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     padding: 1.25rem;
-    z-index: 1000;
+    z-index: 1060;
     max-height: 400px;
     overflow-y: auto;
     display: none;
     animation: ut-fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(20px);
 }
 
 .ut-status-filters {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.25rem; /* Match Columns Visibility items */
     margin-bottom: 0.5rem;
 }
 
@@ -128,7 +142,6 @@
     background: rgba(255,255,255,0.05);
     color: var(--nc-text-muted);
     margin-left: auto;
-    font-family: 'Orbitron', monospace;
 }
 
 .ut-count-badge.active-count {
@@ -139,6 +152,49 @@
 .ut-count-badge.deleted-count {
     color: var(--nc-error);
     background: rgba(229, 115, 115, 0.1);
+}
+
+.ut-action-container {
+    position: relative;
+    display: inline-flex;
+}
+
+.ut-diff-modal {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(600px, 75vw);
+    max-width: 75vw;
+    overflow: hidden;
+    background: var(--nc-bg-card);
+    border: 1.5px solid var(--nc-popup-border);
+    border-radius: var(--nc-radius);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    padding: 1.25rem;
+    z-index: 1060;
+    display: none;
+}
+
+.ut-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--nc-text-muted);
+    border: 1.5px solid var(--nc-border);
+    border-radius: var(--nc-radius-sm);
+    padding: 0 1rem;
+    height: 40px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.ut-clear-btn:hover {
+    border-color: var(--nc-error);
+    color: var(--nc-error);
+    background: rgba(229, 115, 115, 0.05);
 }
 
 @keyframes ut-fade-in {
@@ -155,73 +211,102 @@
 }
 
 .ut-filter-section h4 {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     color: var(--nc-primary);
-    letter-spacing: 0.1em;
-    margin-bottom: 0.75rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 1rem;
     font-weight: 800;
+    opacity: 0.8;
 }
 
 .ut-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
     cursor: pointer;
     font-size: 0.85rem;
     color: var(--nc-text-secondary);
     user-select: none;
     width: 100%;
+    accent-color: var(--nc-primary);
+    padding: 0.4rem 0.5rem;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.ut-checkbox-label:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ut-checkbox-label input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
 }
 
 .ut-column-toggle-item {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
 }
 
 .ut-save-btn {
-    background: var(--nc-success);
+    background: #4da552ff;
     color: #fff;
     border: none;
-    padding: 0.65rem 1.25rem;
+    padding: 0 1.25rem;
+    height: 40px;
     border-radius: var(--nc-radius-sm);
     font-weight: 700;
     font-size: 0.85rem;
     transition: var(--transition);
-    box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+    display: none; /* Controlled by JS */
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .ut-save-btn:hover {
-    filter: brightness(1.1);
+    background: #1b5e20;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(129, 199, 132, 0.4);
+    box-shadow: 0 6px 16px rgba(46, 125, 50, 0.3);
+}
+
+.ut-save-btn:disabled {
+    background: var(--nc-bg-secondary);
+    color: var(--nc-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.ut-save-btn:disabled .ut-btn-text-error {
+    color: var(--nc-error) !important;
 }
 
 .ut-table-container {
     overflow-x: auto;
+    height: fit-content;
 }
 
 .ut-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto; /* Dynamic width calculation for better compression */
 }
 
 .ut-th {
-    background: rgba(123, 171, 221, 0.05);
+    height: 1px; /* Allow inner div to stretch to 100% height */
+    background: var(--ut-table-header-bg) !important;
     color: var(--nc-primary);
-    padding: 1rem 1.5rem;
+    padding: 0 4px;
     text-align: left;
     font-size: 0.8rem;
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 0.08em;
-    border-bottom: 1px solid var(--nc-border);
+    position: relative;
+    border-bottom: 2px solid var(--nc-border);
     white-space: nowrap;
-}
-
-.ut-th-content {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .ut-sortable {
@@ -231,7 +316,7 @@
 }
 
 .ut-sortable:hover {
-    background: rgba(123, 171, 221, 0.1);
+    background: var(--ut-table-header-hover-bg) !important;
 }
 
 .ut-sort-icon {
@@ -244,23 +329,121 @@
 }
 
 .ut-table td {
-    padding: 1rem 1.5rem;
+    height: 1px; /* Allow inner div to stretch to 100% height */
+    padding: 0 4px; /* Outer spacing — ut-cell-content fills the inside */
+    background: var(--ut-table-bg);
     border-bottom: 1px solid var(--nc-border);
     vertical-align: middle;
+    box-sizing: border-box;
 }
 
+.ut-table td.ut-updatable-cell {
+    padding: 0 4px; /* Match standard td/th padding */
+}
+
+.ut-table th[data-col-id="actions"],
 .ut-table td[data-col-id="actions"] {
-    text-align: right;
+    text-align: right !important;
+    width: 1%;
     white-space: nowrap;
 }
 
-.ut-table tr:hover td {
-    background: rgba(123, 171, 221, 0.02);
+/* ── Sticky Columns ─────────────────────────────────── */
+.ut-table th.ut-sticky-left,
+.ut-table th.ut-sticky-right,
+.ut-table td.ut-sticky-left,
+.ut-table td.ut-sticky-right {
+    position: sticky;
+    box-sizing: border-box;
 }
 
+/* Headers above rows */
+.ut-table th.ut-sticky-left,
+.ut-table th.ut-sticky-right {
+    z-index: 21;
+    background: var(--ut-table-header-bg);
+}
+
+/* Sticky td cells */
+.ut-table td.ut-sticky-left,
+.ut-table td.ut-sticky-right {
+    z-index: 20;
+    background: var(--ut-table-bg);
+}
+
+/* Row hover must override for sticky tds */
+.ut-table tr:hover td {
+    background: var(--ut-table-row-hover-bg);
+}
+.ut-table tr:hover td.ut-sticky-left,
+.ut-table tr:hover td.ut-sticky-right {
+    background: var(--ut-table-row-hover-bg);
+}
+
+/* ── Cell content inner div (border target) ────────── */
+.ut-cell-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    position: relative;
+    padding: 0.8rem; /* Standardized vertical padding for headers and cells */
+    /* Transparent border placeholder — prevents layout shift when border appears */
+    border-right: 1px solid transparent;
+    border-left: 1px solid transparent;
+}
+
+.ut-updatable-cell .ut-cell-content {
+    padding-left: 0;
+}
+
+.ut-th .ut-cell-content {
+    padding: 1rem 0.8rem;
+}
+
+.ut-min-w-fit {
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* Headers and cells use the same class for border rendering */
+.ut-cell-content.ut-border-left {
+    border-right-color: rgba(123, 171, 221, 0.25);
+}
+.ut-cell-content.ut-border-right {
+    border-left-color: rgba(123, 171, 221, 0.25);
+}
+
+/* ── Deleted Rows ───────────────────────────────────── */
+/* Keep td background the SAME as normal rows — opacity reduction via content div only */
 .ut-deleted-row td {
-    opacity: 0.5;
-    background: rgba(229, 115, 115, 0.02);
+    background: var(--ut-table-bg); /* Same as normal — content opacity makes it look dimmer */
+}
+
+/* Reduce opacity on non-actions content divs */
+.ut-deleted-content {
+    opacity: 0.45;
+    text-decoration: line-through solid rgba(255, 255, 255, 0.25);
+    color: var(--nc-text-muted);
+    pointer-events: none; /* Disable interaction in non-action deleted cells */
+}
+
+/* Actions cell in deleted rows: allow interaction on all links */
+.ut-deleted-row td[data-col-id="actions"] .nc-action-link:not(.restore) {
+    opacity: 0.4;
+}
+
+.ut-deleted-row td[data-col-id="actions"] .restore {
+    opacity: 1;
+    color: #81c784;
+}
+
+.ut-deleted-row td[data-col-id="actions"] .restore:hover {
+    background: #81c784;
+    color: #fff;
+    border-color: #81c784;
 }
 
 .ut-empty-msg {
@@ -271,21 +454,24 @@
 }
 
 /* Indicators */
-.ut-cell-wrapper {
-    position: relative;
-    display: inline-block;
-    width: 100%;
-}
-
 .ut-indicator-stack {
     position: absolute;
     top: 50%;
-    left: -12px;
+    left: 2px; /* Stay inside at 4px th/td padding edge */
     transform: translateY(-50%);
     display: flex;
     flex-direction: column;
     gap: 4px;
-    z-index: 5;
+    z-index: 1; /* Keep within cell stacking context, below sticky columns (20+) */
+}
+
+.ut-indicator-left-border {
+    left: 0px; /* Sit exactly on the left edge of the wrapper (which is the span's left edge) */
+    transform: translate(-50%, -50%); /* Bisect the edge */
+}
+
+.ut-deleted-row .ut-indicator-stack {
+    opacity: 1 !important;
 }
 
 .ut-indicator {
@@ -295,18 +481,23 @@
     box-shadow: 0 0 0 2px var(--nc-bg-card);
 }
 
-.ut-change-indicator { background: var(--nc-primary); cursor: pointer; }
+.ut-change-indicator { background: #4caf50; cursor: pointer; }
 .ut-invalid-indicator { background: var(--nc-error); }
 
 .ut-input {
     width: 100%;
+    min-width: 0; /* In fixed layout, 100% means exactly the column width */
     background: rgba(0,0,0,0);
     border: 1px solid transparent;
-    padding: 0.4rem 0.6rem;
+    padding: 0 2.2rem 0 0.8rem !important; /* Unified padding to eliminate shifts */
     border-radius: 4px;
     color: var(--nc-text-primary);
     font-size: 0.9rem;
+    line-height: normal;
     transition: border-color 0.2s;
+    height: 2.2rem;
+    box-sizing: border-box;
+    margin: 0;
 }
 
 .ut-input:focus {
@@ -321,11 +512,87 @@
 }
 
 .ut-input-invalid {
-    border-color: rgba(229, 115, 115, 0.5);
+    border-color: var(--nc-error) !important;
+    background: rgba(229, 115, 115, 0.08) !important;
+}
+
+.ut-input-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.25) !important;
+}
+
+/* Spans (Editable and Display) */
+.ut-editable-span, .ut-display-span {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0; /* Prevent span from pushing column width beyond text needs */
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    line-height: normal;
+    transition: var(--transition);
+    height: 2.2rem; /* Exact height match with input */
+    overflow: visible;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.ut-editable-span {
+    cursor: pointer;
+    padding: 0 2.2rem 0 0.8rem; /* Unified with input to eliminate shifts */
+}
+
+.ut-display-span {
+    cursor: default;
+    padding: 0 2.2rem 0 0; /* Flush for non-updatable columns */
+}
+
+/* If a column is fundamentally updatable but in display mode (e.g. deleted row), keep the indent for alignment */
+.ut-updatable-cell .ut-display-span {
+    padding-left: 0.8rem;
+}
+
+.ut-cell-content:hover .ut-editable-span {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--nc-border);
+}
+
+.ut-span-changed {
+    position: relative;
+    background: rgba(123, 171, 221, 0.03);
+    border-color: rgba(123, 171, 221, 0.15);
+    font-weight: 600;
+}
+
+.ut-span-invalid {
+    border-color: rgba(229, 115, 115, 0.5) !important;
     background: rgba(229, 115, 115, 0.05);
 }
 
-/* Themed Select */
+/* Toastify Alignment Fixes */
+.toastify {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    max-width: 400px !important;
+}
+
+.toastify .toast-close {
+    opacity: 0.5;
+    padding: 0 0 0 15px !important;
+    margin-left: auto !important;
+    font-size: 1.2rem !important;
+    text-decoration: none !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.toastify .toast-close:hover {
+    opacity: 1;
+}
 .ut-select {
     appearance: none;
     -webkit-appearance: none;
@@ -356,45 +623,190 @@
     color: var(--nc-text-primary);
 }
 
+.ut-filter-separator {
+    height: 1px;
+    background: var(--nc-border);
+    margin: 1.25rem -1.25rem 1rem; /* Consistent spacing */
+    opacity: 0.5;
+}
+
 .ut-select option {
     background: var(--nc-bg-card);
     color: var(--nc-text-primary);
     padding: 0.5rem;
 }
 
-/* Modal Styling */
+/* Modal & Popup Styling */
 .ut-modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.6); /* Just darken, no blur */
     z-index: 2000;
     display: flex; align-items: center; justify-content: center;
-    padding: 2rem;
+}
+
+.ut-save-popup-overlay {
+    background: rgba(0,0,0,0.3);
+    display: block;
 }
 
 .ut-modal-content {
     background: var(--nc-bg-card);
     border: 1px solid var(--nc-border);
-    border-radius: 20px;
+    border-radius: 12px;
     width: 100%;
-    max-width: 800px;
-    padding: 2.5rem;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-    animation: ut-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 600px;
+    padding: 1.5rem;
+    box-shadow: none; /* Removed shadow per request */
+    animation: ut-fade-in 0.2s ease-out;
+}
+
+.ut-save-popup-content {
+    width: 480px;
+    position: absolute;
 }
 
 .ut-diff-table {
     width: 100%;
-    margin: 1.5rem 0;
+    margin: 1rem 0;
     border-collapse: collapse;
 }
 
-.ut-diff-table th { color: var(--nc-text-muted); font-size: 0.75rem; text-transform: uppercase; padding: 0.75rem; border-bottom: 2px solid var(--nc-border); text-align: left; }
-.ut-diff-table td { padding: 0.75rem; border-bottom: 1px solid var(--nc-border); font-size: 0.9rem; }
+.ut-diff-table th { color: var(--nc-text-muted); font-size: 0.7rem; text-transform: uppercase; padding: 0.5rem; border-bottom: 2px solid var(--nc-border); text-align: left; }
+.ut-diff-table td { padding: 0.5rem; font-size: 0.85rem; border-top: 1px solid var(--nc-border); }
 .ut-diff-old { color: var(--nc-error); text-decoration: line-through; opacity: 0.7; }
 .ut-diff-new { color: var(--nc-success); font-weight: 700; }
 
-.ut-modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
+.ut-diff-product-cell {
+    font-weight: 700;
+    color: var(--nc-text-primary);
+    vertical-align: top;
+    padding-top: 0.75rem !important;
+    width: 240px; /* Increased for image + name */
+    min-width: 240px;
+}
 
-.ut-highlight { background: rgba(123, 171, 221, 0.3); color: #fff; border-radius: 2px; padding: 0 2px; }
+.ut-diff-product-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ut-diff-product-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3em;
+    max-height: 2.6em; /* 2 lines */
+}
+
+.ut-diff-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--nc-border);
+    background: #1a1f2c;
+    flex-shrink: 0;
+}
+
+/* Fix product image clipping for badges */
+.nc-table-image {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    overflow: visible !important;
+}
+
+.ut-diff-row-no-top td {
+    border-top: none !important;
+    padding-top: 0.2rem !important;
+}
+
+.ut-diff-row-no-bottom td {
+    border-bottom: none !important;
+}
+
+.ut-diff-field-cell {
+    font-weight: 500;
+    color: var(--nc-text-secondary);
+    font-size: 0.8rem !important;
+}
+
+.ut-modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+.ut-revert-cell-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--nc-border);
+    color: var(--nc-text-muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ut-revert-cell-btn:hover {
+    color: var(--nc-primary);
+    border-color: var(--nc-primary);
+}
+
+/* Currency Overlay */
+.ut-currency-overlay {
+    position: absolute;
+    left: 0.8rem; /* Centered in the 2rem span padding area */
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    color: var(--nc-text-muted);
+    pointer-events: none;
+    z-index: 5;
+    font-weight: 500;
+}
+
+.ut-has-currency .ut-editable-span, 
+.ut-has-currency .ut-display-span,
+.ut-has-currency .ut-input {
+    padding-left: 2rem !important; /* Unified padding for currency cells across all row types and inputs */
+}
+
+.price-span {
+    color: white !important;
+    font-weight: 700;
+}
+
+
+.ut-deleted-row .ut-highlight {
+    opacity: 1 !important;
+    color: #09ff00 !important;
+    background: rgba(9, 255, 0, 0.1);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.ut-add-btn {
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.ut-filter-item-dropdown {
+    margin-bottom: 1rem;
+}
+
+.ut-filter-item-dropdown:last-child {
+    margin-bottom: 0.5rem;
+}
+
+.ut-dropdown-filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}

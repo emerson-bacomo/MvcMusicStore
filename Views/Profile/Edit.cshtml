@@ -13,13 +13,13 @@
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                 <div class="nc-edit-layout">
-                    <!-- Photo Upload Section -->
+                    <!-- Image Upload Section -->
                     <div class="nc-avatar-upload-group">
                         <div class="nc-profile-avatar-large mb-3">
                             <img id="avatarPreview" src="@(!string.IsNullOrEmpty(Model.ProfilePicture) ? Model.ProfilePicture : "/images/default-avatar.png")" alt="Preview" />
                         </div>
                         <label for="pictureInput" class="btn-nc-outline w-100 text-center" style="cursor: pointer;">
-                            <i class="fa fa-camera me-2"></i> Replace Photo
+                            <i class="fa fa-camera me-2"></i> Replace Image
                         </label>
                         <input type="file" asp-for="NewProfilePicture" id="pictureInput" class="d-none" accept="image/*" onchange="previewImage(this)" />
                         <span asp-validation-for="NewProfilePicture" class="text-danger small"></span>

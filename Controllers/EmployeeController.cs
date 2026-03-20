@@ -75,7 +75,7 @@ namespace MvcMusic.Controllers
             {
                 await _userManager.AddToRoleAsync(user, model.Role);
                 var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync(ActivityAction.CreateEmployee, $"Created {model.Role} account for {model.Email} ({code})", cId, cName, cRole, cFull);
+                await _logger.LogAsync(ActivityAction.CreateEmployee, $"Created {model.Role} account for <a href='/employees/edit/{user.Id}' class='employee-link'>{model.Email}</a> ({code})", cId, cName, cRole, cFull);
                 TempData["Success"] = $"Employee {code} ({model.FirstName} {model.LastName}) created successfully.";
                 return RedirectToAction(nameof(Index));
             }
@@ -131,7 +131,7 @@ namespace MvcMusic.Controllers
             }
 
             var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.EditEmployee, $"Edited employee {user.UserName} ({user.Email}), set role to {model.Role}", cId, cName, cRole, cFull);
+            await _logger.LogAsync(ActivityAction.EditEmployee, $"Edited employee <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>, set role to {model.Role}", cId, cName, cRole, cFull);
             TempData["Success"] = "Employee updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -151,48 +151,13 @@ namespace MvcMusic.Controllers
             var actorDesc = !string.IsNullOrEmpty(cFull) ? $"{cFull} ({cName})" : (cName ?? "SuperAdmin");
             var action = user.IsBanned ? ActivityAction.BanEmployee : ActivityAction.UnbanEmployee;
             var details = user.IsBanned 
-                ? $"<b>{actorDesc}</b> banned employee: {user.UserName} ({user.Email})" 
-                : $"<b>{actorDesc}</b> unbanned employee: {user.UserName} ({user.Email})";
+                ? $"<b>{actorDesc}</b> banned employee: <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>" 
+                : $"<b>{actorDesc}</b> unbanned employee: <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>";
             await _logger.LogAsync(action, details, cId, cName, cRole, cFull);
             TempData["Success"] = $"Employee {(user.IsBanned ? "banned" : "unbanned")} successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /employees/reset-password/{id}
-        [HttpGet]
-        public async Task<IActionResult> ResetPassword(string id)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
-            return View(new ResetPasswordViewModel { Id = id, UserName = user.UserName, NewPassword = "", ConfirmPassword = "" });
-        }
-
-        // POST: /employees/reset-password/{id}
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
-        {
-            if (!ModelState.IsValid) return View(model);
-
-            var user = await _userManager.FindByIdAsync(model.Id);
-            if (user == null) return NotFound();
-
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var result = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
-
-            if (result.Succeeded)
-            {
-                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync(ActivityAction.ResetPassword, $"Password reset for {user.UserName} ({user.Email})", cId, cName, cRole, cFull);
-                TempData["Success"] = $"Password for {user.UserName} reset successfully.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            foreach (var error in result.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
-
-            return View(model);
-        }
 
         // GET: /employees/delete/{id}
         [HttpGet]
@@ -213,41 +178,94 @@ namespace MvcMusic.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.DeleteEmployee, $"Deleted employee {user.UserName} ({user.Email})", cId, cName, cRole, cFull);
+            user.RecordStatus = RecordStatus.Deleted;
+            await _userManager.UpdateAsync(user);
 
-            await _userManager.DeleteAsync(user);
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.DeleteEmployee, $"Soft-deleted employee <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>", cId, cName, cRole, cFull);
             
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 return Json(new { success = true });
 
-            TempData["Success"] = "Employee account deleted.";
+            TempData["Success"] = "Employee account soft-deleted.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // POST: /employees/restore/{id}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Restore(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            user.RecordStatus = RecordStatus.Active;
+            await _userManager.UpdateAsync(user);
+
+            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+            await _logger.LogAsync(ActivityAction.UpdateTable, $"Restored employee <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>", cId, cName, cRole, cFull);
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true });
+
+            TempData["Success"] = "Employee account restored.";
             return RedirectToAction(nameof(Index));
         }
 
         // AJAX endpoint for UpdatableTable
         [HttpGet]
-        public async Task<IActionResult> GetTableData()
+        public async Task<IActionResult> GetTableData(string? includeIds = null)
         {
             var admins = await _userManager.GetUsersInRoleAsync("Admin");
             var staffs = await _userManager.GetUsersInRoleAsync("Staff");
             var superAdmins = await _userManager.GetUsersInRoleAsync("SuperAdmin");
 
-            var allEmployees = admins.Select(u => (user: u, role: "Admin"))
-                .Concat(staffs.Select(u => (user: u, role: "Staff")))
-                .Concat(superAdmins.Select(u => (user: u, role: "SuperAdmin")))
+            var allEmployeesRaw = admins.Concat(staffs).Concat(superAdmins).DistinctBy(u => u.Id).ToList();
+
+            if (!string.IsNullOrEmpty(includeIds))
+            {
+                var extraIds = includeIds.Split(',').Select(s => s.Trim()).ToList();
+                foreach (var id in extraIds)
+                {
+                    if (!allEmployeesRaw.Any(u => u.Id == id))
+                    {
+                        var extraUser = await _userManager.FindByIdAsync(id);
+                        if (extraUser != null)
+                        {
+                            // Verify they have an employee role
+                            if (await _userManager.IsInRoleAsync(extraUser, "Admin") || 
+                                await _userManager.IsInRoleAsync(extraUser, "Staff") || 
+                                await _userManager.IsInRoleAsync(extraUser, "SuperAdmin"))
+                            {
+                                allEmployeesRaw.Add(extraUser);
+                            }
+                        }
+                    }
+                }
+            }
+
+            var allEmployees = new List<(ApplicationUser user, string role)>();
+            foreach(var u in allEmployeesRaw)
+            {
+                var role = admins.Any(a => a.Id == u.Id) ? "Admin" 
+                         : staffs.Any(s => s.Id == u.Id) ? "Staff" 
+                         : "SuperAdmin";
+                allEmployees.Add((u, role));
+            }
+
+            allEmployees = allEmployees
                 .OrderBy(e => e.role).ThenBy(e => e.user.UserName)
                 .ToList();
 
             var columns = new List<object>
             {
-                new { id = "code", label = "Code", widthPercentage = "10%", sortable = true },
-                new { id = "name", label = "Name", widthPercentage = "20%", sortable = true },
-                new { id = "username", label = "Username", widthPercentage = "15%", sortable = true },
-                new { id = "email", label = "Email", widthPercentage = "20%", sortable = true },
-                new { id = "role", label = "Role", widthPercentage = "10%", sortable = true },
-                new { id = "status", label = "Status", widthPercentage = "10%", sortable = true },
-                new { id = "actions", label = "Actions", widthPercentage = "15%", sortable = false }
+                new { id = "code", updatable = false },
+                new { id = "name", updatable = false },
+                new { id = "username", updatable = false },
+                new { id = "email", updatable = false },
+                new { id = "role", updatable = false },
+                new { id = "status", updatable = false },
+                new { id = "actions", updatable = false }
             };
 
             var rows = allEmployees.ToDictionary(e => e.user.Id, e => (object)new
@@ -261,7 +279,8 @@ namespace MvcMusic.Controllers
                 id = e.user.Id,
                 isBanned = e.user.IsBanned,
                 profilePicture = e.user.ProfilePicture,
-                firstName = string.IsNullOrEmpty(e.user.FirstName) ? "User" : e.user.FirstName
+                firstName = string.IsNullOrEmpty(e.user.FirstName) ? "User" : e.user.FirstName,
+                recordStatus = e.user.RecordStatus.ToString()
             });
 
             return Json(new { columns, rows });

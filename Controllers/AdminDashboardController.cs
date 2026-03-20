@@ -12,14 +12,19 @@ namespace MvcMusic.Controllers
     public class AdminDashboardController : Controller
     {
         private readonly MvcMusicContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminDashboardController(MvcMusicContext context)
+        public AdminDashboardController(MvcMusicContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(int ordersCount = 10)
         {
+            var user = await _userManager.GetUserAsync(User);
+            ViewData["CurrentUserName"] = user?.FullName ?? user?.UserName ?? "Admin";
+
             var now = DateTime.UtcNow;
             var vm = new AdminDashboardViewModel();
 

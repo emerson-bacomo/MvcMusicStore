@@ -40,6 +40,10 @@ namespace MvcMusic.Data
                     CustomerId = customer.Id,
                     OrderDate = orderDate,
                     Status = status,
+                    ReceiverName = customer.FullName,
+                    Address = "Cebu City, Cebu, Philippines",
+                    Username = customer.UserName,
+                    UserFullName = customer.FullName,
                     OrderItems = new List<OrderItem>()
                 };
 
@@ -54,7 +58,9 @@ namespace MvcMusic.Data
                     order.OrderItems.Add(new OrderItem
                     {
                         ProductId = p.Id,
-                        Quantity = qty
+                        Quantity = qty,
+                        ProductName = p.Name,
+                        Price = (decimal)p.Price
                     });
                     total += (decimal)p.Price * qty;
                 }

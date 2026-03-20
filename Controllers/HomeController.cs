@@ -22,6 +22,7 @@ namespace MvcMusic.Controllers
                 .Include(p => p.ProductImages)
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
+                .Where(p => p.RecordStatus == RecordStatus.Active)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -32,13 +33,13 @@ namespace MvcMusic.Controllers
 
             ViewData["CurrentCategory"] = category;
             ViewData["CurrentSearch"] = search;
-            ViewData["Categories"] = await _context.Category.Select(c => c.Name).ToListAsync();
+            ViewData["Categories"] = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).Select(c => c.Name).ToListAsync();
 
             var bannerProducts = await _context.Product
                 .Include(p => p.ProductImages)
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
-                .Where(p => p.IsBanner)
+                .Where(p => p.IsBanner && p.RecordStatus == RecordStatus.Active)
                 .ToListAsync();
             ViewData["BannerProducts"] = bannerProducts;
 

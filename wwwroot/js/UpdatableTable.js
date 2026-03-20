@@ -1,34 +1,42 @@
 export default class UpdatableTable {
     constructor(container, config) {
-        this.container = typeof container === 'string' ? document.querySelector(container) : container;
+        this.container = typeof container === "string" ? document.querySelector(container) : container;
+        this.visibleFields = new Set();
+        this.stickyFields = new Map(); // colId -> 'left' | 'right' | null
         this.request = config.request || {};
         this.fieldDefinitions = config.fieldDefinitions || {};
         this.onSave = config.onSave;
-        this.label = config.label || '';
+        this.label = config.label || "";
 
         this.data = config.initialData || null;
         this.rows = new Map();
         this.localChanges = new Map();
         this.invalidCells = new Map(); // Map of "rowId:colId" -> errorMessage
-        
+
         // Granular storage prefix (e.g., 'product')
-        this.storagePrefix = config.storagePrefix || (this.label || '').toLowerCase().replace(/\s+/g, '-').replace(/ies$/, 'y').replace(/s$/, '') || 'item';
-        
-        this.searchQuery = '';
-        this.sortConfig = { key: null, direction: 'none' };
+        this.storagePrefix =
+            config.storagePrefix ||
+            (this.label || "").toLowerCase().replace(/\s+/g, "-").replace(/ies$/, "y").replace(/s$/, "") ||
+            "item";
+
+        this.searchQuery = "";
+        this.sortConfig = { key: null, direction: "none" };
+        this.currentPage = 1;
+        this.pageSize = config.pageSize || 25;
         this.statusFilters = {
             active: true,
-            deleted: false
+            deleted: false,
         };
         this.filters = {
-            visibleColumns: new Set()
+            visibleColumns: new Set(),
         };
-        
+
         // If initial data is provided, populate rows immediately
         if (this.data) {
-            this.rows = new Map(Object.entries(this.data.rows || {}));
+            // Deep copy to ensure original data stays original
+            this.rows = new Map(Object.entries(JSON.parse(JSON.stringify(this.data.rows || {}))));
             if (this.filters.visibleColumns.size === 0) {
-                this.data.columns.forEach(col => {
+                this.data.columns.forEach((col) => {
                     if (!col.hidden) this.filters.visibleColumns.add(col.id);
                 });
             }
@@ -50,35 +58,116 @@ export default class UpdatableTable {
             this.updateControls();
         }
         this.initEventListeners();
+
+        // Register globally for access from string-based event handlers (e.g., onclick)
+        const containerId = this.container.id || this.container.getAttribute("id");
+        if (containerId) {
+            window.updatableTables = window.updatableTables || {};
+            window.updatableTables[containerId] = this;
+        }
+
+        window.addEventListener("resize", () => {
+            this.calculateStickyOffsets();
+        });
     }
 
     saveToLocalStorage() {
+        // 1. Save Row Changes
         for (const [id, changes] of this.localChanges) {
             localStorage.setItem(`${this.storagePrefix}-${id}`, JSON.stringify(changes));
         }
+
+        // 2. Save UI Preferences
+        const uiPrefs = {
+            ...this.filters,
+            visibleColumns: Array.from(this.filters.visibleColumns),
+            stickyFields: Array.from(this.stickyFields.entries()),
+            statusFilters: this.statusFilters,
+            sortConfig: this.sortConfig,
+        };
+        localStorage.setItem(`${this.storagePrefix}-ui-prefs`, JSON.stringify(uiPrefs));
+        sessionStorage.setItem(`${this.storagePrefix}-ui-prefs`, JSON.stringify(uiPrefs));
     }
 
     loadFromLocalStorage() {
         try {
             const prefix = `${this.storagePrefix}-`;
+
+            // 1. Load UI Preferences (from SessionStorage first, then fall back to LocalStorage)
+            const savedPrefs =
+                sessionStorage.getItem(`${this.storagePrefix}-ui-prefs`) ||
+                localStorage.getItem(`${this.storagePrefix}-ui-prefs`);
+            if (savedPrefs) {
+                const state = JSON.parse(savedPrefs);
+                if (state.visibleColumns) this.filters.visibleColumns = new Set(state.visibleColumns);
+                if (state.stickyFields) this.stickyFields = new Map(state.stickyFields);
+                if (state.statusFilters) this.statusFilters = state.statusFilters;
+                if (state.sortConfig) this.sortConfig = state.sortConfig;
+
+                // Load other filter values
+                Object.keys(state).forEach((key) => {
+                    if (!["visibleColumns", "stickyFields", "statusFilters", "sortConfig"].includes(key)) {
+                        this.filters[key] = state[key];
+                    }
+                });
+            }
+
+            // Default Actions to sticky right if not set
+            if (!this.stickyFields.has("actions")) {
+                this.stickyFields.set("actions", "right");
+            }
+
+            // 2. Load Row Changes
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key.startsWith(prefix)) {
+                if (key.startsWith(prefix) && !key.endsWith("-filters")) {
                     const id = key.substring(prefix.length);
-                    // Only load if the row actually exists in current data or we want to persist it anyway
                     const saved = localStorage.getItem(key);
                     if (saved) {
                         const rowChanges = JSON.parse(saved);
                         this.localChanges.set(id, rowChanges);
-                        // Re-validate loaded changes
                         for (const colId of Object.keys(rowChanges)) {
                             this.validateCell(id, colId, rowChanges[colId], false);
                         }
                     }
                 }
             }
+
+            // 3. Cleanup Legacy Data
+            this.cleanupLegacyData();
         } catch (e) {
             console.warn("UpdatableTable: Failed to load from localStorage", e);
+        }
+    }
+
+    cleanupLegacyData() {
+        if (!this.data) return;
+        const validColIds = new Set(this.data.columns.map((c) => c.id));
+
+        // Cleanup Filter Dropdowns
+        Object.keys(this.filters).forEach((k) => {
+            if (k !== "visibleColumns" && !validColIds.has(k)) {
+                delete this.filters[k];
+            }
+        });
+
+        // Cleanup Row Changes
+        for (const [id, changes] of this.localChanges) {
+            let changed = false;
+            Object.keys(changes).forEach((colId) => {
+                if (!validColIds.has(colId)) {
+                    delete changes[colId];
+                    changed = true;
+                }
+            });
+            if (changed) {
+                if (Object.keys(changes).length === 0) {
+                    this.localChanges.delete(id);
+                    localStorage.removeItem(`${this.storagePrefix}-${id}`);
+                } else {
+                    localStorage.setItem(`${this.storagePrefix}-${id}`, JSON.stringify(changes));
+                }
+            }
         }
     }
 
@@ -87,18 +176,33 @@ export default class UpdatableTable {
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith(prefix)) keysToRemove.push(key);
+            if (key && key.startsWith(prefix) && !key.endsWith("-ui-prefs")) {
+                keysToRemove.push(key);
+            }
         }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
+        keysToRemove.forEach((k) => {
+            localStorage.removeItem(k);
+        });
     }
 
     parseUrlFilters() {
         const params = new URLSearchParams(window.location.search);
         params.forEach((value, key) => {
-            if (key === 'status') {
-                const statuses = value.split(',');
-                this.statusFilters.active = statuses.includes('active');
-                this.statusFilters.deleted = statuses.includes('deleted');
+            if (key === "status") {
+                if (value === "active") {
+                    this.statusFilters.active = true;
+                    this.statusFilters.deleted = false;
+                } else if (value === "deleted") {
+                    this.statusFilters.active = false;
+                    this.statusFilters.deleted = true;
+                } else if (value === "all") {
+                    this.statusFilters.active = true;
+                    this.statusFilters.deleted = true;
+                }
+            } else if (key === "q") {
+                this.searchQuery = value.toLowerCase();
+                const searchInput = this.container.querySelector(".ut-search-input");
+                if (searchInput) searchInput.value = value;
             } else {
                 this.filters[key] = value;
             }
@@ -108,46 +212,56 @@ export default class UpdatableTable {
     renderContainer() {
         this.container.innerHTML = `
             <div class="ut-header-row">
-                ${this.label ? `<h1 class="ut-header">${this.label}</h1>` : '<div></div>'}
-                <div class="ut-top-controls">
-                    <div class="ut-search-wrapper">
-                        <i class="fa fa-search ut-search-icon"></i>
-                        <input type="text" class="ut-search-input" placeholder="Search ${this.label.toLowerCase() || 'items'}...">
-                    </div>
-                    <div class="ut-filter-container">
+                ${this.label ? `<h1 class="ut-header">${this.label}</h1>` : "<div></div>"}
+                    <div class="ut-top-controls" style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="ut-search-wrapper">
+                            <i class="fa fa-search ut-search-icon"></i>
+                            <input type="text" class="ut-search-input" placeholder="Search ${this.label.toLowerCase() || "items"}...">
+                        </div>
+                        <div class="ut-filter-container">
                         <button class="ut-filter-btn" title="Filters">
                             <i class="fa fa-filter"></i>
                         </button>
                         <div class="ut-filter-popup">
-                            <div class="ut-filter-section">
+                            <div class="ut-filter-section" style="display:none;">
                                 <h4>Record Status</h4>
                                 <div class="ut-status-filters">
                                     <label class="ut-checkbox-label">
-                                        <input type="checkbox" id="ut-filter-active" ${this.statusFilters.active ? 'checked' : ''}> 
+                                        <input type="checkbox" id="ut-filter-active" ${this.statusFilters.active ? "checked" : ""}> 
                                         <span>Active</span> <span class="ut-count-badge active-count">0</span>
                                     </label>
                                     <label class="ut-checkbox-label">
-                                        <input type="checkbox" id="ut-filter-deleted" ${this.statusFilters.deleted ? 'checked' : ''}> 
+                                        <input type="checkbox" id="ut-filter-deleted" ${this.statusFilters.deleted ? "checked" : ""}> 
                                         <span>Deleted</span> <span class="ut-count-badge deleted-count">0</span>
                                     </label>
                                 </div>
                             </div>
-                            <div class="ut-filter-section ut-dropdown-filters">
-                                <h4>Filters</h4>
-                                <div class="ut-dropdown-filter-list"></div>
-                            </div>
+                            <div class="ut-filter-separator ut-status-separator" style="display:none;"></div>
+                            <div class="ut-dropdown-filter-list"></div>
+                            <div class="ut-filter-separator ut-dropdown-separator" style="display:none;"></div>
                             <div class="ut-filter-section">
-                                <h4>Columns</h4>
+                                <h4>Columns Visibility and Pin</h4>
                                 <div class="ut-column-toggles"></div>
                             </div>
                         </div>
                     </div>
-                    <button class="ut-save-btn" style="display: none;">Save Changes</button>
+                    <div class="ut-action-container" style="position: relative;">
+                        <button class="ut-clear-btn" style="display:none;">
+                            <i class="fa fa-undo me-2"></i> Clear Changes
+                        </button>
+                        <div class="ut-clear-popup ut-diff-modal" style="display:none;"></div>
+                    </div>
+                    <div class="ut-action-container" style="position: relative;">
+                        <button class="ut-save-btn" style="display:none;">
+                            <i class="fa fa-save me-2"></i> Save Changes
+                        </button>
+                        <div class="ut-save-popup ut-diff-modal" style="display:none;"></div>
+                    </div>
                 </div>
             </div>
             <div class="ut-wrapper">
                 <div class="ut-table-container">
-                    <table class="ut-table nc-table">
+                    <table class="ut-table">
                         <thead></thead>
                         <tbody></tbody>
                     </table>
@@ -155,166 +269,299 @@ export default class UpdatableTable {
             </div>
         `;
 
-        // Use delegated listener
-        this.container.addEventListener('click', (e) => {
-            if (e.target.closest('.ut-save-btn')) {
-                this.showSaveDiffModal();
-            }
-        });
-
-        this.container.querySelector('.ut-search-input').addEventListener('input', this.handleSearch);
-        this.container.querySelector('.ut-filter-btn').addEventListener('click', (e) => {
+        this.container.querySelector(".ut-search-input").addEventListener("input", this.handleSearch);
+        this.container.querySelector(".ut-filter-btn").addEventListener("click", (e) => {
             e.stopPropagation();
             this.toggleFilterMenu();
         });
 
-        const activeCheck = this.container.querySelector('#ut-filter-active');
-        const deletedCheck = this.container.querySelector('#ut-filter-deleted');
+        const activeCheck = this.container.querySelector("#ut-filter-active");
+        const deletedCheck = this.container.querySelector("#ut-filter-deleted");
 
-        activeCheck.addEventListener('change', (e) => {
+        activeCheck.addEventListener("change", (e) => {
             this.statusFilters.active = e.target.checked;
+            this.saveToLocalStorage();
             this.updateUrl();
+            this.currentPage = 1;
             this.renderTable();
         });
-        deletedCheck.addEventListener('change', (e) => {
+        deletedCheck.addEventListener("change", (e) => {
             this.statusFilters.deleted = e.target.checked;
+            this.saveToLocalStorage();
             this.updateUrl();
+            this.currentPage = 1;
             this.renderTable();
         });
     }
 
     initEventListeners() {
-        document.addEventListener('click', (e) => {
-            // Filter popup click outside
-            const filterPopup = this.container.querySelector('.ut-filter-popup');
-            const filterBtn = this.container.querySelector('.ut-filter-btn');
-            if (filterPopup && filterPopup.style.display === 'block' && !filterPopup.contains(e.target) && !filterBtn.contains(e.target)) {
-                filterPopup.style.display = 'none';
+        this.container.addEventListener("click", (e) => {
+            if (e.target.closest(".ut-save-btn")) {
+                this.showSaveDiffModal();
+            }
+            if (e.target.closest(".ut-clear-btn")) {
+                this.showClearDiffModal();
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            const filterPopup = this.container.querySelector(".ut-filter-popup");
+            const filterBtn = this.container.querySelector(".ut-filter-btn");
+            const overlay = document.getElementById("ncGlobalOverlay");
+
+            if (overlay && e.target === overlay) {
+                if (filterPopup) filterPopup.style.display = "none";
+                this.container.querySelectorAll(".ut-diff-modal").forEach((m) => (m.style.display = "none"));
+                overlay.classList.remove("show");
+                this.container.querySelectorAll(".ut-popup-active-trigger").forEach((b) => b.classList.remove("ut-popup-active-trigger"));
+                return;
+            }
+
+            let anyPopupOpen = false;
+
+            if (
+                filterPopup &&
+                filterPopup.style.display === "block" &&
+                !filterPopup.contains(e.target) &&
+                !filterBtn.contains(e.target)
+            ) {
+                filterPopup.style.display = "none";
+                if (filterBtn) filterBtn.classList.remove("ut-popup-active-trigger");
+            } else if (filterPopup && filterPopup.style.display === "block") {
+                anyPopupOpen = true;
+            }
+
+            // Diff modals click outside
+            const diffModals = this.container.querySelectorAll(".ut-diff-modal");
+            diffModals.forEach((modal) => {
+                const btn = modal.parentElement.querySelector("button");
+                if (modal.style.display === "block" && !modal.contains(e.target) && (!btn || !btn.contains(e.target))) {
+                    modal.style.display = "none";
+                    if (btn) btn.classList.remove("ut-popup-active-trigger");
+                } else if (modal.style.display === "block") {
+                    anyPopupOpen = true;
+                }
+            });
+
+            if (document.querySelector(".ut-side-popup")) {
+                anyPopupOpen = true;
+            }
+
+            if (!anyPopupOpen && overlay) {
+                overlay.classList.remove("show");
+                this.container.classList.remove("ut-has-popup");
+                this.container.querySelectorAll(".ut-popup-active-trigger").forEach((b) => b.classList.remove("ut-popup-active-trigger"));
             }
 
             // Revert popup click outside
-            const revertPopups = this.container.querySelectorAll('.ut-revert-popup');
-            revertPopups.forEach(popup => {
+            const revertPopups = this.container.querySelectorAll(".ut-revert-popup");
+            revertPopups.forEach((popup) => {
                 if (!popup.contains(e.target)) popup.remove();
             });
         });
     }
 
     handleSearch(e) {
-        this.searchQuery = e.target.value.toLowerCase();
+        this.searchQuery = (e.target.value || "").toLowerCase();
+        this.updateUrl();
+        this.currentPage = 1;
         this.renderTable();
     }
 
     toggleFilterMenu() {
-        const popup = this.container.querySelector('.ut-filter-popup');
-        popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
-        if (popup.style.display === 'block') {
+        // Close other popups
+        this.container.querySelectorAll(".ut-diff-modal").forEach((m) => (m.style.display = "none"));
+        this.container.querySelectorAll(".ut-popup-active-trigger").forEach((b) => b.classList.remove("ut-popup-active-trigger"));
+
+        const popup = this.container.querySelector(".ut-filter-popup");
+        const overlay = document.getElementById("ncGlobalOverlay");
+        const btn = this.container.querySelector(".ut-filter-btn");
+
+        popup.style.display = popup.style.display === "block" ? "none" : "block";
+        if (popup.style.display === "block") {
+            if (overlay) overlay.classList.add("show");
+            this.container.classList.add("ut-has-popup");
+            if (btn) btn.classList.add("ut-popup-active-trigger");
             this.renderDropdownFilters();
             this.renderColumnToggles();
+        } else {
+            if (overlay) overlay.classList.remove("show");
+            this.container.classList.remove("ut-has-popup");
+            if (btn) btn.classList.remove("ut-popup-active-trigger");
         }
     }
 
     renderDropdownFilters() {
-        const container = this.container.querySelector('.ut-dropdown-filter-list');
+        const container = this.container.querySelector(".ut-dropdown-filter-list");
         if (!this.data || !container) return;
 
-        container.innerHTML = '';
-        this.data.columns.forEach(col => {
-            if (col.type === 'select' && col.options) {
-                const section = document.createElement('div');
-                section.className = 'ut-filter-item-dropdown';
+        container.innerHTML = "";
+        let hasFilters = false;
+
+        this.data.columns.forEach((col) => {
+            if (col.type === "select" && col.options) {
+                hasFilters = true;
+                const section = document.createElement("div");
+                section.className = "ut-filter-item-dropdown";
                 const label = this.fieldDefinitions[col.id]?.label || this.toLabelCase(col.id);
-                
+
                 section.innerHTML = `
                     <label style="display:block; font-size:0.75rem; color:var(--nc-text-muted); margin-bottom:0.25rem;">${label}</label>
-                    <select class="ut-input ut-select" style="padding:0.3rem 0.5rem; height:auto; background:rgba(255,255,255,0.05); border:1px solid var(--nc-border); width:100%; border-radius:4px;">
-                        <option value="">All ${label}s</option>
-                        ${Array.from(col.options).map(opt => `<option value="${opt.value}" ${String(this.filters[col.id]) === String(opt.value) ? 'selected' : ''}>${opt.label}</option>`).join('')}
+                    <select class="ut-input ut-select" style="padding:0.4rem 0.6rem; height:auto; background:rgba(255,255,255,0.05); border:1px solid var(--nc-border); width:100%; border-radius:4px;">
+                        <option value="">All ${label}</option>
+                        ${Array.from(col.options)
+                            .map(
+                                (opt) =>
+                                    `<option value="${opt.value}" ${String(this.filters[col.id]) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
+                            )
+                            .join("")}
                     </select>
                 `;
 
-                section.querySelector('select').addEventListener('change', (e) => {
-                    this.filters[col.id] = e.target.value;
+                section.querySelector("select").addEventListener("change", (e) => {
+                    if (e.target.value) this.filters[col.id] = e.target.value;
+                    else delete this.filters[col.id];
+                    this.saveToLocalStorage();
                     this.updateUrl();
+                    this.currentPage = 1;
                     this.renderTable();
+                    this.calculateStickyOffsets();
                 });
                 container.appendChild(section);
             }
         });
+
+        if (!hasFilters) {
+            container.style.display = "none";
+            const dropSep = this.container.querySelector(".ut-dropdown-separator");
+            if (dropSep) dropSep.style.display = "none";
+        } else {
+            container.style.display = "flex";
+            container.style.flexDirection = "column";
+            container.style.gap = "0.75rem";
+            const dropSep = this.container.querySelector(".ut-dropdown-separator");
+            if (dropSep) dropSep.style.display = "";
+        }
     }
 
     updateUrl() {
         const url = new URL(window.location);
         Object.entries(this.filters).forEach(([key, value]) => {
-            if (key === 'visibleColumns') return;
-            if (value && value !== 'false') {
+            if (key === "visibleColumns") return;
+            if (value && value !== "false") {
                 url.searchParams.set(key, value);
             } else {
                 url.searchParams.delete(key);
             }
         });
 
-        const statusValues = [];
-        if (this.statusFilters.active) statusValues.push('active');
-        if (this.statusFilters.deleted) statusValues.push('deleted');
-        if (statusValues.length > 0 && statusValues.length < 2) {
-            url.searchParams.set('status', statusValues.join(','));
+        if (this.searchQuery) {
+            url.searchParams.set("q", this.searchQuery);
         } else {
-            url.searchParams.delete('status');
+            url.searchParams.delete("q");
         }
 
-        window.history.replaceState({}, '', url);
+        if (this.statusFilters.active && this.statusFilters.deleted) {
+            url.searchParams.set("status", "all");
+        } else if (this.statusFilters.active) {
+            url.searchParams.set("status", "active");
+        } else if (this.statusFilters.deleted) {
+            url.searchParams.set("status", "deleted");
+        } else {
+            url.searchParams.delete("status");
+        }
+
+        window.history.replaceState({}, "", url);
+        this.saveToLocalStorage();
     }
 
     renderColumnToggles() {
-        const container = this.container.querySelector('.ut-column-toggles');
+        const container = this.container.querySelector(".ut-column-toggles");
         if (!this.data) return;
 
-        container.innerHTML = '';
-        this.data.columns.forEach(col => {
-            if (col.id === 'recordStatus' || col.id === 'id' || col.id === 'actions' || (col.hidden && !this.filters.visibleColumns.has(col.id))) return;
+        container.innerHTML = "";
+        this.data.columns.forEach((col) => {
+            if (col.id === "recordStatus" || col.id === "id" || (col.hidden && !this.filters.visibleColumns.has(col.id))) return;
 
-            const label = this.fieldDefinitions[col.id]?.label || this.toLabelCase(col.id);
-            const div = document.createElement('div');
-            div.className = 'ut-column-toggle-item';
-            div.innerHTML = `
-                <label>
-                    <input type="checkbox" data-col-id="${col.id}" ${this.filters.visibleColumns.has(col.id) ? 'checked' : ''}>
-                    ${label}
+            const isSticky = this.stickyFields.has(col.id);
+            const stickySide = this.stickyFields.get(col.id);
+            const pinIconClass = isSticky ? (stickySide === "left" ? "fa-rotate-90" : "fa-rotate-270") : "";
+            const pinColor = isSticky ? "var(--nc-primary)" : "inherit";
+
+            const colItem = document.createElement("div");
+            colItem.className = "ut-column-toggle-item";
+            colItem.style.display = "flex";
+            colItem.style.alignItems = "center";
+            colItem.style.justifyContent = "space-between";
+            colItem.style.marginBottom = "0.25rem"; // Reduced from 0.5rem
+
+            colItem.innerHTML = `
+                <label class="ut-checkbox-label" style="flex: 1; margin-bottom: 0;">
+                    <input type="checkbox" ${this.filters.visibleColumns.has(col.id) ? "checked" : ""} data-col-id="${col.id}">
+                    <span>${col.label || this.fieldDefinitions[col.id]?.label || this.toLabelCase(col.id)}</span>
                 </label>
+                <button class="ut-pin-btn" data-col-id="${col.id}" title="Pin Column" 
+                        style="background: none; border: none; cursor: pointer; padding: 4px; color: ${pinColor}; transition: all 0.2s;">
+                    <i class="fa fa-thumbtack ${pinIconClass}"></i>
+                </button>
             `;
-            div.querySelector('input').addEventListener('change', (e) => {
+
+            colItem.querySelector('input[type="checkbox"]').addEventListener("change", (e) => {
                 if (e.target.checked) this.filters.visibleColumns.add(col.id);
                 else this.filters.visibleColumns.delete(col.id);
+                this.saveToLocalStorage();
+                this.currentPage = 1;
                 this.renderTable();
+                this.calculateStickyOffsets();
+                this.renderColumnToggles();
             });
-            container.appendChild(div);
+
+            colItem.querySelector(".ut-pin-btn").addEventListener("click", (e) => {
+                e.stopPropagation(); // BUGFIX: Prevent closing the filter popup
+                const current = this.stickyFields.get(col.id);
+                if (!current) this.stickyFields.set(col.id, "left");
+                else if (current === "left") this.stickyFields.set(col.id, "right");
+                else this.stickyFields.delete(col.id);
+
+                this.saveToLocalStorage();
+                this.renderTable();
+                this.calculateStickyOffsets();
+                this.renderColumnToggles();
+            });
+
+            container.appendChild(colItem);
         });
     }
 
     handleSort(colId) {
         if (this.sortConfig.key === colId) {
-            if (this.sortConfig.direction === 'asc') this.sortConfig.direction = 'desc';
-            else if (this.sortConfig.direction === 'desc') {
-                this.sortConfig.direction = 'none';
+            if (this.sortConfig.direction === "asc") this.sortConfig.direction = "desc";
+            else if (this.sortConfig.direction === "desc") {
+                this.sortConfig.direction = "none";
                 this.sortConfig.key = null;
             }
         } else {
             this.sortConfig.key = colId;
-            this.sortConfig.direction = 'asc';
+            this.sortConfig.direction = "asc";
         }
         this.renderTable();
     }
 
     async fetchData() {
         try {
+            // Collect IDs with local changes to ensure they are fetched even if filtered out
+            const localChangeIds = Array.from(this.localChanges.keys());
+            const urlAttr = this.request.url || "";
+            const sep = urlAttr.includes("?") ? "&" : "?";
+            const finalUrl = urlAttr + (localChangeIds.length > 0 ? `${sep}includeIds=${localChangeIds.join(",")}` : "");
+
             let response;
             if (this.request.fetchFn) {
-                response = await this.request.fetchFn(this.request);
-            } else if (this.request.url) {
-                const res = await fetch(this.request.url, {
-                    method: this.request.type || 'GET',
-                    headers: { 'Content-Type': 'application/json' }
+                response = await this.request.fetchFn({ ...this.request, includeIds: localChangeIds });
+            } else if (urlAttr) {
+                const res = await fetch(finalUrl, {
+                    method: this.request.type || "GET",
+                    headers: { "Content-Type": "application/json" },
                 });
                 response = await res.json();
             } else {
@@ -322,221 +569,685 @@ export default class UpdatableTable {
             }
 
             this.data = response;
-            this.rows = new Map(Object.entries(response.rows || {}));
-            this.localChanges.clear();
-            this.invalidCells.clear();
+            const fetchedRows = response.rows || {};
+            const fetchedRowIds = new Set(Object.keys(fetchedRows));
+            // Deep copy to prevent accidental reference sharing
+            this.rows = new Map(Object.entries(JSON.parse(JSON.stringify(fetchedRows))));
+
+            // Sync: Remove local changes for records that no longer exist in the backend
+            if (localChangeIds.length > 0) {
+                for (const id of localChangeIds) {
+                    if (!fetchedRowIds.has(id)) {
+                        this.localChanges.delete(id);
+                        localStorage.removeItem(`${this.storagePrefix}-${id}`);
+                    }
+                }
+            }
 
             if (this.filters.visibleColumns.size === 0) {
-                this.data.columns.forEach(col => {
+                this.data.columns.forEach((col) => {
                     if (!col.hidden) this.filters.visibleColumns.add(col.id);
                 });
             }
 
-            this.renderTable();
             this.loadFromLocalStorage(); // Load after data is fetched and rows Map is populated
-            this.renderTable(); // Re-render to show indicators
+            this.parseUrlFilters(); // If URL has filters, they should override localStorage
+
+            // Sync UI elements that might have been rendered before LocalStorage was loaded
+            const activeCheck = this.container.querySelector("#ut-filter-active");
+            const deletedCheck = this.container.querySelector("#ut-filter-deleted");
+            if (activeCheck) activeCheck.checked = this.statusFilters.active;
+            if (deletedCheck) deletedCheck.checked = this.statusFilters.deleted;
+
+            this.updateUrl(); // Sync URL with our final filters
+            this.renderTable(); // Re-render to show indicators and apply filters
             this.updateControls();
+
+            // Auto-hide record status filter section if no recordStatus column
+            const hasRecordStatus = this.data.columns.some(c => c.id === 'recordStatus');
+            const statusSection = this.container.querySelector(".ut-status-filters")?.closest(".ut-filter-section");
+            const statusSep = this.container.querySelector(".ut-status-separator");
+            if (statusSection) statusSection.style.display = hasRecordStatus ? "" : "none";
+            if (statusSep) statusSep.style.display = hasRecordStatus ? "" : "none";
         } catch (error) {
             console.error("UpdatableTable: Error fetching data", error);
         }
     }
 
     getProcessedRows() {
-        let rowsArray = Array.from(this.rows.entries()).map(([id, data]) => ({ id, ...data }));
-
-        // Count for filters
-        this.activeCount = rowsArray.filter(r => r.recordStatus !== 'Deleted').length;
-        this.deletedCount = rowsArray.filter(r => r.recordStatus === 'Deleted').length;
-
-        // Apply Status Filter
-        rowsArray = rowsArray.filter(r => {
-            const isDeleted = r.recordStatus === 'Deleted';
-            if (isDeleted) return this.statusFilters.deleted;
-            return this.statusFilters.active;
+        const allRowsArray = Array.from(this.rows.entries()).map(([id, data]) => {
+            const changes = this.localChanges.get(id) || {};
+            return { id, ...data, ...changes };
         });
 
+        // 1. Exclude "Extra" rows immediately (they are only for diffing/sync)
+        let processed = allRowsArray.filter((r) => !r._isExtra);
+
+        const hasRecordStatus = this.data.columns.some(c => c.id === 'recordStatus');
+        if (hasRecordStatus) {
+            // Update counts (before status filters) based on non-extra rows
+            this.activeCount = processed.filter((r) => r.recordStatus !== "Deleted").length;
+            this.deletedCount = processed.filter((r) => r.recordStatus === "Deleted").length;
+
+            // 2. Status Filter
+            processed = processed.filter((r) => {
+                const isDeleted = r.recordStatus === "Deleted";
+                return isDeleted ? this.statusFilters.deleted : this.statusFilters.active;
+            });
+        }
+
+        // 3. Search Filter (applies to merged local values)
         if (this.searchQuery) {
-            rowsArray = rowsArray.filter(row => {
-                return Object.values(row).some(val => {
-                    if (typeof val === 'string' || typeof val === 'number') {
-                        return String(val).toLowerCase().includes(this.searchQuery);
-                    }
-                    if (val && typeof val === 'object' && val.name) {
-                        return val.name.toLowerCase().includes(this.searchQuery);
-                    }
-                    return false;
+            processed = processed.filter((row) => {
+                // Search against all properties, using formatValue where applicable
+                return Object.entries(row).some(([key, val]) => {
+                    if (val == null) return false;
+
+                    const col = this.data.columns.find((c) => c.id === key);
+                    const displayStr = col ? this.formatValue(val, col.id) : String(val);
+                    const displayStrLower = displayStr.toLowerCase();
+
+                    return displayStrLower.includes(this.searchQuery);
                 });
             });
         }
 
-        // URL / Column Filters
+        // 4. URL / Column Filters
         Object.entries(this.filters).forEach(([key, filterVal]) => {
-            if (key === 'visibleColumns') return;
+            if (key === "visibleColumns") return;
             if (filterVal) {
-                rowsArray = rowsArray.filter(row => {
+                processed = processed.filter((row) => {
                     const cellVal = row[key];
                     if (cellVal === undefined) return true; // Col might not exist in row
                     // Handle objects (like {id, name}) or primitives
-                    if (cellVal && typeof cellVal === 'object') {
-                        return String(cellVal.id || cellVal.value || '') === String(filterVal);
+                    if (cellVal && typeof cellVal === "object") {
+                        return String(cellVal.id || cellVal.value || "") === String(filterVal);
                     }
                     return String(cellVal) === String(filterVal);
                 });
             }
         });
 
-        if (this.sortConfig.key && this.sortConfig.direction !== 'none') {
+        if (this.sortConfig.key && this.sortConfig.direction !== "none") {
             const key = this.sortConfig.key;
-            const dir = this.sortConfig.direction === 'asc' ? 1 : -1;
-            rowsArray.sort((a, b) => {
-                let v1 = a[key];
-                let v2 = b[key];
-                if (v1 && typeof v1 === 'object') v1 = v1.name || v1.label || '';
-                if (v2 && typeof v2 === 'object') v2 = v2.name || v2.label || '';
+            const dir = this.sortConfig.direction === "asc" ? 1 : -1;
+            processed.sort((a, b) => {
+                let v1 = a[key + "Label"] !== undefined ? a[key + "Label"] : a[key];
+                let v2 = b[key + "Label"] !== undefined ? b[key + "Label"] : b[key];
+                if (v1 && typeof v1 === "object") v1 = v1.name || v1.label || "";
+                if (v2 && typeof v2 === "object") v2 = v2.name || v2.label || "";
                 if (v1 < v2) return -1 * dir;
                 if (v1 > v2) return 1 * dir;
                 return 0;
             });
         }
 
-        return rowsArray;
+        return processed;
     }
 
     renderTable() {
-        if (!this.data) return;
+        if (!this.data) {
+            return;
+        }
 
-        const thead = this.container.querySelector('thead');
-        const tbody = this.container.querySelector('tbody');
+        const thead = this.container.querySelector("thead");
+        const tbody = this.container.querySelector("tbody");
 
-        let theadHtml = '<tr>';
-        this.data.columns.forEach(col => {
-            if (col.id === 'recordStatus' || (col.hidden && !this.filters.visibleColumns.has(col.id))) return;
-            if (!this.filters.visibleColumns.has(col.id) && col.id !== 'actions') return;
+        let theadHtml = "<tr>";
+        this.data.columns.forEach((col) => {
+            if (col.id === "recordStatus" || (col.hidden && !this.filters.visibleColumns.has(col.id))) return;
+            if (!this.filters.visibleColumns.has(col.id) && col.id !== "actions") return;
 
             const label = this.fieldDefinitions[col.id]?.label || this.toLabelCase(col.id);
             const isSorting = this.sortConfig.key === col.id;
             let sortIcon = '<i class="fa fa-sort ut-sort-ghost"></i>';
             if (isSorting) {
-                sortIcon = this.sortConfig.direction === 'asc' ? '<i class="fa fa-sort-up"></i>' : '<i class="fa fa-sort-down"></i>';
+                sortIcon =
+                    this.sortConfig.direction === "asc" ? '<i class="fa fa-sort-up"></i>' : '<i class="fa fa-sort-down"></i>';
             }
-            
+
+            const isColUpdatable = this.fieldDefinitions[col.id]?.hasOwnProperty("updatable")
+                ? this.fieldDefinitions[col.id].updatable
+                : col.updatable;
+
+            const isUpdatableHeader = col.id !== "actions" && isColUpdatable;
+            const penIcon = isUpdatableHeader
+                ? '<i class="fa fa-pen nc-text-primary me-2" style="font-size: 0.7rem; opacity: 0.7;"></i>'
+                : "";
+
+            let stickyClass = "";
+            if (this.stickyFields.has(col.id)) {
+                stickyClass = `ut-sticky-${this.stickyFields.get(col.id)}`;
+            }
+            const fDef = this.fieldDefinitions[col.id] || {};
+            const cellClass = fDef.cellClass || "";
+            const widthMinimum = fDef.widthMinimum || "";
+            const widthMaximum = fDef.widthMaximum || "";
+            const widthPercentage = fDef.widthPercentage || "";
+            const hasFitClass = cellClass.includes("ut-min-w-fit");
+
+            let thWidthStyle = "auto";
+            if (col.id === "actions" || hasFitClass) {
+                thWidthStyle = "1%";
+            } else if (widthPercentage) {
+                thWidthStyle = widthPercentage;
+            }
+
+            let thMinWidthStyle = widthMinimum || "auto";
+            let thMaxWidthStyle = widthMaximum ? `max-width: ${widthMaximum};` : "";
+
             theadHtml += `
-                <th data-col-id="${col.id}" class="ut-th ${col.id !== 'actions' ? 'ut-sortable' : ''}" 
-                    style="width: ${col.id === 'actions' ? '1%' : (col.widthPercentage || 'auto')}; min-width: ${col.id === 'actions' ? 'auto' : (col.widthMinimum || 'auto')}; ${col.id === 'actions' ? 'text-align: right; white-space: nowrap;' : ''}">
-                    <div class="ut-th-content" style="${col.id === 'actions' ? 'justify-content: flex-end;' : ''}">
+                <th data-col-id="${col.id}" class="ut-th ${col.id !== "actions" ? "ut-sortable" : ""} ${stickyClass} ${cellClass}" 
+                    style="width: ${thWidthStyle}; min-width: ${thMinWidthStyle}; ${thMaxWidthStyle} ${col.id === "actions" ? "text-align: left; white-space: nowrap;" : ""}">
+                    <div class="ut-cell-content">
+                        ${penIcon}
                         <span>${label}</span>
-                        ${col.id !== 'actions' ? `<span class="ut-sort-icon">${sortIcon}</span>` : ''}
+                        ${col.id !== "actions" ? `<span class="ut-sort-icon" style="margin-left: 6px; font-size: 0.85em;">${sortIcon}</span>` : ""}
                     </div>
                 </th>
             `;
         });
-        theadHtml += '</tr>';
+        theadHtml += "</tr>";
         thead.innerHTML = theadHtml;
 
-        thead.querySelectorAll('.ut-sortable').forEach(th => {
-            th.addEventListener('click', () => this.handleSort(th.dataset.colId));
+        thead.querySelectorAll(".ut-sortable").forEach((th) => {
+            th.addEventListener("click", () => this.handleSort(th.dataset.colId));
         });
 
-        tbody.innerHTML = '';
+        tbody.innerHTML = "";
         const processedRows = this.getProcessedRows();
-        
+
         if (processedRows.length === 0) {
             tbody.innerHTML = '<tr><td colspan="100%" class="ut-empty-msg">No records found matching your criteria.</td></tr>';
+            this.renderPagination(0);
             return;
         }
 
-        processedRows.forEach(rowData => {
-            const rowId = rowData.id;
-            const tr = document.createElement('tr');
+        const startIndex = (this.currentPage - 1) * this.pageSize;
+        const endIndex = startIndex + this.pageSize;
+        const paginatedRows = processedRows.slice(startIndex, endIndex);
+
+        paginatedRows.forEach((rowData) => {
+            const rowId = String(rowData.id);
+            const tr = document.createElement("tr");
             tr.dataset.rowId = rowId;
-            tr.className = rowData.recordStatus === 'Deleted' ? 'ut-deleted-row' : '';
+            const isDeleted = rowData.recordStatus === "Deleted";
+            tr.className = isDeleted ? "ut-deleted-row" : "";
+            if (isDeleted) tr.dataset.deleted = "true";
 
-            this.data.columns.forEach(col => {
-                if (col.id === 'recordStatus' || (col.hidden && !this.filters.visibleColumns.has(col.id))) return;
-                if (!this.filters.visibleColumns.has(col.id) && col.id !== 'actions') return;
+            this.data.columns.forEach((col) => {
+                if (col.id === "recordStatus" || (col.hidden && !this.filters.visibleColumns.has(col.id))) return;
+                if (!this.filters.visibleColumns.has(col.id) && col.id !== "actions") return;
 
-                const td = document.createElement('td');
+                const td = document.createElement("td");
                 td.dataset.colId = col.id;
-                const isUpdatable = col.updatable && this.data.updateRequest && rowData.recordStatus !== 'Deleted';
-                this.renderCellContent(td, rowId, col, rowData, isUpdatable);
+
+                const stickyClass = this.stickyFields.has(col.id) ? `ut-sticky-${this.stickyFields.get(col.id)}` : "";
+                const fDef = this.fieldDefinitions[col.id] || {};
+                const cellClass = fDef.cellClass || "";
+                const cellStyle = fDef.cellStyle || "";
+                const widthMinimum = fDef.widthMinimum || "";
+                const widthMaximum = fDef.widthMaximum || "";
+                const hasFitClass = cellClass.includes("ut-min-w-fit");
+
+                if (stickyClass) td.classList.add(stickyClass);
+                if (cellClass) {
+                    cellClass.split(" ").filter(c => c.trim()).forEach(cls => td.classList.add(cls));
+                }
+                if (cellStyle) td.style.cssText += cellStyle;
+
+                if (widthMinimum) td.style.minWidth = widthMinimum;
+                if (widthMaximum) td.style.maxWidth = widthMaximum;
+                if (hasFitClass || col.id === "actions") td.style.width = "1%";
+
+                const isColUpdatable = this.fieldDefinitions[col.id]?.hasOwnProperty("updatable")
+                    ? this.fieldDefinitions[col.id].updatable
+                    : col.updatable;
+
+                if (isColUpdatable && col.id !== "actions") {
+                    td.classList.add("ut-updatable-cell");
+                }
+
+                const isUpdatable = isColUpdatable && this.data.updateRequest && rowData.recordStatus !== "Deleted";
+
+                // Full-height inner div — this is the border target for pinned columns
+                const cellContent = document.createElement("div");
+                cellContent.className = "ut-cell-content";
+                // Mark non-action cells in deleted rows so CSS can reduce their opacity
+                if (isDeleted && col.id !== "actions") cellContent.classList.add("ut-deleted-content");
+                td.appendChild(cellContent);
+
+                if (fDef.currency) {
+                    td.classList.add("ut-has-currency");
+                }
+
+                this.renderCellContent(cellContent, rowId, col, rowData, isUpdatable);
+
+                const tooltip = fDef.renderTooltip ? fDef.renderTooltip(rowData[col.id], col, rowData) : "";
+                if (tooltip) {
+                    td.setAttribute("title", tooltip);
+                }
+
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
         });
 
         this.updateFilterCounts();
+        this.renderPagination(processedRows.length);
     }
 
-    updateFilterCounts() {
-        const activeBadge = this.container.querySelector('.active-count');
-        const deletedBadge = this.container.querySelector('.deleted-count');
-        if (activeBadge) activeBadge.textContent = this.activeCount || 0;
-        if (deletedBadge) deletedBadge.textContent = this.deletedCount || 0;
-    }
+    renderPagination(totalRows) {
+        let paginationContainer = this.container.querySelector(".ut-pagination");
+        if (!paginationContainer) {
+            paginationContainer = document.createElement("div");
+            this.container.querySelector(".ut-wrapper").appendChild(paginationContainer);
+        }
 
-    renderCellContent(containerElement, rowId, col, rowData, isUpdatable) {
-        const localRow = this.localChanges.get(rowId) || {};
-        const isChanged = localRow.hasOwnProperty(col.id);
-        const value = isChanged ? localRow[col.id] : rowData[col.id];
-        const isInvalid = this.invalidCells.has(`${rowId}:${col.id}`);
+        const totalPages = Math.ceil(totalRows / this.pageSize) || 1;
+        if (this.currentPage > totalPages) {
+            this.currentPage = totalPages;
+            this.renderTable();
+            return;
+        }
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'ut-cell-wrapper';
-        containerElement.appendChild(wrapper);
+        if (totalPages <= 1) {
+            paginationContainer.style.display = "none";
+            return;
+        }
+        paginationContainer.style.display = "flex";
+        paginationContainer.className = "ut-pagination d-flex justify-content-between align-items-center mt-4 px-3 pb-3";
 
-        if (!isUpdatable) {
-            const fieldDef = this.fieldDefinitions[col.id];
-            if (fieldDef && fieldDef.renderContent) {
-                const content = fieldDef.renderContent(value, col, rowData);
-                if (typeof content === 'string') wrapper.innerHTML = this.searchQuery ? this.highlight(content) : content;
-                else if (content instanceof Node) wrapper.appendChild(content);
-            } else {
-                wrapper.innerHTML = `<span>${this.formatValue(value, col.id, true)}</span>`;
-            }
-        } else {
-            const fieldDef = this.fieldDefinitions[col.id];
-            if (fieldDef && fieldDef.renderInput) {
-                const inputElement = fieldDef.renderInput(value, col, rowData);
-                inputElement.addEventListener('input', (e) => this.handleCellChange(rowId, col.id, e.target.value));
-                wrapper.appendChild(inputElement);
-            } else if (col.type === 'select' && col.options) {
-                const select = document.createElement('select');
-                select.className = 'ut-input ut-select' + (isChanged ? ' ut-input-changed' : '');
-                col.options.forEach(opt => {
-                    const option = document.createElement('option');
-                    option.value = opt.value;
-                    option.textContent = opt.label;
-                    option.selected = String(opt.value) === String(value);
-                    select.appendChild(option);
-                });
-                select.addEventListener('change', (e) => this.handleCellChange(rowId, col.id, e.target.value));
-                wrapper.appendChild(select);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = value || '';
-                input.className = 'ut-input' + (isChanged ? ' ut-input-changed' : '');
-                input.addEventListener('input', (e) => this.handleCellChange(rowId, col.id, e.target.value));
-                wrapper.appendChild(input);
+        let startPage = Math.max(1, this.currentPage - 2);
+        let endPage = Math.min(totalPages, this.currentPage + 2);
+
+        let paginationHtml = `
+            <li class="page-item ${this.currentPage === 1 ? "disabled" : ""}">
+                <a class="page-link ut-page-prev" href="javascript:void(0)" tabindex="-1" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            </li>
+        `;
+
+        if (startPage > 1) {
+            paginationHtml += `<li class="page-item"><a class="page-link ut-page-num" data-page="1" href="javascript:void(0)" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">1</a></li>`;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-muted);">...</span></li>`;
             }
         }
 
-        this.renderIndicators(wrapper, rowId, col.id, isChanged, isInvalid);
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === this.currentPage) {
+                paginationHtml += `<li class="page-item active"><span class="page-link" style="background: var(--nc-primary); border-color: var(--nc-primary); color: #fff;">${i}</span></li>`;
+            } else {
+                paginationHtml += `<li class="page-item"><a class="page-link ut-page-num" data-page="${i}" href="javascript:void(0)" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">${i}</a></li>`;
+            }
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-muted);">...</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><a class="page-link ut-page-num" data-page="${totalPages}" href="javascript:void(0)" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">${totalPages}</a></li>`;
+        }
+
+        paginationHtml += `
+            <li class="page-item ${this.currentPage === totalPages ? "disabled" : ""}">
+                <a class="page-link ut-page-next" href="javascript:void(0)" tabindex="-1" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        `;
+
+        let pageInputHtml = "";
+        if (totalPages > 5) {
+            pageInputHtml = `
+            <div class="ms-3 d-flex align-items-center">
+                <span class="text-muted small me-2">Go to:</span>
+                <input type="number" class="form-control form-control-sm ut-page-input" min="1" max="${totalPages}" placeholder="${this.currentPage}" style="width: 60px; background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
+            </div>
+            `;
+        }
+
+        paginationContainer.innerHTML = `
+            <div class="nc-text-muted" style="font-size: 0.85rem;">
+                Showing page <strong>${this.currentPage}</strong> of <strong>${totalPages}</strong>
+            </div>
+            <div class="d-flex align-items-center">
+                <nav aria-label="Table pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        ${paginationHtml}
+                    </ul>
+                </nav>
+                ${pageInputHtml}
+            </div>
+        `;
+
+        const prevBtn = paginationContainer.querySelector(".ut-page-prev");
+        const nextBtn = paginationContainer.querySelector(".ut-page-next");
+        const numBtns = paginationContainer.querySelectorAll(".ut-page-num");
+        const pageInput = paginationContainer.querySelector(".ut-page-input");
+
+        if (prevBtn) {
+            prevBtn.addEventListener("click", () => {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.renderTable();
+                }
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener("click", () => {
+                if (this.currentPage < totalPages) {
+                    this.currentPage++;
+                    this.renderTable();
+                }
+            });
+        }
+        numBtns.forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                this.currentPage = parseInt(e.target.dataset.page, 10);
+                this.renderTable();
+            });
+        });
+        if (pageInput) {
+            pageInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    let page = parseInt(pageInput.value, 10);
+                    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                        this.currentPage = page;
+                        this.renderTable();
+                    }
+                }
+            });
+        }
     }
 
-    renderIndicators(wrapper, rowId, colId, isChanged, isInvalid) {
-        let stack = wrapper.querySelector('.ut-indicator-stack');
+    updateFilterCounts() {
+        const activeBadge = this.container.querySelector(".active-count");
+        const deletedBadge = this.container.querySelector(".deleted-count");
+        if (activeBadge) activeBadge.textContent = this.activeCount || 0;
+        if (deletedBadge) deletedBadge.textContent = this.deletedCount || 0;
+        // Apply sticky offsets
+        this.calculateStickyOffsets();
+    }
+
+    calculateStickyOffsets() {
+        // Clear old classes
+        this.container.querySelectorAll(".ut-stuck-left, .ut-stuck-right").forEach((el) => {
+            el.classList.remove("ut-stuck-left", "ut-stuck-right");
+        });
+
+        const leftSticky = Array.from(this.container.querySelectorAll(".ut-sticky-left"));
+        const rightSticky = Array.from(this.container.querySelectorAll(".ut-sticky-right"));
+
+        // Group by column ID if multiple cells per column
+        const leftCols = Array.from(new Set(leftSticky.map((el) => el.getAttribute("data-col-id"))));
+        const rightCols = Array.from(new Set(rightSticky.map((el) => el.getAttribute("data-col-id")))).reverse();
+
+        let leftOffset = 0;
+        leftCols.forEach((colId) => {
+            const cells = this.container.querySelectorAll(`[data-col-id="${colId}"].ut-sticky-left`);
+            const width = cells[0]?.offsetWidth || 0;
+            cells.forEach((cell) => {
+                cell.style.left = `${leftOffset}px`;
+                if (colId === leftCols[leftCols.length - 1]) cell.classList.add("ut-stuck-left");
+            });
+            leftOffset += width;
+        });
+
+        let rightOffset = 0;
+        rightCols.forEach((colId) => {
+            const cells = this.container.querySelectorAll(`[data-col-id="${colId}"].ut-sticky-right`);
+            const width = cells[0]?.offsetWidth || 0;
+            cells.forEach((cell) => {
+                cell.style.right = `${rightOffset}px`;
+                if (colId === rightCols[rightCols.length - 1]) cell.classList.add("ut-stuck-right");
+            });
+            rightOffset += width;
+        });
+
+        // Set up scroll listener (idempotent - remove old one first)
+        const tableContainer = this.container.querySelector(".ut-table-container");
+        if (!tableContainer) return;
+
+        if (this._scrollListener) {
+            tableContainer.removeEventListener("scroll", this._scrollListener);
+        }
+
+        const updateBorderOnScroll = () => {
+            if (!tableContainer) return;
+
+            const containerRect = tableContainer.getBoundingClientRect();
+
+            // Left-pinned: only show border on the innermost left column when scrolled
+            this.container.querySelectorAll(".ut-border-left").forEach((el) => {
+                el.classList.remove("ut-border-left");
+            });
+
+            if (leftCols.length > 0) {
+                const lastLeftColId = leftCols[leftCols.length - 1];
+                const thCell = this.container.querySelector(`th[data-col-id="${lastLeftColId}"]`);
+                if (thCell) {
+                    const cellRect = thCell.getBoundingClientRect();
+                    const isLeftScrolled = cellRect.left - containerRect.left < 1 && tableContainer.scrollLeft > 0;
+                    if (isLeftScrolled) {
+                        this.container
+                            .querySelectorAll(`[data-col-id="${lastLeftColId}"] .ut-cell-content`)
+                            .forEach((el) => el.classList.add("ut-border-left"));
+                    }
+                }
+            }
+
+            // Right-pinned: only show border on the innermost right column when not fully scrolled
+            this.container.querySelectorAll(".ut-border-right").forEach((el) => {
+                el.classList.remove("ut-border-right");
+            });
+
+            if (rightCols.length > 0) {
+                const lastRightColId = rightCols[rightCols.length - 1];
+                const thCell = this.container.querySelector(`th[data-col-id="${lastRightColId}"]`);
+                if (thCell) {
+                    const isRightScrolled =
+                        tableContainer.scrollLeft < tableContainer.scrollWidth - tableContainer.offsetWidth - 1;
+                    if (isRightScrolled) {
+                        this.container
+                            .querySelectorAll(`[data-col-id="${lastRightColId}"] .ut-cell-content`)
+                            .forEach((el) => el.classList.add("ut-border-right"));
+                    }
+                }
+            }
+        };
+
+        this._scrollListener = updateBorderOnScroll;
+        tableContainer.addEventListener("scroll", updateBorderOnScroll, { passive: true });
+        // Trigger once on render to set initial state
+        updateBorderOnScroll();
+    }
+    renderCellContent(containerElement, rowId, col, rowData, isUpdatable) {
+        containerElement.innerHTML = "";
+        const localRow = this.localChanges.get(rowId) || {};
+        const fieldDef = this.fieldDefinitions[col.id];
+
+        // Restore currency overlay if needed
+        if (fieldDef?.currency) {
+            const currencyOverlay = document.createElement("span");
+            currencyOverlay.className = "ut-currency-overlay";
+            currencyOverlay.innerHTML = typeof fieldDef.currency === "string" ? fieldDef.currency : "&#8369;";
+            containerElement.appendChild(currencyOverlay);
+            // Ensure classes are correct on the parent <td>
+            const td = containerElement.parentElement;
+            if (td) td.classList.add("ut-has-currency");
+        }
+
+        // Priority: Active Edit > Local Changes > Server Data
+        let value = rowData[col.id];
+        if (localRow.hasOwnProperty(col.id)) {
+            value = localRow[col.id];
+        }
+        if (this.activeEdit && this.activeEdit.rowId === rowId && this.activeEdit.colId === col.id) {
+            value = this.activeEdit.newValue;
+        }
+
+        const isChanged = !!(
+            localRow.hasOwnProperty(col.id) ||
+            (this.activeEdit && this.activeEdit.rowId === rowId && this.activeEdit.colId === col.id && this.activeEdit.isChanged)
+        );
+        const isInvalid = this.invalidCells.has(`${rowId}:${col.id}`);
+
+        if (!isUpdatable) {
+            const span = document.createElement("span");
+            span.className = "ut-display-span";
+
+            if (fieldDef && fieldDef.renderContent) {
+                const content = fieldDef.renderContent(value, col, rowData);
+                if (typeof content === "string") span.innerHTML = this.searchQuery ? this.highlight(content) : content;
+                else if (content instanceof Node) span.appendChild(content);
+            } else {
+                span.innerHTML = this.formatValue(value, col.id, true);
+            }
+
+            // Apply per-column span styling from fieldDefinitions
+            if (fieldDef?.spanClass) span.classList.add(fieldDef.spanClass);
+            if (fieldDef?.spanStyle) span.style.cssText += fieldDef.spanStyle;
+
+            if (col.id === "price") {
+                span.classList.add("price-span");
+                span.style.color = "white";
+            }
+            containerElement.appendChild(span);
+        } else {
+            // 1. Create Display Span
+            const span = document.createElement("span");
+            span.className = `ut-editable-span ${isChanged ? "ut-span-changed" : ""} ${isInvalid ? "ut-span-invalid" : ""}`;
+
+            // Use custom renderContent if available for the editable span too
+            if (fieldDef && fieldDef.renderContent) {
+                const content = fieldDef.renderContent(value, col, rowData);
+                if (typeof content === "string") span.innerHTML = this.searchQuery ? this.highlight(content) : content;
+                else if (content instanceof Node) span.appendChild(content);
+            } else {
+                span.innerHTML = this.formatValue(value, col.id, true);
+            }
+
+            // Apply per-column span styling from fieldDefinitions
+            if (fieldDef?.spanClass) span.classList.add(fieldDef.spanClass);
+            if (fieldDef?.spanStyle) span.style.cssText += fieldDef.spanStyle;
+
+            if (col.id === "price") {
+                span.classList.add("price-span");
+                span.style.color = "white"; // Force white text for price
+            }
+
+            // 2. Create Input/Select
+            let input;
+            if (fieldDef && fieldDef.renderInput) {
+                input = fieldDef.renderInput(value, col, rowData);
+            } else if (col.type === "select" && col.options) {
+                input = document.createElement("select");
+                input.className = "ut-input ut-select";
+                col.options.forEach((opt) => {
+                    const option = document.createElement("option");
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    option.selected = String(opt.value) === String(value);
+                    input.appendChild(option);
+                });
+            } else {
+                input = document.createElement("input");
+                const isNumeric =
+                    col?.isNumeric || fieldDef?.currency || col?.currency || col.id === "price" || col.id === "stock";
+                input.type = isNumeric ? "number" : "text";
+                if (isNumeric) input.step = "any";
+                input.value = value === null || value === undefined ? "" : value;
+                input.className = "ut-input";
+            }
+
+            input.classList.add("ut-editable-input");
+            if (isChanged) input.classList.add("ut-input-changed");
+            if (isInvalid) input.classList.add("ut-input-invalid");
+            input.style.display = "none";
+
+            containerElement.appendChild(span);
+            containerElement.appendChild(input);
+
+            // 3. Event Listeners for Toggling
+            span.addEventListener("click", () => {
+                span.style.display = "none";
+                input.style.display = "block";
+                setTimeout(() => {
+                    input.focus();
+                    if (input.tagName === "INPUT") input.select();
+                    if (input.tagName === "SELECT") {
+                        // Attempt to open the dropdown
+                        const event = new MouseEvent("mousedown", { bubbles: true });
+                        input.dispatchEvent(event);
+                    }
+                }, 10);
+            });
+
+            input.addEventListener("blur", () => {
+                input.style.display = "none";
+                span.style.display = "flex"; // Use flex to maintain vertical centering
+
+                // Refresh span content
+                if (fieldDef && fieldDef.renderContent) {
+                    const content = fieldDef.renderContent(input.value, col, rowData);
+                    if (typeof content === "string") span.innerHTML = this.searchQuery ? this.highlight(content) : content;
+                    else {
+                        span.innerHTML = "";
+                        span.appendChild(content);
+                    }
+                } else {
+                    span.innerHTML = this.formatValue(input.value, col.id, true);
+                }
+
+                // Update tooltip: error prioritized over custom tooltip
+                const error = this.invalidCells.get(`${rowId}:${col.id}`);
+                span.classList.toggle("ut-span-invalid", !!error);
+                if (error) {
+                    span.title = error;
+                } else if (fieldDef && fieldDef.renderTooltip) {
+                    span.title = fieldDef.renderTooltip(input.value, col, rowData);
+                } else {
+                    span.title = "";
+                }
+            });
+
+            input.addEventListener("input", (e) => {
+                this.validateCell(rowId, col.id, e.target.value);
+            });
+
+            input.addEventListener("change", (e) => {
+                this.handleCellChange(rowId, col.id, e.target.value);
+            });
+        }
+
+        this.renderIndicators(containerElement, rowId, col.id, isChanged, isInvalid);
+
+        const input = containerElement.querySelector(".ut-input");
+        if (input) {
+            input.classList.toggle("ut-input-changed", isChanged);
+            input.classList.toggle("ut-input-invalid", isInvalid);
+        }
+    }
+
+    renderIndicators(containerElement, rowId, colId, isChanged, isInvalid) {
+        let stack = containerElement.querySelector(".ut-indicator-stack");
         if (stack) stack.remove();
 
         if (isChanged || isInvalid) {
-            stack = document.createElement('div');
-            stack.className = 'ut-indicator-stack';
-            
+            stack = document.createElement("div");
+            stack.className = "ut-indicator-stack";
+
+            // Always apply left-border position for consistency across all updatable cells
+            stack.classList.add("ut-indicator-left-border");
+
             if (isChanged) {
-                const changeIn = document.createElement('span');
-                changeIn.className = 'ut-indicator ut-change-indicator';
-                changeIn.title = 'Value changed. Click to revert.';
-                changeIn.addEventListener('click', (e) => {
+                const changeIn = document.createElement("span");
+                changeIn.className = "ut-indicator ut-change-indicator";
+                changeIn.title = "Value changed. Click to revert.";
+                changeIn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     this.showRevertConfirm(rowId, colId, changeIn);
                 });
@@ -544,53 +1255,42 @@ export default class UpdatableTable {
             }
 
             if (isInvalid) {
-                const invalidIn = document.createElement('span');
-                invalidIn.className = 'ut-indicator ut-invalid-indicator';
-                invalidIn.title = this.invalidCells.get(`${rowId}:${colId}`) || 'Invalid input.';
+                const invalidIn = document.createElement("span");
+                invalidIn.className = "ut-indicator ut-invalid-indicator";
+                invalidIn.title = this.invalidCells.get(`${rowId}:${colId}`) || "Invalid input.";
                 stack.appendChild(invalidIn);
             }
 
-            wrapper.appendChild(stack);
+            containerElement.appendChild(stack);
         }
     }
 
     showRevertConfirm(rowId, colId, anchorElement) {
-        const existing = document.querySelector('.ut-revert-popup');
-        if (existing) existing.remove();
+        const originalRow = this.rows.get(rowId) || {};
+        const originalValue = this.formatValue(originalRow[colId], colId);
 
-        const popup = document.createElement('div');
-        popup.className = 'ut-revert-popup ut-filter-popup'; // reuse animation
-        popup.style.display = 'block';
-        popup.innerHTML = `
-            <span class="ut-revert-title">Revert Cell?</span>
-            <div class="ut-revert-actions">
-                <button class="ut-revert-yes">Yes</button>
-                <button class="ut-revert-no">No</button>
-            </div>
-        `;
-        
-        anchorElement.parentElement.appendChild(popup);
-
-        popup.querySelector('.ut-revert-yes').onclick = (e) => {
-            e.stopPropagation();
-            this.revertCell(rowId, colId);
-            popup.remove();
-        };
-        popup.querySelector('.ut-revert-no').onclick = (e) => {
-            e.stopPropagation();
-            popup.remove();
-        };
-        
-        // Prevent closing filter popup if inside
-        popup.addEventListener('click', e => e.stopPropagation());
+        window.showSidePopup(
+            anchorElement,
+            `Revert to "${originalValue}"?`,
+            () => {
+                this.revertCell(rowId, colId);
+                if (typeof window.showToast === "function") window.showToast("Cell reverted.", "success");
+            },
+            "fa-undo",
+            "Revert",
+            "var(--nc-primary)",
+        );
     }
 
     revertCell(rowId, colId) {
         const rowChanges = this.localChanges.get(rowId);
         if (rowChanges) {
             delete rowChanges[colId];
-            if (Object.keys(rowChanges).length === 0)            this.localChanges.delete(rowId);
+            if (Object.keys(rowChanges).length === 0) this.localChanges.delete(rowId);
             this.invalidCells.delete(`${rowId}:${colId}`);
+            if (this.activeEdit && this.activeEdit.rowId === rowId && this.activeEdit.colId === colId) {
+                this.activeEdit = null;
+            }
             this.saveToLocalStorage();
             this.renderTable();
             this.updateControls();
@@ -598,38 +1298,50 @@ export default class UpdatableTable {
     }
 
     validateCell(rowId, colId, newValue, updateUI = true) {
-        const colDef = this.data?.columns.find(c => c.id === colId);
+        const colDef = this.data?.columns.find((c) => c.id === colId);
         const rules = colDef?.validation;
         let isValid = true;
-        let errorMessage = '';
+        let errorMessage = "";
 
+        const valStr = newValue !== null && newValue !== undefined ? String(newValue).trim() : "";
+        const num = parseFloat(valStr);
+
+        // 1. Check for explicit rules
         if (rules) {
-            const valStr = newValue !== null && newValue !== undefined ? String(newValue).trim() : '';
-            if (rules.required && valStr === '') {
+            if (rules.required && valStr === "") {
                 isValid = false;
-                errorMessage = rules.requiredMsg || 'Required field cannot be empty.';
+                errorMessage = rules.requiredMsg || "Required field cannot be empty.";
+            } else if (valStr !== "") {
+                if (rules.min !== undefined && num < rules.min) {
+                    isValid = false;
+                    errorMessage = rules.minMsg || `Value must be at least ${rules.min}.`;
+                } else if (rules.max !== undefined && num > rules.max) {
+                    isValid = false;
+                    errorMessage = rules.maxMsg || `Value must be at most ${rules.max}.`;
+                }
             }
-            if (isValid && rules.minLength && valStr.length < rules.minLength) {
-                isValid = false;
-                errorMessage = rules.minLengthMsg || `Minimum length is ${rules.minLength}.`;
+        }
+
+        // 2. Fallback/Enforced Validation for Price and Stock (Numeric/Currency)
+        if (isValid) {
+            const isNumeric =
+                colDef?.isNumeric ||
+                colId === "price" ||
+                colId === "stock" ||
+                colDef?.currency ||
+                this.fieldDefinitions[colId]?.currency;
+            if (isNumeric) {
+                if (valStr === "") {
+                    isValid = false;
+                    errorMessage = "Value cannot be empty.";
+                } else if (isNaN(num)) {
+                    isValid = false;
+                    errorMessage = "Value must be a valid number.";
+                } else if (num < 0) {
+                    isValid = false;
+                    errorMessage = "Value cannot be negative.";
+                }
             }
-            if (isValid && rules.maxLength && valStr.length > rules.maxLength) {
-                isValid = false;
-                errorMessage = rules.maxLengthMsg || `Maximum length is ${rules.maxLength}.`;
-            }
-            if (isValid && rules.min !== undefined && Number(newValue) < rules.min) {
-                isValid = false;
-                errorMessage = rules.rangeMsg || `Minimum value is ${rules.min}.`;
-            }
-            if (isValid && rules.max !== undefined && Number(newValue) > rules.max) {
-                isValid = false;
-                errorMessage = rules.rangeMsg || `Maximum value is ${rules.max}.`;
-            }
-        } else {
-            const isRequired = true; // Default to required if no rules? Or maybe not.
-            // Let's assume default behavior is what was there
-            isValid = !isRequired || (newValue !== null && newValue !== undefined && String(newValue).trim() !== '');
-            if (!isValid) errorMessage = 'Required field cannot be empty.';
         }
 
         if (isValid) {
@@ -639,17 +1351,53 @@ export default class UpdatableTable {
         }
 
         if (updateUI) {
-            const tr = this.container.querySelector(`tr[data-row-id="${rowId}"]`);
-            if (tr) {
-                const td = tr.querySelector(`td[data-col-id="${colId}"]`);
-                const wrapper = td?.querySelector('.ut-cell-wrapper');
-                if (wrapper) {
-                    const rowChanges = this.localChanges.get(rowId) || {};
-                    const isChanged = rowChanges.hasOwnProperty(colId);
-                    this.renderIndicators(wrapper, rowId, colId, isChanged, !isValid);
+            const td = this.container.querySelector(`tr[data-row-id="${rowId}"] td[data-col-id="${colId}"]`);
+            if (td) {
+                const cellContent = td.querySelector(".ut-cell-content");
+                if (cellContent) {
+                    const input = cellContent.querySelector(".ut-editable-input");
+                    const span = cellContent.querySelector(".ut-editable-span");
+                    if (input) {
+                        input.classList.toggle("ut-input-invalid", !isValid);
+                        input.title = isValid ? "" : errorMessage;
+                    }
+                    if (span) {
+                        span.classList.toggle("ut-span-invalid", !isValid);
+                    }
+
+                    // Real-time "Changed" indicator: compare newValue with original table row data
+                    const originalValue = (this.rows.get(rowId) || {})[colId];
+                    const isChanged = String(newValue) !== String(originalValue);
+
+                    // Update activeEdit tracking for global button visibility
+                    this.activeEdit = { rowId, colId, isChanged, newValue };
+
+                    this.renderIndicators(cellContent, rowId, colId, isChanged, !isValid);
+
+                    // If stock changes, also update the status column in the same row
+                    if (colId === "stock") {
+                        const statusTd = td.parentElement.querySelector('td[data-col-id="status"]');
+                        if (statusTd) {
+                            const statusContent = statusTd.querySelector(".ut-cell-content");
+                            if (statusContent) {
+                                const statusCol = this.data.columns.find((c) => c.id === "status");
+                                if (statusCol) {
+                                    // Temporarily override the row's stock for status rendering
+                                    const rowDataCopy = {
+                                        ...this.rows.get(rowId),
+                                        ...(this.localChanges.get(rowId) || {}),
+                                        stock: newValue,
+                                    };
+                                    this.renderCellContent(statusContent, rowId, statusCol, rowDataCopy, false);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
+        this.updateControls();
+
         return isValid;
     }
 
@@ -660,99 +1408,297 @@ export default class UpdatableTable {
             this.localChanges.set(rowId, rowChanges);
         }
 
-        const originalRow = this.rows.get(rowId) || {};
-        
-        // ── Manual Reset Logic (Update localChanges before validation for UI sync) ──────────────────────
-        if (String(originalRow[colId] ?? '') === String(newValue ?? '')) {
+        const rowData = this.rows.get(rowId) || {};
+        const originalValue = rowData[colId];
+
+        const normOriginal = originalValue === null || originalValue === undefined ? "" : String(originalValue);
+        let normNew = newValue === null || newValue === undefined ? "" : String(newValue);
+
+        // Auto-round currency fields before comparison and storage
+        const fDef = this.fieldDefinitions[colId] || {};
+        const col = this.data?.columns.find((c) => c.id === colId);
+        if (fDef.currency || col?.currency) {
+            const num = parseFloat(newValue);
+            if (!isNaN(num)) {
+                newValue = Number(num.toFixed(2));
+                normNew = String(newValue);
+            }
+        }
+
+        if (normOriginal === normNew) {
             delete rowChanges[colId];
             if (Object.keys(rowChanges).length === 0) this.localChanges.delete(rowId);
         } else {
             rowChanges[colId] = newValue;
         }
 
-        // ── Validation (will use updated localChanges for isChanged state) ──────────────────────────────
         this.validateCell(rowId, colId, newValue, true);
-
+        this.activeEdit = null;
         this.saveToLocalStorage();
         this.updateControls();
-        
+
+        // Localized UI Update
         const tr = this.container.querySelector(`tr[data-row-id="${rowId}"]`);
         const td = tr?.querySelector(`td[data-col-id="${colId}"]`);
-        const wrapper = td?.querySelector('.ut-cell-wrapper');
-        const input = td?.querySelector('.ut-input');
-        
-        if (wrapper) {
+        const span = td?.querySelector(".ut-editable-span");
+        const input = td?.querySelector(".ut-editable-input");
+
+        if (span) {
             const isChanged = rowChanges.hasOwnProperty(colId);
             const isInvalid = this.invalidCells.has(`${rowId}:${colId}`);
+
+            span.classList.toggle("ut-span-changed", isChanged);
+            span.classList.toggle("ut-span-invalid", isInvalid);
             if (input) {
-                input.classList.toggle('ut-input-changed', isChanged);
-                input.classList.toggle('ut-input-invalid', isInvalid);
+                input.classList.toggle("ut-input-changed", isChanged);
+                input.classList.toggle("ut-input-invalid", isInvalid);
             }
-            this.renderIndicators(wrapper, rowId, colId, isChanged, isInvalid);
+
+            // Refresh span content
+            const fieldDef = this.fieldDefinitions[colId];
+            if (fieldDef && fieldDef.renderContent) {
+                const content = fieldDef.renderContent(newValue, colId, rowData);
+                if (typeof content === "string") span.innerHTML = this.searchQuery ? this.highlight(content) : content;
+                else {
+                    span.innerHTML = "";
+                    span.appendChild(content);
+                }
+            } else {
+                span.innerHTML = this.formatValue(newValue, colId, true);
+            }
         }
     }
 
     updateControls() {
-        const saveBtn = this.container.querySelector('.ut-save-btn');
-        const hasChanges = this.localChanges.size > 0;
+        const saveBtn = this.container.querySelector(".ut-save-btn");
+        const clearBtn = this.container.querySelector(".ut-clear-btn");
+        const hasLocalChanges = this.localChanges.size > 0;
+        const hasPendingChange = this.activeEdit && this.activeEdit.isChanged;
+        const hasChanges = hasLocalChanges || hasPendingChange;
         const hasErrors = this.invalidCells.size > 0;
 
         if (hasChanges && this.data?.updateRequest) {
-            saveBtn.style.display = 'inline-block';
+            let totalPropertyChanges = 0;
+            for (const [rowId, changes] of this.localChanges.entries()) {
+                totalPropertyChanges += Object.keys(changes).length;
+            }
+
+            // Include current active edit if it's dirty and not yet committed to localChanges
+            if (hasPendingChange) {
+                const alreadyInLocal = this.localChanges.get(this.activeEdit.rowId)?.hasOwnProperty(this.activeEdit.colId);
+                if (!alreadyInLocal) {
+                    totalPropertyChanges++;
+                }
+            }
+
+            saveBtn.style.display = "inline-flex";
             saveBtn.disabled = hasErrors;
-            saveBtn.textContent = hasErrors ? 'Fix Errors' : `Save Changes (${this.localChanges.size} rows)`;
-            saveBtn.style.opacity = hasErrors ? '0.5' : '1';
+            const btnText = hasErrors ? `<span class="ut-btn-text-error">Fix Errors</span>` : `Save Changes`;
+            saveBtn.innerHTML = `<i class="fa fa-save me-2"></i> ${btnText} (${totalPropertyChanges})`;
+            saveBtn.parentElement.style.display = "inline-flex";
+
+            clearBtn.style.display = "inline-flex";
+            clearBtn.parentElement.style.display = "inline-flex";
         } else {
-            saveBtn.style.display = 'none';
+            saveBtn.parentElement.style.display = "none";
+            clearBtn.parentElement.style.display = "none";
+            // Hide popups
+            this.container.querySelectorAll(".ut-diff-modal").forEach((m) => (m.style.display = "none"));
+        }
+    }
+
+    showClearDiffModal() {
+        if (this.localChanges.size === 0) return;
+
+        // Close other popups
+        const filterPopup = this.container.querySelector(".ut-filter-popup");
+        if (filterPopup) filterPopup.style.display = "none";
+
+        const popup = this.container.querySelector(".ut-clear-popup");
+        if (popup.style.display === "block") {
+            popup.style.display = "none";
+            return;
+        }
+
+        let diffHtml =
+            '<table class="ut-diff-table"><tr><th>Product</th><th>Field</th><th>Original</th><th>Current</th><th></th></tr>';
+        for (const [id, changes] of this.localChanges) {
+            const row = this.rows.get(id);
+            if (!row) continue;
+            const name = row.name || `Record #${id}`;
+            const imgData = row.image || {};
+            const imgUrl = imgData.image || "https://placehold.co/50x50/1a1f2c/7babdd?text=?";
+            let firstForProduct = true;
+            for (const [colId, newVal] of Object.entries(changes)) {
+                const label = this.fieldDefinitions[colId]?.label || this.toLabelCase(colId);
+                diffHtml += `
+                    <tr class="ut-diff-data-row ${!firstForProduct ? "ut-diff-row-internal" : ""}" data-product-id="${id}">
+                        <td class="ut-diff-product-cell">
+                            ${
+                                firstForProduct
+                                    ? `
+                                <div class="ut-diff-product-info">
+                                    <img src="${imgUrl}" class="ut-diff-thumb" />
+                                    <span class="ut-diff-product-name" title="${name}">${name}</span>
+                                </div>
+                            `
+                                    : ""
+                            }
+                        </td>
+                        <td class="ut-diff-field-cell">${label}</td>
+                        <td class="ut-diff-old">${this.formatValue(row[colId], colId)}</td>
+                        <td class="ut-diff-new">${this.formatValue(newVal, colId)}</td>
+                        <td>
+                            <button class="ut-revert-cell-btn" title="Revert" onclick="window.updatableTables['${this.container.id}'].removeDiffRow(this, '${id}', '${colId}')">
+                                <i class="fa fa-undo"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                firstForProduct = false;
+            }
+        }
+        diffHtml += "</table>";
+
+        popup.innerHTML = `
+            <div class="ut-popup-header"><i class="fa fa-undo" style="color:var(--nc-error)"></i><span>Clear Changes</span></div>
+            <div class="ut-diff-container" style="max-height: 350px; overflow-y: auto; overflow-x: auto; margin-bottom: 1rem;">
+                ${diffHtml}
+            </div>
+            <div class="ut-modal-actions">
+                <button class="ut-popup-btn-cancel">Cancel</button>
+                <button class="ut-popup-btn-confirm btn-danger">Clear All</button>
+            </div>
+        `;
+
+        popup.style.display = "block";
+        const overlay = document.getElementById("ncGlobalOverlay");
+        const triggerBtn = this.container.querySelector(".ut-clear-btn");
+        if (overlay) overlay.classList.add("show");
+        this.container.classList.add("ut-has-popup");
+        if (triggerBtn) triggerBtn.classList.add("ut-popup-active-trigger");
+
+        popup.querySelector(".ut-popup-btn-cancel").onclick = () => {
+            popup.style.display = "none";
+            if (overlay) overlay.classList.remove("show");
+            this.container.classList.remove("ut-has-popup");
+            if (triggerBtn) triggerBtn.classList.remove("ut-popup-active-trigger");
+        };
+        popup.querySelector(".ut-popup-btn-confirm").onclick = () => {
+            this.performClearAll();
+            popup.style.display = "none";
+            if (overlay) overlay.classList.remove("show");
+            this.container.classList.remove("ut-has-popup");
+            if (triggerBtn) triggerBtn.classList.remove("ut-popup-active-trigger");
+        };
+    }
+
+    async performClearAll() {
+        this.localChanges = new Map();
+        this.invalidCells = new Map();
+        this.activeEdit = null;
+
+        this.clearLocalStorage();
+
+        // Hard Reset: Rebuild container structure and table
+        this.renderContainer();
+        this.currentPage = 1;
+        this.renderTable();
+        this.updateControls();
+
+        if (typeof window.showToast === "function") {
+            window.showToast("All changes cleared.", "info");
         }
     }
 
     showSaveDiffModal() {
-        if (this.invalidCells.size > 0) return;
+        if (this.localChanges.size === 0 || this.invalidCells.size > 0) return;
 
-        const modal = document.createElement('div');
-        modal.className = 'ut-modal-overlay';
-        
-        let diffHtml = '<table class="ut-diff-table"><tr><th>Product</th><th>Field</th><th>Old</th><th>New</th></tr>';
-        
+        // Close other popups
+        const filterPopup = this.container.querySelector(".ut-filter-popup");
+        if (filterPopup) filterPopup.style.display = "none";
+
+        const popup = this.container.querySelector(".ut-save-popup");
+        if (popup.style.display === "block") {
+            popup.style.display = "none";
+            return;
+        }
+
+        let diffHtml = '<table class="ut-diff-table"><tr><th>Product</th><th>Field</th><th>Original</th><th>New</th></tr>';
         for (const [id, changes] of this.localChanges) {
             const row = this.rows.get(id);
-            // Fallback chain for row name
-            const name = row.name || (row.photo && row.photo.name) || (row.productInfo && row.productInfo.name) || `Record #${id}`;
-            for (const [colId, newVal] of Object.entries(changes)) {
+            if (!row) continue;
+            const name = row.name || `Record #${id}`;
+            const imgData = row.image || {};
+            const imgUrl = imgData.image || "https://placehold.co/50x50/1a1f2c/7babdd?text=?";
+            const changeEntries = Object.entries(changes);
+            const totalChanges = changeEntries.length;
+
+            changeEntries.forEach(([colId, newVal], index) => {
                 const label = this.fieldDefinitions[colId]?.label || this.toLabelCase(colId);
+                const isFirst = index === 0;
+                const isLast = index === totalChanges - 1;
+                const hasMultiple = totalChanges > 1;
+
+                let rowClass = "ut-diff-data-row";
+                if (hasMultiple) {
+                    if (!isFirst) rowClass += " ut-diff-row-no-top";
+                    if (!isLast) rowClass += " ut-diff-row-no-bottom";
+                }
+
                 diffHtml += `
-                    <tr>
-                        <td>${name}</td>
-                        <td>${label}</td>
+                    <tr class="${rowClass}" data-product-id="${id}">
+                        <td class="ut-diff-product-cell">
+                            ${
+                                isFirst
+                                    ? `
+                                <div class="ut-diff-product-info">
+                                    <img src="${imgUrl}" class="ut-diff-thumb" />
+                                    <span class="ut-diff-product-name" title="${name}">${name}</span>
+                                </div>
+                            `
+                                    : ""
+                            }
+                        </td>
+                        <td class="ut-diff-field-cell">${label}</td>
                         <td class="ut-diff-old">${this.formatValue(row[colId], colId)}</td>
                         <td class="ut-diff-new">${this.formatValue(newVal, colId)}</td>
                     </tr>
                 `;
-            }
+            });
         }
-        diffHtml += '</table>';
+        diffHtml += "</table>";
 
-        modal.innerHTML = `
-            <div class="ut-modal-content">
-                <h2 class="ut-header">Confirm Changes</h2>
-                <p>Please review the changes before saving to the database.</p>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    ${diffHtml}
-                </div>
-                <div class="ut-modal-actions">
-                    <button class="btn-nc-outline ut-modal-cancel">Cancel</button>
-                    <button class="btn-nc-primary ut-modal-save">Confirm and Save</button>
-                </div>
+        popup.innerHTML = `
+            <div class="ut-popup-header"><i class="fa fa-save" style="color:var(--nc-primary)"></i><span>Confirm Changes</span></div>
+            <div class="ut-diff-container" style="max-height: 350px; overflow-y: auto; overflow-x: auto; margin-bottom: 1rem;">
+                ${diffHtml}
+            </div>
+            <div class="ut-modal-actions">
+                <button class="ut-popup-btn-cancel">Cancel</button>
+                <button class="ut-popup-btn-confirm">Save All</button>
             </div>
         `;
 
-        document.body.appendChild(modal);
+        popup.style.display = "block";
+        const overlay = document.getElementById("ncGlobalOverlay");
+        const triggerBtn = this.container.querySelector(".ut-save-btn");
+        if (overlay) overlay.classList.add("show");
+        this.container.classList.add("ut-has-popup");
+        if (triggerBtn) triggerBtn.classList.add("ut-popup-active-trigger");
 
-        modal.querySelector('.ut-modal-cancel').onclick = () => modal.remove();
-        modal.querySelector('.ut-modal-save').onclick = () => {
-            modal.remove();
+        popup.querySelector(".ut-popup-btn-cancel").onclick = () => {
+            popup.style.display = "none";
+            if (overlay) overlay.classList.remove("show");
+            this.container.classList.remove("ut-has-popup");
+            if (triggerBtn) triggerBtn.classList.remove("ut-popup-active-trigger");
+        };
+        popup.querySelector(".ut-popup-btn-confirm").onclick = () => {
             this.saveChanges();
+            popup.style.display = "none";
+            if (overlay) overlay.classList.remove("show");
+            this.container.classList.remove("ut-has-popup");
+            if (triggerBtn) triggerBtn.classList.remove("ut-popup-active-trigger");
         };
     }
 
@@ -765,14 +1711,17 @@ export default class UpdatableTable {
 
         try {
             const res = await fetch(this.data.updateRequest, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ changes: changesToSave })
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    RequestVerificationToken: document.querySelector('input[name="__RequestVerificationToken"]')?.value || "",
+                },
+                body: JSON.stringify({ changes: changesToSave }),
             });
             if (!res.ok) throw new Error("Save failed");
-            
-            // Notification logic here (Phase 6b: Toast)
-            if (typeof window.showToast === 'function') {
+
+            if (typeof window.showToast === "function") {
                 window.showToast("Changes saved successfully!", "success");
             }
 
@@ -780,42 +1729,136 @@ export default class UpdatableTable {
             this.clearLocalStorage();
             await this.fetchData();
         } catch (e) {
-            if (typeof window.showToast === 'function') {
+            if (typeof window.showToast === "function") {
                 window.showToast("Failed to save changes.", "error");
-            } else {
-                alert("Failed to save changes.");
             }
         }
     }
 
     highlight(text) {
-        if (!this.searchQuery) return text;
-        const escaped = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(${escaped})`, 'gi');
-        return text.toString().replace(regex, '<mark class="ut-highlight">$1</mark>');
+        return window.ncHighlight(text, this.searchQuery);
     }
 
     toLabelCase(str) {
-        if (!str) return '';
+        if (!str) return "";
         const result = str.replace(/([A-Z])/g, " $1");
         return result.charAt(0).toUpperCase() + result.slice(1);
     }
 
     formatValue(val, colId = null, useHighlight = false) {
-        if (val === null || val === undefined) return '';
-        let str = '';
-        if (typeof val === 'object') str = val.name || val.label || val.value || JSON.stringify(val);
+        if (val === null || val === undefined) return "";
+        let str = "";
+        if (typeof val === "object") str = val.name || val.label || val.value || JSON.stringify(val);
         else {
-            // Check if it's a select column and find the label
-            const col = colId ? this.data.columns.find(c => c.id === colId) : null;
-            if (col && col.type === 'select' && col.options) {
-                const option = col.options.find(o => String(o.value) === String(val));
+            const col = colId ? this.data.columns.find((c) => c.id === colId) : null;
+            const fDef = colId ? this.fieldDefinitions[colId] : null;
+
+            if (col && col.type === "select" && col.options) {
+                const option = col.options.find((o) => String(o.value) === String(val));
                 str = option ? option.label : String(val);
             } else {
-                str = String(val);
+                const isCurrency = col?.currency || fDef?.currency || false;
+                const minDecimals = isCurrency ? 2 : 0;
+
+                if (typeof val === "number") {
+                    str = val.toLocaleString("en-US", { minimumFractionDigits: minDecimals, maximumFractionDigits: 2 });
+                } else if (!isNaN(val) && val !== "" && val !== null) {
+                    const n = parseFloat(val);
+                    str = n.toLocaleString("en-US", { minimumFractionDigits: minDecimals, maximumFractionDigits: 2 });
+                } else {
+                    str = String(val);
+                }
             }
         }
-        
-        return (useHighlight && this.searchQuery) ? this.highlight(str) : str;
+        return useHighlight && this.searchQuery ? this.highlight(str) : str;
+    }
+
+    confirmRestore(rowId, url, element) {
+        if (element) element.classList.add("ut-popup-active-trigger");
+        this.container.classList.add("ut-has-popup");
+        window.showSidePopup(
+            element,
+            "Restore record?",
+            () => {
+                if (element) element.classList.remove("ut-popup-active-trigger");
+                this.container.classList.remove("ut-has-popup");
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-Requested-With": "XMLHttpRequest",
+                        RequestVerificationToken: token,
+                    },
+                    body: new URLSearchParams({ id: rowId }),
+                }).then((r) => {
+                    if (r.ok) {
+                        window.showToast("Record restored", "success");
+                        this.fetchData();
+                    } else {
+                        window.showToast("Failed to restore record", "error");
+                    }
+                });
+            },
+            "fa-undo",
+            "Restore",
+            "var(--nc-success)",
+            "",
+            "btn-success"
+        );
+    }
+
+    confirmDelete(rowId, url, element) {
+        if (element) element.classList.add("ut-popup-active-trigger");
+        this.container.classList.add("ut-has-popup");
+        window.showSidePopup(
+            element,
+            "Delete record?",
+            () => {
+                if (element) element.classList.remove("ut-popup-active-trigger");
+                this.container.classList.remove("ut-has-popup");
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-Requested-With": "XMLHttpRequest",
+                        RequestVerificationToken: token,
+                    },
+                    body: new URLSearchParams({ id: rowId }),
+                }).then((r) => {
+                    if (r.ok) {
+                        window.showToast("Record deleted", "success");
+                        this.fetchData();
+                    } else {
+                        window.showToast("Failed to delete record", "error");
+                    }
+                });
+            },
+            "fa-trash",
+            "Delete",
+            "var(--nc-error)",
+            "",
+            "btn-danger"
+        );
+    }
+
+    removeDiffRow(btn, rowId, colId) {
+        // Revert the actual data
+        this.revertCell(rowId, colId);
+
+        // Re-render the appropriate modal
+        const isClearModal = document.querySelector(".ut-side-popup[data-popup-type='clear']");
+        if (isClearModal) {
+            this.showClearDiffModal();
+        } else {
+            this.showSaveDiffModal();
+        }
+
+        // Check if table is totally empty (handled by re-render logic implicitly if localChanges empty)
+        if (this.localChanges.size === 0) {
+            const popup = document.querySelector(".ut-side-popup");
+            if (popup) popup.remove();
+        }
     }
 }

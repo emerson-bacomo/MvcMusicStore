@@ -15,7 +15,7 @@
         <div class="nc-form-section">
             <h3 class="nc-form-section-title">Basic Information</h3>
             <div class="nc-form-group">
-                <label class="nc-label" asp-for="Name">Instrument Name</label>
+                <label class="nc-label" asp-for="Name">Product Name</label>
                 <input asp-for="Name" class="nc-input" placeholder="e.g. Squier Sonic Stratocaster" />
                 <span asp-validation-for="Name" class="nc-validation-error"></span>
             </div>
@@ -128,7 +128,7 @@
 
             <div class="nc-form-group">
                 <label class="nc-label" asp-for="Description">Description</label>
-                <textarea asp-for="Description" class="nc-input" rows="3" placeholder="Tell us about this instrument..."></textarea>
+                <textarea asp-for="Description" class="nc-input" rows="3" placeholder="Tell us about this product..."></textarea>
                 <span asp-validation-for="Description" class="nc-validation-error"></span>
             </div>
 
@@ -167,7 +167,7 @@
                     style="padding: 0.7rem 2rem; 
                            border-radius: var(--nc-radius-sm); 
                            font-weight: 700;">
-                <i class="fa fa-save me-1"></i> @(isEdit ? "Update Instrument" : "Save Instrument")
+                <i class="fa fa-save me-1"></i> @(isEdit ? "Update Product" : "Save Product")
             </button>
         </div>
     </form>

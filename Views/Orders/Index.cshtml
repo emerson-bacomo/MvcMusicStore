@@ -10,121 +10,105 @@
             <div>
                 <div class="nc-breadcrumb"><i class="fa fa-shopping-cart"></i> Admin Panel</div>
                 <h1 class="nc-page-title">Order Management</h1>
-                <p class="nc-page-subtitle">Track and process customer instrument orders.</p>
+                <p class="nc-page-subtitle">Track and process customer orders.</p>
             </div>
             <div class="nc-page-actions">
-                <a href="javascript:history.back()" class="btn-nc-outline" style="padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">
-                    <i class="fa fa-arrow-left me-1"></i> Back
-                </a>
             </div>
         </div>
 
-        <div class="nc-card" style="width: 100%;">
-            <div class="nc-card-body p-0" style="width: 100%;">
-                @if (!Model.Any())
-                {
-                    <div style="text-align:center;padding:3rem;color:var(--nc-text-muted);">
-                        <i class="fa fa-box-open" style="font-size:2.5rem;display:block;margin-bottom:1rem;"></i>
-                        <p>No orders found.</p>
-                    </div>
-                }
-                else
-                {
-                    <div class="nc-table-responsive">
-                        <table class="nc-table">
-                            <thead>
-                                <tr>
-                                    <th><i class="fa fa-hashtag me-1"></i> Order ID</th>
-                                    <th><i class="fa fa-user me-1"></i> Customer</th>
-                                    <th><i class="fa fa-box me-1"></i> Products</th>
-                                    <th><i class="fa fa-peseta-sign me-1"></i> Amount</th>
-                                    <th><i class="fa fa-circle me-1"></i> Status</th>
-                                    <th><i class="fa fa-calendar me-1"></i> Date</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var o in Model)
-                                {
-                                    <tr>
-                                        <td style="font-weight:700; color:var(--nc-primary);">#@o.Id</td>
-                                        <td style="font-weight:600;">@o.CustomerName</td>
-                                        <td style="color:var(--nc-text-muted); font-size:0.85rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@o.Products</td>
-                                        <td style="font-weight:700;">₱@o.Amount.ToString("N2")</td>
-                                        <td>
-                                            <span class="cust-badge @(o.Status switch { "Delivered" => "active", "OnDelivery" => "delivery", "Pending" => "pending", _ => "" })">
-                                                <i class="fa @(o.Status switch { "Delivered" => "fa-check-circle", "OnDelivery" => "fa-truck", "Pending" => "fa-clock", _ => "fa-circle" }) me-1"></i>
-                                                @(o.Status == "OnDelivery" ? "On Delivery" : o.Status)
-                                            </span>
-                                        </td>
-                                        <td style="color:var(--nc-text-muted); font-size:0.8rem;">@o.Date.ToString("MMM d, yyyy")</td>
-                                        <td class="text-end">
-                                            <a asp-action="Detail" asp-route-id="@o.Id" class="nc-action-link" title="View Details">
-                                                <i class="fa fa-eye"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination Controls -->
-                    @if (ViewBag.TotalPages > 1)
-                    {
-                        <div class="d-flex justify-content-between align-items-center mt-4 px-3 pb-3">
-                            <div class="nc-text-muted" style="font-size: 0.85rem;">
-                                Showing page <strong>@ViewBag.CurrentPage</strong> of <strong>@ViewBag.TotalPages</strong>
-                            </div>
-                            <nav aria-label="Order pagination">
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
-                                        <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage - 1)" tabindex="-1" 
-                                           style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
-                                            <i class="fa fa-angle-left"></i>
-                                        </a>
-                                    </li>
-                                    
-                                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-                                    {
-                                        if (i == 1 || i == ViewBag.TotalPages || (i >= ViewBag.CurrentPage - 2 && i <= ViewBag.CurrentPage + 2))
-                                        {
-                                            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                                <a class="page-link" asp-action="Index" asp-route-page="@i"
-                                                   style="@(i == ViewBag.CurrentPage ? "background: var(--nc-primary); border-color: var(--nc-primary); color: #fff;" : "background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);")">
-                                                    @i
-                                                </a>
-                                            </li>
-                                        }
-                                        else if (i == 2 || i == ViewBag.TotalPages - 1)
-                                        {
-                                            <li class="page-item disabled"><span class="page-link" style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-muted);">...</span></li>
-                                        }
-                                    }
-
-                                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-                                        <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage + 1)"
-                                           style="background: var(--nc-bg-card); border-color: var(--nc-border); color: var(--nc-text-primary);">
-                                            <i class="fa fa-angle-right"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
+        <div id="orders-table-root"></div>
     </div>
 </div>
 
-<style>
-    .nc-table-responsive { overflow-x: auto; }
-    .nc-card-body.p-0 { padding: 0; }
-    .cust-badge { font-size: 0.73rem; padding: 0.2rem 0.7rem; border-radius: 100px; font-weight: 700; display: inline-block; }
-    .cust-badge.active { background: rgba(129,199,132,0.1); color: #81c784; border: 1px solid rgba(129,199,132,0.2); }
-    .cust-badge.delivery { background: rgba(123,171,221,0.1); color: #7babdd; border: 1px solid rgba(123,171,221,0.2); }
-    .cust-badge.pending { background: rgba(255,183,77,0.1); color: #ffb74d; border: 1px solid rgba(255,183,77,0.2); }
-    .nc-action-link { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--nc-bg-secondary); color: var(--nc-text-secondary); transition: all 0.25s; border: 1px solid var(--nc-border); cursor: pointer; font-size: 0.85rem; }
-    .nc-action-link:hover { background: var(--nc-primary); color: #fff; transform: translateY(-2px); border-color: var(--nc-primary); }
-</style>
+@section Scripts {
+    <script type="module">
+        import UpdatableTable from '/js/UpdatableTable.js';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new UpdatableTable('#orders-table-root', {
+                storagePrefix: 'orders',
+                request: {
+                    url: '@Url.Action("GetTableData")',
+                    type: 'GET'
+                },
+                fieldDefinitions: {
+                    id: { label: '#', widthPercentage: '1%', spanStyle: 'font-weight: 700; color: var(--nc-primary);' },
+                    customer: { label: 'Customer', widthPercentage: '1%', spanStyle: 'font-weight: 600;' },
+                    products: { label: 'Products', widthPercentage: '100%', widthMaximum: '0', spanStyle: 'font-size: 0.85rem; color: var(--nc-text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' },
+                    amount: { 
+                        label: 'Amount', 
+                        widthPercentage: '1%', 
+                        spanStyle: 'font-weight: 700;',
+                        renderContent: (val) => `₱${parseFloat(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                    },
+                    status: { 
+                        label: 'Status', 
+                        widthMinimum: '150px',
+                        renderContent: (val) => {
+                            const badgeClass = val === 'Delivered' ? 'active' : (val === 'OnDelivery' ? 'delivery' : (val === 'Pending' ? 'pending' : 'cancelled'));
+                            const iconClass = val === 'Delivered' ? 'fa-check-circle' : (val === 'OnDelivery' ? 'fa-truck' : (val === 'Pending' ? 'fa-clock' : 'fa-times-circle'));
+                            const label = val === 'OnDelivery' ? 'On Delivery' : val;
+                            return `<span class="cust-badge ${badgeClass}"><i class="fa ${iconClass} me-1"></i> ${label}</span>`;
+                        }
+                    },
+                    date: { 
+                        label: 'Date', 
+                        widthPercentage: '1%', 
+                        spanStyle: 'font-size: 0.8rem; color: var(--nc-text-muted);',
+                        renderContent: (val) => {
+                            const d = new Date(val);
+                            return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        }
+                    },
+                    actions: {
+                        label: 'Actions',
+                        widthPercentage: '1%',
+                        spanStyle: 'padding: 0; display: flex; justify-content: flex-start;',
+                        renderContent: (val, col, row) => `
+                            <a href="/Orders/Detail/${row.id}" class="nc-action-link" title="View Details">
+                                <i class="fa fa-eye"></i>
+                            </a>`
+                    }
+                }
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/UpdatableTable.css" />
+    <style>
+        .cust-badge {
+            font-size: 0.73rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 100px;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .cust-badge.active { background: rgba(129, 199, 132, 0.1); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.2); }
+        .cust-badge.delivery { background: rgba(123, 171, 221, 0.1); color: #7babdd; border: 1px solid rgba(123, 171, 221, 0.2); }
+        .cust-badge.pending { background: rgba(255, 183, 77, 0.1); color: #ffb74d; border: 1px solid rgba(255, 183, 77, 0.2); }
+        .cust-badge.cancelled { background: rgba(244, 67, 54, 0.1); color: #f44336; border: 1px solid rgba(244, 67, 54, 0.2); }
+
+        .nc-action-link {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--nc-bg-secondary);
+            color: var(--nc-text-secondary);
+            transition: all 0.25s;
+            border: 1px solid var(--nc-border);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .nc-action-link:hover {
+            background: var(--nc-primary);
+            color: #fff;
+            transform: translateY(-2px);
+            border-color: var(--nc-primary);
+        }
+    </style>
+}

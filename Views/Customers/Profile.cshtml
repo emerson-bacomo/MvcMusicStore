@@ -30,7 +30,7 @@
                             }
                         </div>
                         <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.25rem;">@(string.IsNullOrWhiteSpace(customer.FullName.Trim()) ? customer.UserName : customer.FullName)</h2>
-                        <div style="color:var(--nc-text-secondary);font-size:0.9rem;margin-bottom:1rem;">@customer.Email</div>
+                        <div class="nc-text-secondary mb-3" style="font-size:0.9rem;">@customer.Email</div>
                         
                         <div style="display:inline-block;padding:0.3rem 1rem;border-radius:100px;font-size:0.8rem;font-weight:700;margin-bottom:2rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
                             Joined @customer.DateCreated.ToString("MMM d, yyyy")
@@ -38,7 +38,7 @@
 
                         <div style="text-align:left;border-top:1px solid var(--nc-border);padding-top:1.5rem;">
                             <div style="margin-bottom:1rem;font-size:0.85rem;">
-                                <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Status</span>
+                                <span class="nc-text-muted d-block" style="margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Status</span>
                                 @if (customer.IsBanned)
                                 {
                                     <span style="color:#e57373;font-weight:700;"><i class="fa fa-ban me-1"></i> Banned / Disabled</span>
@@ -49,12 +49,12 @@
                                 }
                             </div>
                             <div style="margin-bottom:1rem;font-size:0.85rem;">
-                                <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Orders</span>
-                                <span style="color:var(--nc-text-primary);font-weight:700;font-size:1.1rem;">@Model.Count</span>
+                                <span class="nc-text-muted d-block" style="margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Orders</span>
+                                <span class="nc-text-primary fw-bold" style="font-size:1.1rem;">@Model.Count</span>
                             </div>
                             <div style="font-size:0.85rem;">
-                                <span style="color:var(--nc-text-muted);display:block;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Spent</span>
-                                <span style="color:var(--nc-primary);font-weight:800;font-size:1.2rem;">₱ @Model.Where(o => o.Status != "Cancelled").Sum(o => o.TotalAmount).ToString("N2")</span>
+                                <span class="nc-text-muted d-block" style="margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Spent</span>
+                                <span class="nc-text-primary mb-0" style="font-weight:800;font-size:1.2rem;">₱ @Model.Where(o => o.Status != "Cancelled").Sum(o => o.TotalAmount).ToString("N2")</span>
                             </div>
                         </div>
 
@@ -87,7 +87,7 @@
                     <div class="nc-card-body p-0">
                         @if (!Model.Any())
                         {
-                            <div style="text-align:center;padding:4rem 2rem;color:var(--nc-text-muted);">
+                            <div class="text-center nc-text-muted" style="padding:4rem 2rem;">
                                 <i class="fa fa-box-open" style="font-size:3rem;margin-bottom:1rem;opacity:0.5;"></i>
                                 <p>No orders found for this customer.</p>
                             </div>
@@ -109,19 +109,19 @@
                                         @foreach (var o in Model)
                                         {
                                             <tr>
-                                                <td style="font-weight:600;color:var(--nc-text-secondary);">@o.Id</td>
-                                                <td style="color:var(--nc-text-muted);font-size:0.85rem;">@o.OrderDate.ToString("MMM d, yyyy HH:mm")</td>
+                                                <td class="fw-semibold nc-text-secondary">@o.Id</td>
+                                                <td class="nc-text-muted" style="font-size:0.85rem;">@o.OrderDate.ToString("MMM d, yyyy HH:mm")</td>
                                                 <td>
                                                     <div style="font-size:0.85rem;">
                                                         @foreach (var i in o.OrderItems.Take(2))
                                                         {
                                                             <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px;" title="@i.Product?.Name">
-                                                                <span style="color:var(--nc-text-muted);">@i.Quantity x</span> @(i.Product?.Name ?? "Unknown Product")
+                                                                <span class="nc-text-muted">@i.Quantity x</span> @(i.Product?.Name ?? "Unknown Product")
                                                             </div>
                                                         }
                                                         @if (o.OrderItems.Count > 2)
                                                         {
-                                                            <div style="color:var(--nc-primary);font-size:0.75rem;margin-top:2px;">+ @(o.OrderItems.Count - 2) more</div>
+                                                            <div class="nc-text-primary mt-1" style="font-size:0.75rem;">+ @(o.OrderItems.Count - 2) more</div>
                                                         }
                                                     </div>
                                                 </td>
@@ -146,10 +146,272 @@
     </div>
 </div>
 
-<style>
-    .nc-order-badge { font-size: 0.75rem; padding: 0.25rem 0.8rem; border-radius: 100px; font-weight: 700; display: inline-block; white-space: nowrap; }
-    .status-delivered { background: rgba(129,199,132,0.1); color: #81c784; border: 1px solid rgba(129,199,132,0.2); }
-    .status-delivery { background: rgba(255,183,77,0.1); color: #ffb74d; border: 1px solid rgba(255,183,77,0.2); }
-    .status-pending { background: rgba(123,171,221,0.1); color: var(--nc-primary); border: 1px solid rgba(123,171,221,0.2); }
-    .status-cancelled { background: rgba(229,115,115,0.1); color: #e57373; border: 1px solid rgba(229,115,115,0.2); }
-</style>
+@section Styles {
+    <style>
+        .nc-profile-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        .nc-profile-card {
+            background: var(--nc-bg-card);
+            border: 1px solid var(--nc-border);
+            border-radius: var(--nc-radius);
+            overflow: hidden;
+        }
+
+        .nc-profile-header {
+            position: relative;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--nc-border);
+        }
+
+        .nc-profile-avatar-wrapper {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(135deg, var(--nc-primary), transparent);
+        }
+
+        .nc-profile-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--nc-bg-secondary);
+            border: 3px solid var(--nc-bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--nc-primary);
+        }
+
+        .nc-status-badge {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid var(--nc-bg-card);
+        }
+
+        .status-active {
+            background: #81c784;
+        }
+
+        .status-banned {
+            background: #e57373;
+            box-shadow: 0 0 10px rgba(229, 115, 115, 0.5);
+        }
+
+        .nc-profile-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .nc-profile-role {
+            color: var(--nc-primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .nc-profile-info-list {
+            padding: 1.5rem 0;
+            list-style: none;
+            margin: 0;
+        }
+
+        .nc-profile-info-list li {
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .nc-profile-info-list li:last-child {
+            border-bottom: none;
+        }
+
+        .info-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(123, 171, 221, 0.1);
+            color: var(--nc-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            color: var(--nc-text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .info-value {
+            color: var(--nc-text-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .nav-tabs-nc {
+            border-bottom: 1px solid var(--nc-border);
+            display: flex;
+            gap: 1rem;
+            padding: 0 1rem;
+        }
+
+        .nav-link-nc {
+            background: transparent;
+            border: none;
+            padding: 1.25rem 1.5rem;
+            color: var(--nc-text-muted);
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-link-nc:hover {
+            color: var(--nc-text-primary);
+        }
+
+        .nav-link-nc.active {
+            color: var(--nc-primary);
+            border-bottom-color: var(--nc-primary);
+        }
+
+        .nc-tab-pane {
+            padding: 2rem;
+            display: none;
+        }
+
+        .nc-tab-pane.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--nc-radius-sm);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--nc-text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .address-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--nc-radius-sm);
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .address-card h6 {
+            color: var(--nc-primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .address-details p {
+            margin-bottom: 0.25rem;
+            color: var(--nc-text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .address-default-badge {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(129, 199, 132, 0.1);
+            color: #81c784;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
+            font-weight: 700;
+            border: 1px solid rgba(129, 199, 132, 0.2);
+        }
+
+        .nc-empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--nc-text-muted);
+        }
+
+        .nc-empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @@media (max-width: 992px) {
+            .nc-profile-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}

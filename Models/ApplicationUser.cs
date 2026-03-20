@@ -15,5 +15,6 @@ namespace MvcMusic.Models
         public bool IsBanned { get; set; } = false;
 
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
+        public RecordStatus RecordStatus { get; set; } = RecordStatus.Active;
     }
 }

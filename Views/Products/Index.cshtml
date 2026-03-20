@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Instrument Management";
+    ViewData["Title"] = "Product Management";
 }
 
 <div class="nc-page">
@@ -7,140 +7,23 @@
         <div class="nc-page-header">
             <div>
                 <div class="nc-breadcrumb"><i class="fa fa-guitar"></i> Admin Panel</div>
-                <h1 class="nc-page-title">Instrument Management</h1>
+                <h1 class="nc-page-title">Product Management</h1>
                 <p class="nc-page-subtitle">Manage your inventory, pricing, and showcase highlights.</p>
             </div>
             @if (!User.IsInRole("Staff"))
             {
                 <div class="nc-page-actions">
                     <a asp-action="Create" class="btn-nc-primary nc-btn-featured">
-                        <i class="fa fa-plus me-2"></i> Add New Instrument
+                        <i class="fa fa-plus me-2"></i> Add New Product
                     </a>
                 </div>
             }
         </div>
 
-        @if (TempData["Success"] != null)
-        {
-            <div class="nc-alert nc-alert-success mb-4">
-                <i class="fa fa-check-circle me-2"></i> @TempData["Success"]
-            </div>
-        }
-
         <div id="products-table"></div>
     </div>
 </div>
 
-<style>
-    .nc-page-header { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: flex-end; 
-        margin-bottom: 2.5rem; 
-        flex-wrap: wrap; 
-        gap: 1rem; 
-    }
-    
-    .nc-btn-featured {
-        padding: 0.9rem 2rem;
-        font-size: 1rem;
-        box-shadow: 0 0 20px rgba(123, 171, 221, 0.2);
-    }
-
-    .nc-btn-featured:hover {
-        box-shadow: 0 0 30px rgba(123, 171, 221, 0.4);
-    }
-
-    .nc-table-product { 
-        display: flex; 
-        align-items: center; 
-        gap: 1rem; 
-    }
-
-    .nc-table-product img { 
-        width: 44px; 
-        height: 44px; 
-        border-radius: 8px; 
-        object-fit: cover; 
-        border: 1px solid var(--nc-border); 
-    }
-
-    .product-name { 
-        font-weight: 700; 
-        color: var(--nc-text-primary); 
-        font-size: 0.95rem; 
-    }
-    
-    .badge-banner {
-        background: rgba(123, 171, 221, 0.1);
-        color: var(--nc-primary);
-        font-size: 0.6rem;
-        padding: 0.1rem 0.5rem;
-        border-radius: 4px;
-        text-transform: uppercase;
-        font-weight: 800;
-        border: 1px solid rgba(123, 171, 221, 0.3);
-        margin-top: 0.2rem;
-        display: inline-block;
-    }
-
-    .nc-status-badge {
-        font-size: 0.75rem;
-        padding: 0.3rem 0.8rem;
-        border-radius: 100px;
-        font-weight: 700;
-        display: inline-block;
-    }
-
-    .status-active { 
-        background: rgba(129, 199, 132, 0.1); 
-        color: #81c784; 
-        border: 1px solid rgba(129, 199, 132, 0.2); 
-    }
-
-    .status-inactive { 
-        background: rgba(229, 115, 115, 0.1); 
-        color: #e57373; 
-        border: 1px solid rgba(229, 115, 115, 0.2); 
-    }
-
-    .nc-action-group { 
-        display: flex; 
-        gap: 0.6rem; 
-        justify-content: flex-end; 
-    }
-
-    .nc-action-link {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        background: var(--nc-bg-secondary);
-        color: var(--nc-text-secondary);
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid var(--nc-border);
-    }
-
-    .nc-action-link:hover { 
-        background: var(--nc-primary); 
-        color: #fff; 
-        transform: translateY(-3px); 
-        border-color: var(--nc-primary); 
-        box-shadow: 0 4px 12px rgba(123, 171, 221, 0.3); 
-    }
-
-    .nc-action-link.delete { 
-        color: rgba(250, 146, 144, 1); 
-    }
-
-    .nc-action-link.delete:hover { 
-        background: rgba(255,107,107, 1); 
-        border-color: rgba(255,107,107, 1); 
-        color: #fff !important; 
-    }
-</style>
 
 @section Styles {
     <link rel="stylesheet" href="~/css/UpdatableTable.css" />
@@ -161,24 +44,51 @@
                     type: 'GET'
                 },
                 fieldDefinitions: {
-                    photo: {
-                        label: 'Photo',
+                    image: {
+                        label: 'Image',
+                        widthPercentage: '1%',
+                        cellClass: 'ut-min-w-fit',
+                        spanStyle: 'padding: 0;',
                         renderContent: function(value, col, rowData) {
                             const imgUrl = value.image || 'https://placehold.co/50x50/1a1f2c/7babdd?text=?';
                             return `
-                                <div class="nc-table-photo" style="position:relative;">
-                                    <img src="${imgUrl}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;border:1px solid var(--nc-border);" onerror="this.src='https://placehold.co/50x50/1a1f2c/7babdd?text=?'" />
-                                    ${value.isBanner ? '<span class="badge-banner-overlay" title="Featured Banner Product" style="position:absolute;bottom:-3px;right:-3px;background:var(--nc-primary);color:var(--nc-bg-primary);font-size:9px;padding:2px 4px;border-radius:4px;font-weight:900;border:1px solid rgba(255,255,255,0.2);box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:default;">B</span>' : ''}
+                                <div class="nc-table-image" style="position:relative; width:42px; height:42px; overflow:visible; flex-shrink:0;">
+                                    <img src="${imgUrl}" style="width:42px;height:42px;border-radius:6px;object-fit:cover;display:block;border:1px solid var(--nc-border);" onerror="this.src='https://placehold.co/50x50/1a1f2c/7babdd?text=?'" />
+                                    ${value.isBanner ?
+                                    `<span class="badge-banner-overlay" title="Featured Banner Product" style="
+                                        position: absolute;
+                                        bottom: -4px;
+                                        right: -4px;
+                                        background: var(--nc-primary);
+                                        color: white;
+                                        font-size: 9px;
+                                        padding: 2px 4px;
+                                        border-radius: 4px;
+                                        font-weight: 900;
+                                        border: 1px solid rgba(255,255,255,0.2);
+                                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                                        cursor: default;
+                                        z-index: 2;
+                                    ">B</span>` : ''}
                                 </div>
                             `;
                         }
                     },
-                    name: { label: 'Instrument' },
-                    category: { label: 'Category' },
-                    brand: { label: 'Brand' },
-                    price: { label: 'Price', renderContent: (val) => `<span class="nc-text-primary fw-bold">₱ ${parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>` },
+                    name: { label: 'Product Name' },
+                    category: { label: 'Category', widthMinimum: '150px', cellClass: 'ut-min-w-fit' },
+                    brand: { label: 'Brand', widthMinimum: '150px', cellClass: 'ut-min-w-fit' },
+                    price: { 
+                        label: 'Price', 
+                        currency: true,
+                        widthMinimum: '200px',
+                        cellClass: 'ut-min-w-fit',
+                        renderContent: (val) => `<span class="fw-bold">${parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`
+                    },
                     stock: { 
                         label: 'Stock',
+                        widthMinimum: '150px',
+                        cellClass: 'ut-min-w-fit',
+                        renderTooltip: (val) => val <= 0 ? "Out of Stock" : val < 10 ? "Low Stock" : "In Stock",
                         renderContent: (val) => {
                             let className = val <= 0 ? "text-danger" : val < 10 ? "text-warning" : "nc-text-secondary";
                             return `<span class="${className}">${val}</span>`;
@@ -186,26 +96,39 @@
                     },
                     status: {
                         label: 'Status',
-                        renderContent: (val) => {
-                            if (val === 'Available') return '<span class="nc-status-badge status-active">Available</span>';
-                            return '<span class="nc-status-badge status-inactive">Sold Out</span>';
+                        widthMinimum: '150px',
+                        cellClass: 'ut-min-w-fit',
+                        spanStyle: 'padding-right: 0;',
+                        renderContent: (val, col, rowData) => {
+                            const stock = (rowData && rowData.stock !== undefined) ? parseInt(rowData.stock, 10) : 0;
+                            if (stock <= 0) return '<span class="nc-status-badge status-inactive">Sold Out</span>';
+                            return '<span class="nc-status-badge status-active">Available</span>';
                         }
                     },
                     actions: {
                         label: 'Actions',
+                        widthPercentage: '1%',
+                        spanStyle: 'padding: 0; display: flex; justify-content: flex-start;',
                         renderContent: function(value, col, rowData) {
                             let links = `
                                 <a href="/Products/Details/${rowData.id}" class="nc-action-link" title="View"><i class="fa fa-eye"></i></a>
                                 <a href="/Products/Edit/${rowData.id}" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>
                             `;
-                            if (!isStaff) {
-                                links += `
-                                    <button type="button" class="nc-action-link delete border-0" title="Delete"
-                                            onclick="window.confirmDelete('${rowData.id}', '@Url.Action("Delete", "Products")', () => table.fetchData())">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                `;
-                            }
+                             if (rowData.recordStatus === 'Deleted') {
+                                 links += `
+                                     <button type="button" class="nc-action-link restore border-0" title="Restore"
+                                             onclick="window.updatableTables['products-table'].confirmRestore('${rowData.id}', '@Url.Action("Restore", "Products")', this)">
+                                         <i class="fa fa-trash-restore"></i>
+                                     </button>
+                                 `;
+                             } else {
+                                 links += `
+                                     <button type="button" class="nc-action-link delete border-0" title="Delete"
+                                             onclick="window.updatableTables['products-table'].confirmDelete('${rowData.id}', '@Url.Action("Delete", "Products")', this)">
+                                         <i class="fa fa-trash"></i>
+                                     </button>
+                                 `;
+                             }
                             return `<div class="nc-action-group justify-content-start">${links}</div>`;
                         }
                     }

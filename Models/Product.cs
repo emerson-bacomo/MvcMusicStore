@@ -7,6 +7,7 @@ namespace MvcMusic.Models
     {
         public int Id { get; set; }
 
+        [Required]
         [StringLength(50, MinimumLength = 3)]
         public required string Name { get; set; }
 
@@ -18,11 +19,13 @@ namespace MvcMusic.Models
         public int BrandId { get; set; }
         public virtual Brand? Brand { get; set; }
 
+        [Required]
         [Column(TypeName = "decimal(18, 2)")]
         [Range(0, double.MaxValue, ErrorMessage = "Value cannot be negative.")]
         [DataType(DataType.Currency)]
         public double Price { get; set; }
 
+        [Required]
         [Range(0, int.MaxValue, ErrorMessage = "Value cannot be negative.")]
         public int Stock { get; set; }
 

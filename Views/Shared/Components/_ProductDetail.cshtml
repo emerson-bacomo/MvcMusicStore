@@ -9,7 +9,7 @@
                     var primaryUrl = Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url;
                 }
                 <img id="mainProductImage" src="@primaryUrl" alt="@Model.Name" class="nc-main-image" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
-                <div class="nc-image-badge">@(Model.Category?.Name ?? "Uncategorized")</div>
+                <a href="/Products/Index?categoryId=@Model.CategoryId" class="nc-image-badge" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
                 @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
                 {
                     <button type="button" class="nc-img-nav prev" onclick="navigateImage(-1, event)" aria-label="Previous Image">
@@ -72,7 +72,7 @@
                     <div class="nc-meta-stat-icon"><i class="fa fa-tag"></i></div>
                     <div class="nc-meta-stat-content">
                         <span class="nc-meta-stat-label">Manufacturer</span>
-                        <span class="nc-meta-stat-value">@(Model.Brand?.Name ?? "No Brand")</span>
+                        <a href="/Products/Index?brandId=@Model.BrandId" class="nc-meta-stat-value" style="text-decoration:none; color: var(--nc-primary);">@(Model.Brand?.Name ?? "No Brand")</a>
                     </div>
                 </div>
             </div>
@@ -81,7 +81,7 @@
         <!-- Info Section -->
         <div class="nc-detail-info">
             <div class="nc-info-header">
-                <div class="nc-detail-brand">@(Model.Brand?.Name ?? "No Brand")</div>
+                <a href="/Products/Index?brandId=@Model.BrandId" class="nc-detail-brand" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
                 <h1 class="nc-detail-name">@Model.Name</h1>
                 <div class="nc-detail-price">
                     <span class="nc-currency">₱</span>@Model.Price.ToString("N2")
@@ -89,8 +89,8 @@
             </div>
 
             <div class="nc-detail-section">
-                <h3 class="nc-section-title">About this instrument</h3>
-                <p class="nc-detail-desc">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this premium instrument." : Model.Description)</p>
+                <h3 class="nc-section-title">About this product</h3>
+                <p class="nc-detail-desc">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
             </div>
 
             @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
@@ -101,9 +101,11 @@
                         <a asp-action="Edit" asp-route-id="@Model.Id" class="nc-admin-btn btn-edit">
                             <i class="fa fa-pen me-2"></i> Edit Product
                         </a>
-                        <a asp-action="Delete" asp-route-id="@Model.Id" class="nc-admin-btn btn-delete">
-                            <i class="fa fa-trash me-2"></i> Terminate Listing
-                        </a>
+                        <div>
+                            <button type="button" class="nc-admin-btn btn-delete" onclick="window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this)">
+                                <i class="fa fa-trash me-2"></i> Terminate Listing
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
@@ -287,7 +289,7 @@
         display: flex;
         gap: 1rem;
         overflow-x: auto;
-        padding-bottom: 0.5rem;
+        padding: 0.5rem 0;
         scrollbar-width: none; /* Firefox */
     }
 
@@ -510,12 +512,12 @@
         border: 1px solid rgba(229, 115, 115, 0.2);
     }
 
-        .btn-delete:hover {
-            background: #e57373;
-            color: #fff;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(229, 115, 115, 0.3);
-        }
+    .btn-delete:hover {
+        background: #e57373;
+        color: #fff;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(229, 115, 115, 0.3);
+    }
 
     /* Fullscreen Overlay */
     .nc-fullscreen-overlay {
