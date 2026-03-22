@@ -278,7 +278,7 @@ window.ncHighlightElement = function(element, query) {
             const span = document.createElement("span");
             // Set innerHTML using the string-based highlight logic
             // But we use textContent here because we ARE the text node
-            span.innerHTML = text.replace(regex, '<mark class="ut-highlight">$1</mark>');
+            span.innerHTML = text.replace(regex, '<mark class="ut-highlight">$&</mark>');
             node.parentNode.replaceChild(span, node);
         }
     });

@@ -66,6 +66,13 @@
         letter-spacing: 0.1em;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         z-index: 2;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    .nc-product-badge:hover {
+        background: var(--nc-primary);
+        border-color: var(--nc-primary);
+        transform: scale(1.05);
     }
 
     .nc-product-body {
@@ -81,6 +88,14 @@
         color: var(--nc-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        transition: var(--transition);
+        cursor: pointer;
+        display: inline-block;
+        width: fit-content;
+    }
+    .nc-product-brand:hover {
+        color: var(--nc-primary);
+        font-weight: 800;
     }
 
     .nc-product-name {
@@ -151,15 +166,13 @@
         <span class="nc-product-badge" 
               style="
                   cursor: pointer;
-              " 
-              onclick="event.preventDefault(); event.stopPropagation(); window.location='/Products/Index?categoryId=@Model.CategoryId';">@(Model.Category?.Name ?? "Uncategorized")</span>
+              ">@(Model.Category?.Name ?? "Uncategorized")</span>
     </div>
     <div class="nc-product-body">
         <span class="nc-product-brand" 
               style="
                   cursor: pointer;
-              " 
-              onclick="event.preventDefault(); event.stopPropagation(); window.location='/Products/Index?brandId=@Model.BrandId';">@(Model.Brand?.Name ?? "No Brand")</span>
+              ">@(Model.Brand?.Name ?? "No Brand")</span>
         <div class="nc-product-name">@Model.Name</div>
         <div class="nc-stars d-flex align-items-center gap-1">
             <span class="nc-product-rating" 
@@ -167,7 +180,7 @@
                       color: var(--nc-primary); 
                       font-weight: 700; 
                       font-size: 0.85rem;
-                  ">@(Model.SoldAmount > 0 ? Model.Rating.ToString("F1") : "-")</span>
+                  ">@Model.DisplayRating</span>
             <div>
                 @if (Model.SoldAmount > 0)
                 {
@@ -190,17 +203,17 @@
                       color: var(--nc-text-muted);
                       font-size: 0.7rem;
                       margin-left: 0.25rem;
-                  ">(@Model.RatingsCount)</span>
+                  ">@Model.DisplayRatingsCount</span>
             <span class="nc-product-sold" 
                   style="
                       color: var(--nc-text-muted);
                       font-size: 0.7rem;
                       margin-left: auto;
-                  ">@Model.SoldAmount sold</span>
+                  ">@Model.DisplaySold</span>
         </div>
-        <div class="nc-product-price">₱ @Model.Price.ToString("N2")</div>
+        <div class="nc-product-price">@Model.DisplayPrice</div>
     </div>
     <div class="nc-product-footer">
-        <span class="nc-product-stock"><i class="fa fa-box me-1"></i> @Model.Stock in stock</span>
+        <span class="nc-product-stock"><i class="fa fa-box me-1"></i> @Model.DisplayStock</span>
     </div>
 </a>

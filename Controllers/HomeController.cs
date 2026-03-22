@@ -15,25 +15,43 @@ namespace MvcMusic.Controllers
             _logger = logger;
             _context = context;
         }
-
-        public async Task<IActionResult> Index(string? category, string? search)
+        public async Task<IActionResult> Index(string? category, string? brand, string? search)
         {
-            var products = _context.Product
+            var productsQuery = _context.Product
                 .Include(p => p.ProductImages)
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Where(p => p.RecordStatus == RecordStatus.Active)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(search))
-                products = products.Where(p => p.Name.Contains(search) || (p.Brand != null && p.Brand.Name.Contains(search)));
-
             if (!string.IsNullOrEmpty(category))
-                products = products.Where(p => p.Category != null && p.Category.Name == category);
+                productsQuery = productsQuery.Where(p => p.Category != null && p.Category.Name == category);
+
+            if (!string.IsNullOrEmpty(brand))
+                productsQuery = productsQuery.Where(p => p.Brand != null && p.Brand.Name == brand);
+
+            var productsList = await productsQuery.ToListAsync();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var s = search.ToLower().Trim();
+                productsList = productsList.Where(p => 
+                    p.Name.ToLower().Contains(s) || 
+                    (p.Brand != null && p.Brand.Name.ToLower().Contains(s)) ||
+                    (p.Category != null && p.Category.Name.ToLower().Contains(s)) ||
+                    p.DisplayPrice.ToLower().Contains(s) ||
+                    p.DisplayStock.ToLower().Contains(s) ||
+                    p.DisplaySold.ToLower().Contains(s) ||
+                    p.DisplayRatingsCount.ToLower().Contains(s) ||
+                    p.DisplayRating.ToLower().Contains(s)
+                ).ToList();
+            }
 
             ViewData["CurrentCategory"] = category;
+            ViewData["CurrentBrand"] = brand;
             ViewData["CurrentSearch"] = search;
             ViewData["Categories"] = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).Select(c => c.Name).ToListAsync();
+            ViewData["Brands"] = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).Select(b => b.Name).ToListAsync();
 
             var bannerProducts = await _context.Product
                 .Include(p => p.ProductImages)
@@ -43,7 +61,7 @@ namespace MvcMusic.Controllers
                 .ToListAsync();
             ViewData["BannerProducts"] = bannerProducts;
 
-            return View(await products.ToListAsync());
+            return View(productsList);
         }
 
         public IActionResult Privacy()

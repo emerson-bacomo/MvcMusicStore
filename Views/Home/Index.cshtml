@@ -3,7 +3,9 @@
 @{
     ViewData["Title"] = "Home — NightCord";
     var categories = ViewData["Categories"] as List<string> ?? new List<string>();
+    var brands = ViewData["Brands"] as List<string> ?? new List<string>();
     var currentCategory = ViewData["CurrentCategory"]?.ToString();
+    var currentBrand = ViewData["CurrentBrand"]?.ToString();
     var currentSearch = ViewData["CurrentSearch"]?.ToString();
     var bannerProducts = ViewData["BannerProducts"] as List<MvcMusic.Models.Product> ?? new List<MvcMusic.Models.Product>();
 }
@@ -125,14 +127,29 @@
                         <option value="" style="background: var(--nc-bg-card);">All Categories</option>
                         @foreach (var cat in categories)
                         {
-                            if (cat == currentCategory)
-                            {
-                                <option value="@cat" selected="selected" style="background: var(--nc-bg-card);">@cat</option>
-                            }
-                            else
-                            {
-                                <option value="@cat" style="background: var(--nc-bg-card);">@cat</option>
-                            }
+                            <option value="@cat" selected="@(cat == currentCategory ? "selected" : null)" style="background: var(--nc-bg-card);">@cat</option>
+                        }
+                    </select>
+                    <select id="homeBrandSelect"
+                            name="brand" 
+                            class="flex-grow-1"
+                            style="
+                                background: rgba(255, 255, 255, 0.05); 
+                                border: 1.5px solid var(--nc-border); 
+                                border-radius: var(--nc-radius-sm); 
+                                color: var(--nc-text-primary); 
+                                padding: 0.7rem 1rem; 
+                                font-family: inherit; 
+                                font-size: 0.9rem; 
+                                outline: none; 
+                                cursor: pointer; 
+                                transition: var(--transition);
+                                min-width: 150px;
+                            ">
+                        <option value="" style="background: var(--nc-bg-card);">All Brands</option>
+                        @foreach (var br in brands)
+                        {
+                            <option value="@br" selected="@(br == currentBrand ? "selected" : null)" style="background: var(--nc-bg-card);">@br</option>
                         }
                     </select>
                     <button type="submit" 
@@ -145,7 +162,7 @@
                         <i class="fa fa-search me-1"></i>
                     </button>
                     <button type="button" id="homeClearSearch" 
-                            class="btn-nc-outline text-nowrap d-flex align-items-center justify-content-center @(string.IsNullOrEmpty(currentSearch) && string.IsNullOrEmpty(currentCategory) ? "d-none" : "")" 
+                            class="btn-nc-outline text-nowrap d-flex align-items-center justify-content-center @(string.IsNullOrEmpty(currentSearch) && string.IsNullOrEmpty(currentCategory) && string.IsNullOrEmpty(currentBrand) ? "d-none" : "")" 
                             style="
                                 padding: 0.7rem 1.2rem; 
                                 border: 1.5px solid var(--nc-primary); 
@@ -193,9 +210,11 @@
         const filterForm = document.getElementById("homeFilterForm");
         const searchInput = document.getElementById("homeSearchInput");
         const categorySelect = document.getElementById("homeCategorySelect");
+        const brandSelect = document.getElementById("homeBrandSelect");
         const catalogContainer = document.getElementById("homeCatalogContainer");
 
         let searchDebounceTimer;
+        let searchAbortController;
 
         // Debounce helper
         function debounce(func, delay) {
@@ -223,15 +242,24 @@
         function updateClearButton() {
             const hasQuery = searchInput.value.trim() !== "";
             const hasCategory = categorySelect.value !== "";
+            const hasBrand = brandSelect.value !== "";
             const clearBtn = document.getElementById("homeClearSearch");
             if (clearBtn) {
-                if (hasQuery || hasCategory) clearBtn.classList.remove("d-none");
+                if (hasQuery || hasCategory || hasBrand) clearBtn.classList.remove("d-none");
                 else clearBtn.classList.add("d-none");
             }
         }
 
         async function performSearch() {
             updateClearButton();
+
+            // Cancel any existing search request
+            if (searchAbortController) {
+                searchAbortController.abort();
+            }
+            searchAbortController = new AbortController();
+            const signal = searchAbortController.signal;
+
             const formData = new FormData(filterForm);
             const params = new URLSearchParams(formData);
             const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
@@ -240,7 +268,7 @@
             window.history.replaceState({}, "", url);
 
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, { signal });
                 if (!response.ok) throw new Error("Search failed");
                 
                 const html = await response.text();
@@ -253,6 +281,10 @@
                     applyAllHighlights(searchInput.value.trim());
                 }
             } catch (err) {
+                if (err.name === 'AbortError') {
+                    // Ignore aborted requests
+                    return;
+                }
                 console.error("Home Search Error:", err);
             }
         }
@@ -260,20 +292,47 @@
         // Listeners
         searchInput.addEventListener("input", debounce(performSearch, 400));
         categorySelect.addEventListener("change", performSearch);
+        brandSelect.addEventListener("change", performSearch);
 
         const clearBtn = document.getElementById("homeClearSearch");
         if (clearBtn) {
             clearBtn.addEventListener("click", () => {
                 searchInput.value = "";
                 categorySelect.value = "";
+                brandSelect.value = "";
                 performSearch();
             });
         }
 
         const viewAllBtn = document.getElementById("homeViewAll");
-        // Use event delegation for View All since it's replaced by AJAX
+        // Use event delegation for View All, Category clicks, and Brand clicks
         document.addEventListener("click", (e) => {
             if (e.target.id === "homeViewAll") {
+                searchInput.value = "";
+                categorySelect.value = "";
+                brandSelect.value = "";
+                performSearch();
+            }
+
+            // Category Badge Click -> Filter Home
+            const catBadge = e.target.closest(".nc-product-badge");
+            if (catBadge && catalogContainer.contains(catBadge)) {
+                e.preventDefault();
+                e.stopPropagation();
+                const catName = catBadge.textContent.trim();
+                categorySelect.value = catName;
+                searchInput.value = "";
+                brandSelect.value = "";
+                performSearch();
+            }
+
+            // Brand Label Click -> Filter Home
+            const brandLabel = e.target.closest(".nc-product-brand");
+            if (brandLabel && catalogContainer.contains(brandLabel)) {
+                e.preventDefault();
+                e.stopPropagation();
+                const brandName = brandLabel.textContent.trim();
+                brandSelect.value = brandName;
                 searchInput.value = "";
                 categorySelect.value = "";
                 performSearch();

@@ -50,5 +50,20 @@ namespace MvcMusic.Models
         public RecordStatus RecordStatus { get; set; } = RecordStatus.Active;
 
         public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
+
+        [NotMapped]
+        public string DisplayPrice => $"₱ {Price.ToString("N2")}";
+
+        [NotMapped]
+        public string DisplayStock => $"{Stock} in stock";
+
+        [NotMapped]
+        public string DisplaySold => $"{SoldAmount} sold";
+
+        [NotMapped]
+        public string DisplayRating => SoldAmount > 0 ? Rating.ToString("F1") : "-";
+
+        [NotMapped]
+        public string DisplayRatingsCount => $"({RatingsCount})";
     }
 }
