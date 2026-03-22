@@ -1,3 +1,8 @@
+@{
+    var rawPath = Context.Request.Path.ToString().ToLower();
+    var isHomeHeroRoute = rawPath == "/" || rawPath.StartsWith("/home") || rawPath.StartsWith("/landing/hero");
+    var returnUrl = isHomeHeroRoute ? null : Context.Request.Path + Context.Request.QueryString;
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,7 +209,7 @@
                                                    margin: 0.5rem 0; 
                                                    opacity: 1;"></li>
                                     <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                        <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@returnUrl" method="post" class="m-0">
                                             @Html.AntiForgeryToken()
                                             <button type="submit" class="dropdown-item text-danger d-flex align-items-center w-100 border-0 background-none"
                                                     style="color: var(--nc-error) !important; 
@@ -225,7 +230,7 @@
                     else
                     {
                         <li class="nav-item">
-                            <a class="btn-nc-outline" asp-area="" asp-controller="Account" asp-action="Login" 
+                            <a class="btn-nc-outline" asp-area="" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl"
                                style="margin-right: 0.75rem; 
                                       padding: 0.7rem 1.75rem 0.5rem 1.75rem; 
                                       border-radius: var(--nc-radius-sm); 
@@ -233,7 +238,7 @@
                                       line-height: 1;">Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn-nc-primary text-white" asp-area="" asp-controller="Account" asp-action="Register" 
+                            <a class="btn-nc-primary text-white" asp-area="" asp-controller="Account" asp-action="Register" asp-route-returnUrl="@returnUrl"
                                style="padding: 0.7rem 1.75rem 0.5rem 1.75rem; 
                                       border-radius: var(--nc-radius-sm); 
                                       font-size: 0.85rem;
@@ -320,7 +325,7 @@
                     <a class="nc-mobile-nav-link" asp-controller="Profile" asp-action="Index">
                         <i class="fa fa-user-circle"></i> Profile
                     </a>
-                    <form asp-controller="Account" asp-action="Logout" method="post" class="mt-2">
+                    <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@returnUrl" method="post" class="mt-2">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn-nc-outline w-100 text-danger border-danger" style="font-size: 0.85rem;">
                             <i class="fa fa-right-from-bracket me-2"></i> Sign Out
@@ -330,8 +335,8 @@
                 else
                 {
                     <div class="d-flex flex-column gap-2 mt-3">
-                        <a class="btn-nc-outline text-center" asp-controller="Account" asp-action="Login">Login</a>
-                        <a class="btn-nc-primary text-center" asp-controller="Account" asp-action="Register">Register</a>
+                        <a class="btn-nc-outline text-center" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">Login</a>
+                        <a class="btn-nc-primary text-center" asp-controller="Account" asp-action="Register" asp-route-returnUrl="@returnUrl">Register</a>
                     </div>
                 }
             </div>

@@ -9,7 +9,7 @@
 
 <form asp-action="Login" method="post" novalidate>
     @Html.AntiForgeryToken()
-    <input type="hidden" name="ReturnUrl" value="@ViewData["ReturnUrl"]" />
+    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
     <div asp-validation-summary="All" class="nc-validation-summary" 
          style="@(ViewData.ModelState.IsValid ? "display:none" : "margin-bottom: 2rem;")"></div>
@@ -72,7 +72,7 @@
           font-size: 0.85rem;
           color: var(--nc-text-secondary);">
     New to NightCord?
-    <a asp-controller="Account" asp-action="Register" 
+    <a asp-controller="Account" asp-action="Register" asp-route-returnUrl="@ViewData["ReturnUrl"]"
        style="color: var(--nc-primary);
               font-weight: 600;">
         Register

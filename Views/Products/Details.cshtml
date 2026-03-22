@@ -4,15 +4,13 @@
     ViewData["Title"] = Model.Name;
 }
 
-<div class="nc-page">
+<div class="nc-page" style="padding-top: 2rem;">
     <div class="nc-container">
-        <div style="margin-bottom:2rem;">
-            <a href="javascript:history.back()" class="btn-nc-outline" style="padding: 0.6rem 1.2rem; border-radius: var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back
-            </a>
-        </div>
-
         <partial name="Components/_ProductDetail" model="Model" />
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/ProductEditor.js"></script>
+}
 

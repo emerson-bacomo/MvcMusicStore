@@ -198,9 +198,83 @@ namespace MvcMusic.Controllers
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
 
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
+
             product.ProductImages = product.ProductImages.OrderBy(p => p.SortOrder).ToList();
 
             return View(product);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
+        {
+            if (id != product.Id) return Json(new { success = false, message = "Id mismatch" });
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    product.ProductImages.Clear();
+                    if (existingImages != null) foreach (var url in existingImages) if (!string.IsNullOrWhiteSpace(url)) product.ProductImages.Add(new ProductImage { Url = url });
+                    if (productImages != null) foreach (var file in productImages) { var filePath = await SaveFile(file); product.ProductImages.Add(new ProductImage { Url = filePath }); }
+                    if (imageUrls != null) foreach (var url in imageUrls) if (!string.IsNullOrWhiteSpace(url)) product.ProductImages.Add(new ProductImage { Url = url });
+
+                    if (!string.IsNullOrEmpty(deletedImages))
+                    {
+                        var deletedFiles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(deletedImages);
+                        if (deletedFiles != null)
+                        {
+                            foreach (var fileUrl in deletedFiles)
+                            {
+                                if (fileUrl.StartsWith("/uploads/"))
+                                {
+                                    var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", fileUrl.TrimStart('/'));
+                                    if (System.IO.File.Exists(physicalPath)) System.IO.File.Delete(physicalPath);
+                                }
+                            }
+                        }
+                    }
+
+                    var existingProduct = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
+                    if (existingProduct != null)
+                    {
+                        _context.Entry(existingProduct).CurrentValues.SetValues(product);
+                        _context.ProductImage.RemoveRange(existingProduct.ProductImages);
+                        foreach (var img in product.ProductImages) existingProduct.ProductImages.Add(img);
+
+                        if (existingProduct.ProductImages.Any())
+                        {
+                            var primary = existingProduct.ProductImages.FirstOrDefault(p => p.Url == primaryImage) ?? existingProduct.ProductImages.First();
+                            foreach (var img in existingProduct.ProductImages) img.IsPrimary = false;
+                            primary.IsPrimary = true;
+                        }
+
+                        if (!string.IsNullOrEmpty(imageOrder))
+                        {
+                            var orderArray = imageOrder.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                            for (int i = 0; i < orderArray.Length; i++)
+                            {
+                                var img = existingProduct.ProductImages.FirstOrDefault(p => p.Url == orderArray[i]);
+                                if (img != null) img.SortOrder = i;
+                            }
+                        }
+
+                        existingProduct.DateModified = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                        await _logger.LogAsync(ActivityAction.EditProduct, $"Edited product <a href='/products/details/{id}' class='product-link'>{product.Name}</a> in-place.", cId, cName, cRole, cFull);
+                        return Json(new { success = true, message = "Product updated successfully." });
+                    }
+                    return Json(new { success = false, message = "Product not found." });
+                }
+                catch (Exception ex)
+                {
+                    return Json(new { success = false, message = ex.Message });
+                }
+            }
+            return Json(new { success = false, message = "Invalid model state.", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
         }
 
         // GET: /products/create

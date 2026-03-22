@@ -1,4 +1,4 @@
-@model MvcMusic.ViewModels.RegisterViewModel
+    @model MvcMusic.ViewModels.RegisterViewModel
 
 @{
     ViewData["Title"] = "Register";
@@ -9,6 +9,7 @@
 
 <form asp-action="Register" method="post" novalidate>
     @Html.AntiForgeryToken()
+    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
     <div asp-validation-summary="All" class="nc-validation-summary" 
          style="@(ViewData.ModelState.IsValid ? "display:none" : "margin-bottom: 2rem;")"></div>
@@ -99,7 +100,7 @@
           color: var(--nc-text-secondary);
           margin-top: 2rem;">
     Already have an account?
-    <a asp-controller="Account" asp-action="Login" 
+    <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]"
        style="color: var(--nc-primary);
               font-weight: 600;">
         Login

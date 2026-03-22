@@ -76,11 +76,12 @@ namespace MvcMusic.Controllers
         // GET: /account/register
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult Register()
+        public IActionResult Register(string? returnUrl = null)
         {
             if (User.Identity?.IsAuthenticated == true)
                 return RedirectToRoleDashboard();
 
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
@@ -88,8 +89,9 @@ namespace MvcMusic.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             if (!ModelState.IsValid)
                 return View(model);
 
@@ -107,6 +109,10 @@ namespace MvcMusic.Controllers
                 await _userManager.AddToRoleAsync(user, "User");
                 await _logger.LogAsync(ActivityAction.Register, "Registered a new account.", user.Id, user.UserName, "User", user.FullName);
                 await _signInManager.SignInAsync(user, isPersistent: false);
+
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+
                 return RedirectToAction("Index", "Home");
             }
 
@@ -119,7 +125,7 @@ namespace MvcMusic.Controllers
         // POST: /account/logout
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(string? returnUrl = null)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user != null)
@@ -129,6 +135,10 @@ namespace MvcMusic.Controllers
             }
 
             await _signInManager.SignOutAsync();
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
             return RedirectToAction("Index", "Home");
         }
 

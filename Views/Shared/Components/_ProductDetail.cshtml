@@ -1,114 +1,287 @@
 @model MvcMusic.Models.Product
+@{
+    var categories = ViewBag.Categories as List<MvcMusic.Models.Category> ?? new List<MvcMusic.Models.Category>();
+    var brands = ViewBag.Brands as List<MvcMusic.Models.Brand> ?? new List<MvcMusic.Models.Brand>();
+    var primaryUrl = Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url;
+}
 
-<div class="nc-detail-container">
-    <div class="nc-detail-card">
-        <!-- Visual Section -->
-        <div class="nc-detail-visual">
-            <div class="nc-main-image-wrapper">
-                @{
-                    var primaryUrl = Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url;
-                }
-                <img id="mainProductImage" src="@primaryUrl" alt="@Model.Name" class="nc-main-image" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
-                <a href="/Products/Index?categoryId=@Model.CategoryId" class="nc-image-badge" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
-                @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
-                {
-                    <button type="button" class="nc-img-nav prev" onclick="navigateImage(-1, event)" aria-label="Previous Image">
-                        <i class="fa fa-chevron-left"></i>
-                    </button>
-                    <button type="button" class="nc-img-nav next" onclick="navigateImage(1, event)" aria-label="Next Image">
-                        <i class="fa fa-chevron-right"></i>
-                    </button>
-                }
-            </div>
-            
-            @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
-            {
-                <div class="nc-gallery-container">
-                    <div class="nc-gallery-scroll" id="imageGallery">
-                        @foreach (var img in Model.ProductImages)
+<div class="nc-detail-container" id="productDetailContainer" data-product-id="@Model.Id">
+    <form id="inPlaceEditForm" enctype="multipart/form-data">
+        <input type="hidden" name="Id" value="@Model.Id" />
+        <input type="hidden" name="primaryImage" id="primaryImageInput" value="@(Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url)" />
+        <input type="hidden" name="imageOrder" id="imageOrderInput" value="@string.Join(",", (Model.ProductImages ?? new List<MvcMusic.Models.ProductImage>()).OrderBy(p => p.SortOrder).Select(p => p.Url))" />
+        <input type="hidden" name="deletedImages" id="deletedImagesInput" value="[]" />
+
+        <div class="nc-detail-card">
+            <!-- Visual Section -->
+            <div class="nc-detail-visual">
+                <div class="nc-main-image-outer">
+                    <div class="nc-main-image-wrapper" id="mainImageCarousel">
+                        <div class="nc-carousel-track" id="carouselTrack">
+                            @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
+                            {
+                                foreach (var img in Model.ProductImages.OrderBy(p => p.SortOrder))
+                                {
+                                    <div class="nc-carousel-slide" data-url="@img.Url">
+                                        <img src="@img.Url" alt="@Model.Name" class="nc-main-image" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="nc-carousel-slide">
+                                    <img src="https://placehold.co/800x600/1a1f2c/7babdd?text=No+Image" class="nc-main-image" />
+                                </div>
+                            }
+                        </div>
+                        
+                        <a href="/Products/Index?categoryId=@Model.CategoryId" class="nc-image-badge nc-read-only-hide" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
+                        
+                        <div class="nc-editable nc-image-badge-edit">
+                            <select name="CategoryId" class="nc-input-badge" onchange="editor.trackFieldChange('CategoryId', this.value)">
+                                @foreach(var c in categories) {
+                                    <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
                         {
-                            <div class="nc-gallery-item @(img.Url == primaryUrl ? "active" : "")" onclick="updateMainImage('@img.Url', this)">
-                                <img src="@img.Url" alt="Thumbnail" />
-                            </div>
+                            <button type="button" class="nc-img-nav prev" onclick="editor.carouselPrev(event)" aria-label="Previous Image">
+                                <i class="fa fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="nc-img-nav next" onclick="editor.carouselNext(event)" aria-label="Next Image">
+                                <i class="fa fa-chevron-right"></i>
+                            </button>
                         }
                     </div>
-                </div>
-            }
 
-            <div class="nc-meta-grid mt-4">
-                <div class="nc-meta-stat">
-                    <div class="nc-meta-stat-icon"><i class="fa fa-box"></i></div>
-                    <div class="nc-meta-stat-content">
-                        <span class="nc-meta-stat-label">Stock Status</span>
-                        <span class="nc-meta-stat-value" 
-                              style="color: @(Model.Stock > 10 ? "#81c784" : Model.Stock > 0 ? "#ffb74d" : "#e57373");">
-                            @Model.Stock Units available
-                        </span>
-                    </div>
-                </div>
-                <div class="nc-meta-stat">
-                    <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
-                    <div class="nc-meta-stat-content">
-                        <span class="nc-meta-stat-label">Product Rating</span>
-                        <span class="nc-meta-stat-value">
-                            @(Model.SoldAmount > 0 ? Model.Rating.ToString("0.0") + " / 5.0" : "Rating Undefined")
-                            @if (Model.SoldAmount > 0)
-                            {
-                                <span style="font-size: 0.75rem; color: var(--nc-text-muted); font-weight: 400; margin-left: 0.4rem;">
-                                    (@Model.RatingsCount reviewers)
-                                </span>
-                            }
-                        </span>
-                    </div>
-                </div>
-                <div class="nc-meta-stat">
-                    <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
-                    <div class="nc-meta-stat-content">
-                        <span class="nc-meta-stat-label">Sales Performance</span>
-                        <span class="nc-meta-stat-value">@Model.SoldAmount units sold</span>
-                    </div>
-                </div>
-                <div class="nc-meta-stat">
-                    <div class="nc-meta-stat-icon"><i class="fa fa-tag"></i></div>
-                    <div class="nc-meta-stat-content">
-                        <span class="nc-meta-stat-label">Manufacturer</span>
-                        <a href="/Products/Index?brandId=@Model.BrandId" class="nc-meta-stat-value" style="text-decoration:none; color: var(--nc-primary);">@(Model.Brand?.Name ?? "No Brand")</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Info Section -->
-        <div class="nc-detail-info">
-            <div class="nc-info-header">
-                <a href="/Products/Index?brandId=@Model.BrandId" class="nc-detail-brand" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
-                <h1 class="nc-detail-name">@Model.Name</h1>
-                <div class="nc-detail-price">
-                    <span class="nc-currency">₱</span>@Model.Price.ToString("N2")
-                </div>
-            </div>
-
-            <div class="nc-detail-section">
-                <h3 class="nc-section-title">About this product</h3>
-                <p class="nc-detail-desc">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
-            </div>
-
-            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
-            {
-                <div class="nc-admin-actions mt-5">
-                    <h4 class="nc-admin-title"><i class="fa fa-shield-alt me-2"></i> Admin Management</h4>
-                    <div class="nc-action-buttons">
-                        <a asp-action="Edit" asp-route-id="@Model.Id" class="nc-admin-btn btn-edit">
-                            <i class="fa fa-pen me-2"></i> Edit Product
-                        </a>
-                        <div>
-                            <button type="button" class="nc-admin-btn btn-delete" onclick="window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this)">
-                                <i class="fa fa-trash me-2"></i> Terminate Listing
-                            </button>
+                    <div class="nc-editable nc-media-edit-box">
+                        <div class="nc-upload-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
+                            <i class="fa fa-upload"></i>
+                            <span>Drag & Drop or Click to Upload</span>
+                            <input type="file" name="productImages" id="fileInput" multiple accept="image/*" style="display: none;" onchange="editor.handleFileSelect(event)" />
+                        </div>
+                        <div class="nc-url-input-group mt-2">
+                            <input type="url" id="newImageUrlInput" class="nc-input" placeholder="Paste Image URL..." />
+                            <button type="button" class="btn-nc-primary btn-square" onclick="editor.addImageUrl()"><i class="fa fa-plus"></i></button>
                         </div>
                     </div>
                 </div>
+                
+                <div class="nc-gallery-container @(Model.ProductImages != null && Model.ProductImages.Count > 0 ? "" : "d-none")" id="galleryContainer">
+                    <div class="nc-image-gallery" id="imageGallery">
+                        @if (Model.ProductImages != null)
+                        {
+                            foreach (var img in Model.ProductImages.OrderBy(p => p.SortOrder))
+                            {
+                                var isPrimary = img.IsPrimary || (Model.ProductImages.FirstOrDefault(p => p.IsPrimary) == null && img == Model.ProductImages.OrderBy(x => x.SortOrder).First());
+                                    <div class="nc-gallery-item @(img.Url == primaryUrl ? "active" : "")" 
+                                         data-url="@img.Url" 
+                                         onclick="if(!document.getElementById('productDetailContainer').classList.contains('nc-edit-mode')) updateMainImage('@img.Url', this)">
+                                        <img src="@img.Url" alt="Thumbnail" />
+                                        <input type="hidden" name="existingImages" value="@img.Url" />
+                                        
+                                        <div class="nc-editable nc-item-actions">
+                                            <button type="button" class="nc-item-btn btn-thumbnail @(isPrimary ? "active" : "")" onclick="editor.setPrimaryImage(this)" title="Set as Thumbnail"><i class="fa fa-image"></i></button>
+                                            <button type="button" class="nc-item-btn btn-edit" onclick="editor.editImageUrl(this)" title="Edit URL"><i class="fa fa-link"></i></button>
+                                            <button type="button" class="nc-item-btn btn-danger" onclick="editor.toggleRemoveImage(this)" title="Remove"><i class="fa fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                            }
+                        }
+                    </div>
+                </div>
+
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+                {
+                    <div class="nc-meta-grid mt-4">
+                        <div class="nc-meta-stat">
+                            <div class="nc-meta-stat-icon"><i class="fa fa-box"></i></div>
+                            <div class="nc-meta-stat-content">
+                                <span class="nc-meta-stat-label">Stock Status</span>
+                                <div class="nc-editable-wrapper" data-field="Stock">
+                                    <div class="nc-read-only">
+                                        <span class="nc-meta-stat-value nc-editable-span" style="color: @(Model.Stock > 10 ? "#81c784" : Model.Stock > 0 ? "#ffb74d" : "#e57373"); padding: 0.2rem 0.6rem; margin: -0.2rem -0.6rem;">
+                                            @Model.Stock units available
+                                        </span>
+                                    </div>
+                                    <div class="nc-input-edit">
+                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-input nc-input-sm" style="width: 100px; padding: 0.2rem 0.6rem;" oninput="editor.trackFieldChange('Stock', this.value)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="nc-meta-stat">
+                            <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
+                            <div class="nc-meta-stat-content">
+                                <span class="nc-meta-stat-label">Product Rating</span>
+                                <span class="nc-meta-stat-value">
+                                    @(Model.SoldAmount > 0 ? Model.Rating.ToString("0.0") : "0.0") <span class="nc-review-count">(@Model.RatingsCount)</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="nc-meta-stat">
+                            <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
+                            <div class="nc-meta-stat-content">
+                                <span class="nc-meta-stat-label">Sales Performance</span>
+                                <span class="nc-meta-stat-value">@Model.SoldAmount units sold</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Gutter Admin Actions -->
+            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+            {
+                <div class="nc-gutter-actions">
+                    <!-- Read-only Mode Button -->
+                    <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
+                        <i class="fa fa-pen"></i>
+                    </button>
+                    
+                    <!-- Edit Mode Buttons (Cancel replaces Edit position) -->
+                    <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit nc-editable" style="display:none;" title="Cancel Editing">
+                        <i class="fa fa-times"></i>
+                    </button>
+
+                    <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this)" title="Delete Product">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
             }
+
+            <!-- Info Section -->
+            <div class="nc-detail-info">
+                <div class="nc-info-header">
+                    <div class="nc-editable-wrapper" data-field="BrandId">
+                        <div class="nc-read-only">
+                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })" class="nc-detail-brand nc-editable-span" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
+                        </div>
+                        <div class="nc-input-edit">
+                            <select name="BrandId" class="nc-detail-brand" onchange="editor.trackFieldChange('BrandId', this.value)">
+                                @foreach(var b in brands) {
+                                    <option value="@b.Id" selected="@(b.Id == Model.BrandId ? "selected" : null)">@b.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="nc-editable-wrapper mt-2" data-field="Name">
+                        <div class="nc-read-only">
+                            <h1 class="nc-detail-name nc-editable-span">@Model.Name</h1>
+                        </div>
+                        <div class="nc-input-edit">
+                            <textarea name="Name" class="nc-input nc-detail-name-edit" rows="1" oninput="editor.autoSize(this); editor.trackFieldChange('Name', this.value)">@Model.Name</textarea>
+                        </div>
+                    </div>
+
+                    <div class="nc-editable-wrapper mt-3" data-field="Price">
+                        <div class="nc-price-value-container position-relative">
+                            <div class="nc-read-only" style="position: relative;">
+                                <span class="nc-currency-sign" style="position: absolute; left: 0; top: 0rem; pointer-events: none;">₱</span>
+                                <span class="nc-detail-price nc-editable-span" style="padding: 0.2rem 0.75rem 0.2rem 2.25rem; margin: -0.2rem -0.25rem;">@Model.Price.ToString("N2")</span>
+                            </div>
+                            <div class="nc-input-edit position-relative">
+                                <span class="nc-currency-sign" style="position: absolute; left: 0.75rem; top: 0.2rem; z-index: 5; pointer-events: none; opacity: 0.8;">₱</span>
+                                <input type="number" step="0.01" name="Price" value="@Model.Price" class="nc-price-input" style="padding-left: 2.25rem;" oninput="editor.trackFieldChange('Price', this.value)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 3rem;"></div> <!-- Price gap to description -->
+
+                <div class="nc-detail-section">
+                    <h3 class="nc-section-title">About this product</h3>
+                    <div class="nc-editable-wrapper" data-field="Description">
+                        <div class="nc-read-only">
+                            <p class="nc-description nc-editable-span">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
+                        </div>
+                        <div class="nc-input-edit">
+                            <textarea name="Description" class="nc-input" rows="5" oninput="editor.trackFieldChange('Description', this.value)">@Model.Description</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+                {
+                    <div class="nc-detail-section">
+                        <h3 class="nc-section-title">Banner Data</h3>
+                        <div class="nc-specs-grid">
+                            <div class="nc-spec-item">
+                                <span class="nc-spec-label">Banner Status</span>
+                                <div class="nc-editable-wrapper" data-field="IsBanner">
+                                    <div class="nc-read-only">
+                                        <span class="badge-nc @(Model.IsBanner ? "bg-success" : "bg-secondary") nc-editable-span" style="color: white !important;">@(Model.IsBanner ? "Featured" : "Not Featured")</span>
+                                    </div>
+                                    <div class="nc-input-edit">
+                                        <label class="nc-checkbox-group">
+                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") onchange="editor.trackFieldChange('IsBanner', this.checked)" />
+                                            <span>Active as Banner</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="nc-spec-item" style="grid-column: span 2;">
+                                <span class="nc-spec-label">Banner Text</span>
+                                <div class="nc-editable-wrapper" data-field="BannerDescription">
+                                    <div class="nc-read-only">
+                                        <p class="nc-spec-value nc-editable-span">@(Model.BannerDescription ?? "None")</p>
+                                    </div>
+                                    <div class="nc-input-edit">
+                                        <textarea name="BannerDescription" class="nc-input nc-input-sm" rows="2" placeholder="Text for featured banner..." oninput="editor.trackFieldChange('BannerDescription', this.value)">@Model.BannerDescription</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="nc-spec-item" style="grid-column: span 2;">
+                                <span class="nc-spec-label">Banner Image</span>
+                                <div class="nc-read-only-hide mb-2">
+                                    @if(!string.IsNullOrEmpty(Model.BannerImageUrl)) {
+                                        <div class="nc-banner-preview-box">
+                                            <img src="@Model.BannerImageUrl" class="nc-banner-preview" id="currentBannerPreview" onclick="openFullscreen(this.src)" />
+                                        </div>
+                                    } else {
+                                        <span class="nc-spec-value" id="currentBannerPreviewEmpty">None</span>
+                                    }
+                                </div>
+                                <div class="nc-editable nc-editable-block" style="margin-top: 0.5rem;">
+                                    @if(!string.IsNullOrEmpty(Model.BannerImageUrl)) {
+                                        <div class="nc-banner-preview-box mb-2" id="bannerPreviewContainerEdit">
+                                            <img src="@Model.BannerImageUrl" class="nc-banner-preview" id="currentBannerPreviewEdit" onclick="openFullscreen(this.src)" />
+                                        </div>
+                                    } else {
+                                        <div class="nc-banner-preview-box mb-2" id="bannerPreviewContainerEdit" style="display:none;">
+                                            <img src="" class="nc-banner-preview" id="currentBannerPreviewEdit" onclick="openFullscreen(this.src)" />
+                                        </div>
+                                    }
+                                    <div class="nc-upload-zone" onclick="document.getElementById('bannerFileInput').click()" id="bannerDropZone" style="padding: 1rem 0;">
+                                        <i class="fa fa-upload"></i>
+                                        <span>Drop/Click Banner</span>
+                                        <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" onchange="editor.handleBannerSelect(event)" />
+                                    </div>
+                                    <div class="nc-url-input-group mt-2">
+                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-input" placeholder="Banner URL..." oninput="editor.trackFieldChange('BannerImageUrl', this.value); if(this.value) { document.getElementById('bannerPreviewContainerEdit').style.display='block'; document.getElementById('currentBannerPreviewEdit').src = this.value; }" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+        </div>
+    </form>
+
+    <!-- Save Bar (Hidden by default) -->
+    <div id="editorSaveBar" class="nc-save-bar" style="display: none;">
+        <div class="nc-save-content">
+            <span class="nc-save-text"><i class="fa fa-info-circle me-2"></i> Unsaved changes detected</span>
+            <div class="nc-save-actions">
+                <button type="button" id="clearEditorChanges" class="btn-nc-outline btn-sm"><i class="fa fa-undo"></i> Clear</button>
+                <button type="button" id="saveEditorChanges" class="btn-nc-primary btn-sm"><i class="fa fa-save"></i> Review & Save</button>
+            </div>
         </div>
     </div>
 </div>
@@ -119,55 +292,527 @@
 </div>
 
 <script>
-    const productImages = [
-        @if (Model.ProductImages != null)
-        {
-            foreach (var img in Model.ProductImages)
-            {
-                @: '@img.Url',
-            }
-        }
-    ];
-    let currentImageIndex = @(Model.ProductImages != null && primaryUrl != null ? Math.Max(0, Model.ProductImages.ToList().FindIndex(p => p.Url == primaryUrl)) : 0);
+    const editor = {
+        originalValues: {},
+        currentValues: {},
+        changedFields: new Set(),
+        images: [],
+        currentImgIndex: 0,
+        isInfiniteScrolling: false,
+        dragSrcGalleryEl: null,
 
-    function navigateImage(direction, event) {
-        if (event) event.stopPropagation();
-        if (productImages.length <= 1) return;
+        init: function() {
+            console.log("Product Editor Initializing...");
+            this.images = Array.from(document.querySelectorAll('.nc-carousel-slide'))
+                               .map(s => s.dataset.url)
+                               .filter(url => url && !url.includes('placehold.co'));
+            
+            // Capture initial values
+            const form = document.getElementById('inPlaceEditForm');
+            if (form) {
+                const formData = new FormData(form);
+                for (let [key, value] of formData.entries()) {
+                    if (key !== '__RequestVerificationToken') {
+                        this.originalValues[key] = value;
+                        this.currentValues[key] = value;
+                    }
+                }
+            }
+
+            this.setupClickToEdit();
+            this.setupCarousel();
+            this.setupRevertIndicators();
+            this.setupDragDrop();
+        },
+
+        setupDragDrop: function() {
+            ['dropZone', 'bannerDropZone'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
+                ['dragleave', 'drop'].forEach(ev => el.addEventListener(ev, () => el.classList.remove('drag-over')));
+                el.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (id === 'dropZone') this.handleFileSelect({ target: { files: e.dataTransfer.files } });
+                    else this.handleBannerSelect({ target: { files: e.dataTransfer.files } });
+                });
+            });
+        },
+
+        setupClickToEdit: function() {
+            document.querySelectorAll('.nc-editable-span').forEach(span => {
+                span.addEventListener('click', (e) => {
+                    const wrapper = span.closest('.nc-editable-wrapper');
+                    if (!wrapper) return;
+                    
+                    // Only enter edit mode if we are actually in global edit mode
+                    const container = document.getElementById('productDetailContainer');
+                    if (!container.classList.contains('nc-edit-mode')) return;
+
+                    wrapper.classList.add('nc-is-editing');
+                    const input = wrapper.querySelector('input, select, textarea');
+                    if (input) {
+                        input.focus();
+                        if (input.tagName === 'TEXTAREA') this.autoSize(input);
+                    }
+                });
+            });
+
+            // Initialize drag and drop
+            document.querySelectorAll('.nc-gallery-item').forEach(el => editor.setupGalleryDragAndDrop(el));
+
+            // Blur to exit field edit mode (but keep global edit mode)
+            document.addEventListener('focusout', (e) => {
+                if (e.target.matches('.nc-input, .nc-price-input, select, textarea')) {
+                    const wrapper = e.target.closest('.nc-editable-wrapper');
+                    if (wrapper) {
+                        // Small delay to allow clicking buttons if any
+                        setTimeout(() => {
+                            if (!wrapper.contains(document.activeElement)) {
+                                wrapper.classList.remove('nc-is-editing');
+                                this.updateSpans(wrapper);
+                            }
+                        }, 150);
+                    }
+                }
+            });
+        },
+
+        updateSpans: function(wrapper) {
+            const span = wrapper.querySelector('.nc-editable-span');
+            const input = wrapper.querySelector('input, select, textarea');
+            if (span && input) {
+                if (input.tagName === 'SELECT') {
+                    span.textContent = input.options[input.selectedIndex]?.text || "None";
+                } else if (input.type === 'checkbox') {
+                    span.textContent = input.checked ? "Featured" : "Not Featured";
+                    span.className = `badge-nc ${input.checked ? 'bg-success' : 'bg-secondary'} nc-editable-span`;
+                } else {
+                    span.textContent = input.value || (wrapper.dataset.field === 'Description' ? "No description" : "None");
+                }
+            }
+        },
+
+        setupRevertIndicators: function() {
+            document.addEventListener('mousedown', (e) => {
+                const wrapper = e.target.closest('.nc-editable-wrapper');
+                if (!wrapper || !wrapper.classList.contains('nc-changed')) return;
+
+                // Detect click on the left border (indicator)
+                const rect = wrapper.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                
+                if (clickX >= 0 && clickX <= 15) {
+                    this.showRevertPopup(wrapper, e.clientX, e.clientY);
+                }
+            });
+        },
+
+        showRevertPopup: function(wrapper, x, y) {
+            const field = wrapper.dataset.field;
+            const original = this.originalValues[field];
+            const current = this.currentValues[field];
+            
+            // Remove existing popups
+            document.querySelectorAll('.nc-revert-popup').forEach(p => p.remove());
+
+            const popup = document.createElement('div');
+            popup.className = 'nc-revert-popup';
+            popup.style.left = `${x}px`;
+            popup.style.top = `${y + 10}px`;
+
+            let originalDisplay = original;
+            if (field === 'IsBanner') originalDisplay = original === 'true' ? "Featured" : "Not Featured";
+            if (field === 'BrandId') {
+                const select = wrapper.querySelector('select');
+                const opt = select.querySelector(`option[value="${original}"]`);
+                originalDisplay = opt ? opt.text : original;
+            }
+
+            popup.innerHTML = `
+                <div style="font-size: 0.75rem; color: var(--nc-text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">Original Value</div>
+                <div style="font-weight: 600; color: #fff; margin-bottom: 1rem; word-break: break-all;">${originalDisplay}</div>
+                <button type="button" class="btn-nc-primary btn-sm w-100" onclick="editor.revertField('${field}')">
+                    <i class="fa fa-undo me-2"></i> Revert Change
+                </button>
+            `;
+
+            document.body.appendChild(popup);
+
+            // Close popup on click outside
+            const closeHandler = (e) => {
+                if (!popup.contains(e.target)) {
+                    popup.remove();
+                    document.removeEventListener('mousedown', closeHandler);
+                }
+            };
+            setTimeout(() => document.addEventListener('mousedown', closeHandler), 10);
+        },
+
+        trackFieldChange: function(field, value) {
+            const wrapper = document.querySelector(`.nc-editable-wrapper[data-field="${field}"]`);
+            const original = this.originalValues[field];
+            
+            // Normalize for comparison
+            const isChanged = String(value) !== String(original);
+            
+            if (isChanged) {
+                if (wrapper) wrapper.classList.add('nc-changed');
+                this.changedFields.add(field);
+                this.currentValues[field] = value;
+            } else {
+                if (wrapper) wrapper.classList.remove('nc-changed');
+                this.changedFields.delete(field);
+                this.currentValues[field] = original;
+            }
+
+            this.updateSaveBar();
+        },
+
+        revertField: function(field) {
+            const wrapper = document.querySelector(`.nc-editable-wrapper[data-field="${field}"]`);
+            const input = wrapper?.querySelector('input, select, textarea');
+            if (!input) return;
+
+            const original = this.originalValues[field];
+            if (input.type === 'checkbox') {
+                input.checked = original === 'true' || original === true;
+            } else {
+                input.value = original;
+            }
+
+            this.trackFieldChange(field, original);
+            this.updateSpans(wrapper);
+            document.querySelectorAll('.nc-revert-popup').forEach(p => p.remove());
+        },
+
+        autoSize: function(el) {
+            if (!el || el.tagName !== 'TEXTAREA') return;
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+        },
+
+        // ── Carousel Logic (Infinite) ──────────────────────────
+        setupCarousel: function() {
+            const track = document.getElementById('carouselTrack');
+            if (!track || this.images.length <= 1) return;
+
+            // Clone first and last for infinite effect
+            const slides = Array.from(track.querySelectorAll('.nc-carousel-slide'));
+            const firstClone = slides[0].cloneNode(true);
+            const lastClone = slides[slides.length - 1].cloneNode(true);
+            
+            track.appendChild(firstClone);
+            track.insertBefore(lastClone, slides[0]);
+
+            this.currentImgIndex = 1; // Start at the real first slide
+            this.updateCarouselPos(false);
+        },
+
+        updateCarouselPos: function(smooth = true) {
+            const track = document.getElementById('carouselTrack');
+            if (!track) return;
+            track.style.transition = smooth ? 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+            track.style.transform = `translateX(-${this.currentImgIndex * 100}%)`;
+
+            // Update gallery highlights
+            const realIdx = this.getRealIndex();
+            document.querySelectorAll('.nc-image-gallery .nc-gallery-item').forEach((item, i) => {
+                item.classList.toggle('active', i === realIdx);
+            });
+        },
+
+        getRealIndex: function() {
+            if (this.images.length === 0) return 0;
+            let idx = this.currentImgIndex - 1;
+            if (idx < 0) idx = this.images.length - 1;
+            if (idx >= this.images.length) idx = 0;
+            return idx;
+        },
+
+        carouselNext: function(e) {
+            if (e) e.stopPropagation();
+            if (this.isInfiniteScrolling) return;
+            this.currentImgIndex++;
+            this.updateCarouselPos();
+
+            if (this.currentImgIndex > this.images.length) {
+                this.isInfiniteScrolling = true;
+                setTimeout(() => {
+                    this.currentImgIndex = 1;
+                    this.updateCarouselPos(false);
+                    this.isInfiniteScrolling = false;
+                }, 600);
+            }
+        },
+
+        carouselPrev: function(e) {
+            if (e) e.stopPropagation();
+            if (this.isInfiniteScrolling) return;
+            this.currentImgIndex--;
+            this.updateCarouselPos();
+
+            if (this.currentImgIndex < 1) {
+                this.isInfiniteScrolling = true;
+                setTimeout(() => {
+                    this.currentImgIndex = this.images.length;
+                    this.updateCarouselPos(false);
+                    this.isInfiniteScrolling = false;
+                }, 600);
+            }
+        },
+
+        toImage: function(index) {
+            this.currentImgIndex = index + 1;
+            this.updateCarouselPos();
+        },
+
+        // ── Image Management ──────────────────────────────────
+        handleFileSelect: function(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.appendTempImage(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        },
+
+        appendTempImage: function(src) {
+            const gallery = document.getElementById('imageGallery');
+            const container = document.getElementById('galleryContainer');
+            container.classList.remove('d-none');
+
+            const item = document.createElement('div');
+            item.className = 'nc-gallery-item';
+            item.dataset.url = src;
+            item.innerHTML = `
+                <img src="${src}" alt="New Image" />
+                <div class="nc-editable nc-item-actions">
+                    <button type="button" class="nc-item-btn btn-thumbnail" onclick="editor.setPrimaryImage(this)"><i class="fa fa-image"></i></button>
+                    <button type="button" class="nc-item-btn btn-danger" onclick="this.closest('.nc-gallery-item').remove(); editor.refreshCarousel();"><i class="fa fa-trash"></i></button>
+                </div>
+            `;
+            gallery.appendChild(item);
+            this.setupGalleryDragAndDrop(item);
+            this.refreshCarousel();
+            this.changedFields.add('Images');
+            this.updateSaveBar();
+        },
+
+        setupGalleryDragAndDrop: function(item) {
+            item.setAttribute('draggable', 'true');
+            item.addEventListener('dragstart', function(e) {
+                if (!document.getElementById('productDetailContainer').classList.contains('nc-edit-mode')) {
+                    e.preventDefault();
+                    return;
+                }
+                if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'button' || e.target.closest('.nc-item-btn')) {
+                    e.preventDefault();
+                    return;
+                }
+                editor.dragSrcGalleryEl = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+                this.style.opacity = '0.4';
+            });
+
+            item.addEventListener('dragover', function(e) {
+                if (e.preventDefault) e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                if (editor.dragSrcGalleryEl && editor.dragSrcGalleryEl !== this) {
+                    const container = this.parentNode;
+                    const items = Array.from(container.querySelectorAll('.nc-gallery-item'));
+                    const srcIndex = items.indexOf(editor.dragSrcGalleryEl);
+                    const targetIndex = items.indexOf(this);
+
+                    if (srcIndex < targetIndex) {
+                        container.insertBefore(editor.dragSrcGalleryEl, this.nextSibling);
+                    } else {
+                        container.insertBefore(editor.dragSrcGalleryEl, this);
+                    }
+                }
+                return false;
+            });
+
+            item.addEventListener('dragenter', function(e) {
+                if (editor.dragSrcGalleryEl && editor.dragSrcGalleryEl !== this) {
+                    this.style.border = '2px dashed var(--nc-primary)';
+                }
+            });
+
+            item.addEventListener('dragleave', function(e) {
+                this.style.border = '2px solid transparent';
+            });
+
+            item.addEventListener('drop', function(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                return false;
+            });
+
+            item.addEventListener('dragend', function(e) {
+                this.style.opacity = '1';
+                document.querySelectorAll('.nc-gallery-item').forEach(el => {
+                    el.style.border = '2px solid transparent';
+                });
+                editor.updateImageOrder();
+                editor.refreshCarousel();
+                editor.changedFields.add('Images');
+                editor.updateSaveBar();
+            });
+        },
+
+        addImageUrl: function() {
+            const input = document.getElementById('newImageUrlInput');
+            const url = input.value.trim();
+            if (!url) return;
+            this.appendTempImage(url);
+            input.value = '';
+        },
+
+        handleBannerSelect: function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const wrapper = document.querySelector('.nc-editable-wrapper[data-field="BannerImageUrl"]');
+                const previewImgEdit = document.getElementById('currentBannerPreviewEdit');
+                if (previewImgEdit) {
+                    document.getElementById('bannerPreviewContainerEdit').style.display = 'block';
+                    previewImgEdit.src = event.target.result;
+                }
+                this.trackFieldChange('BannerImageUrl', event.target.result);
+            };
+            reader.readAsDataURL(file);
+        },
+
+        refreshCarousel: function() {
+            const track = document.getElementById('carouselTrack');
+            if (!track) return;
+            
+            this.images = Array.from(document.querySelectorAll('.nc-gallery-item:not(.nc-to-delete)'))
+                               .map(it => it.dataset.url);
+            
+            track.innerHTML = '';
+            if (this.images.length === 0) {
+                track.innerHTML = `<div class="nc-carousel-slide"><img src="https://placehold.co/800x600/1a1f2c/7babdd?text=No+Image" class="nc-main-image" /></div>`;
+            } else {
+                this.images.forEach(url => {
+                    const slide = document.createElement('div');
+                    slide.className = 'nc-carousel-slide';
+                    slide.dataset.url = url;
+                    slide.innerHTML = `<img src="${url}" class="nc-main-image" onclick="openFullscreen(this.src)" />`;
+                    track.appendChild(slide);
+                });
+            }
+            this.setupCarousel(); // Re-clone for infinite
+            this.updateImageOrder();
+        },
+
+        setPrimaryImage: function(btn) {
+            const item = btn.closest('.nc-gallery-item');
+            document.querySelectorAll('.btn-thumbnail').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            document.getElementById('primaryImageInput').value = item.dataset.url;
+            this.changedFields.add('PrimaryImage');
+            this.updateSaveBar();
+        },
+
+        editImageUrl: function(btn) {
+            const item = btn.closest('.nc-gallery-item');
+            const oldUrl = item.dataset.url;
+            const newUrl = prompt("Enter new Image URL:", oldUrl);
+            if (newUrl && newUrl !== oldUrl) {
+                item.dataset.url = newUrl;
+                item.querySelector('img').src = newUrl;
+                this.refreshCarousel();
+                this.changedFields.add('Images');
+                this.updateSaveBar();
+            }
+        },
+
+        toggleRemoveImage: function(btn) {
+            const item = btn.closest('.nc-gallery-item');
+            const url = item.dataset.url;
+            item.classList.toggle('nc-to-delete');
+            
+            const deletedInput = document.getElementById('deletedImagesInput');
+            const deleted = JSON.parse(deletedInput.value || "[]");
+            
+            if (item.classList.contains('nc-to-delete')) {
+                item.style.opacity = '0.3';
+                deleted.push(url);
+            } else {
+                item.style.opacity = '1';
+                const idx = deleted.indexOf(url);
+                if (idx !== -1) deleted.splice(idx, 1);
+            }
+            
+            deletedInput.value = JSON.stringify(deleted);
+            this.refreshCarousel();
+            this.changedFields.add('Images');
+            this.updateSaveBar();
+        },
+
+        updateImageOrder: function() {
+            const urls = Array.from(document.querySelectorAll('.nc-gallery-item')).map(it => it.dataset.url);
+            document.getElementById('imageOrderInput').value = urls.join(',');
+        },
+
+        updateSaveBar: function() {
+            const bar = document.getElementById('editorSaveBar');
+            if (bar) bar.style.display = (this.changedFields.size > 0) ? 'block' : 'none';
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        editor.init();
+        document.getElementById('enterEditMode')?.addEventListener('click', enterEditMode);
+        document.getElementById('exitEditMode')?.addEventListener('click', cancelEditMode);
         
-        currentImageIndex += direction;
-        if (currentImageIndex < 0) currentImageIndex = productImages.length - 1;
-        if (currentImageIndex >= productImages.length) currentImageIndex = 0;
-        
-        applyImageChange(productImages[currentImageIndex]);
+        document.getElementById('clearEditorChanges')?.addEventListener('click', () => {
+            if (confirm("Clear all unsaved changes?")) location.reload();
+        });
+
+        document.getElementById('saveEditorChanges')?.addEventListener('click', () => {
+            document.getElementById('inPlaceEditForm').submit();
+        });
+    });
+
+    function enterEditMode() {
+        document.getElementById('productDetailContainer').classList.add('nc-edit-mode');
+        document.getElementById('enterEditMode').style.display = 'none';
+        document.getElementById('exitEditMode').style.display = 'flex';
+        document.querySelectorAll('textarea.nc-input').forEach(ta => editor.autoSize(ta));
     }
 
-    function applyImageChange(url) {
-        const main = document.getElementById('mainProductImage');
-        main.style.opacity = '0';
-        setTimeout(() => {
-            main.src = url;
-            main.style.opacity = '1';
-        }, 200);
-        
-        document.querySelectorAll('.nc-gallery-item').forEach((item, index) => {
-            if (index === currentImageIndex) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
+    function cancelEditMode() {
+        if (editor.changedFields.size > 0 && !confirm("Discard unsaved changes?")) return;
+        Array.from(editor.changedFields).forEach(field => editor.revertField(field));
+        document.getElementById('productDetailContainer').classList.remove('nc-edit-mode');
+        document.getElementById('enterEditMode').style.display = 'flex';
+        document.getElementById('exitEditMode').style.display = 'none';
+        editor.changedFields.clear();
+        editor.updateSaveBar();
     }
 
     function updateMainImage(url, el) {
-        currentImageIndex = productImages.indexOf(url);
-        applyImageChange(url);
+        const idx = editor.images.indexOf(url);
+        if (idx !== -1) editor.toImage(idx);
     }
+
     function openFullscreen(url) {
-        const overlay = document.getElementById('fullscreenOverlay');
         document.getElementById('fullscreenImg').src = url;
-        overlay.style.display = 'flex';
+        document.getElementById('fullscreenOverlay').style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
+
     function closeFullscreen() {
         document.getElementById('fullscreenOverlay').style.display = 'none';
         document.body.style.overflow = '';
@@ -177,27 +822,63 @@
 <style>
     /* ── Details Container & Card ──────────────────────────────── */
     .nc-detail-container {
-        padding: 2rem 0;
+        padding: 4rem 0; /* Reduced top padding, relying more on card margins */
         animation: fadeIn 0.6s ease-out;
+        position: relative;
+        max-width: 1400px;
+        margin: 2rem auto; /* Added margin for better centering */
     }
 
     .nc-detail-card {
         display: grid;
-        grid-template-columns: 1.2fr 1fr;
+        grid-template-columns: 1.25fr 1fr; /* Slightly wider left side */
         gap: 5rem;
         background: rgba(30, 35, 45, 0.4);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 2rem;
-        padding: 4rem;
-        box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 2.5rem;
+        padding: 4.5rem;
+        box-shadow: 0 50px 120px rgba(0,0,0,0.6);
+        position: relative;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    @@media (max-width: 1200px) {
-        .nc-detail-card {
-            gap: 3rem;
-            padding: 3rem;
+    /* Gutter Admin Actions */
+    .nc-gutter-actions {
+        position: absolute;
+        left: calc(100% + 1.5rem);
+        top: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        z-index: 100;
+    }
+
+    .nc-gutter-btn {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(30, 35, 45, 0.85);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        font-size: 1.25rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    
+    .nc-gutter-btn:hover { background: var(--nc-primary); transform: translateX(8px) scale(1.05); color: #fff; box-shadow: 0 15px 30px rgba(123, 171, 221, 0.4); }
+    .nc-gutter-btn.btn-cancel:hover { background: #ef5350; box-shadow: 0 15px 30px rgba(239, 83, 80, 0.4); }
+    .nc-gutter-btn.btn-delete:hover { background: #ef5350; box-shadow: 0 15px 30px rgba(239, 83, 80, 0.4); }
+
+    @@media (max-width: 1550px) {
+        .nc-gutter-actions {
+            left: auto; right: 1.5rem;
+            top: -4.5rem;
+            flex-direction: row;
         }
     }
 
@@ -205,376 +886,538 @@
         .nc-detail-card {
             grid-template-columns: 1fr;
             gap: 4rem;
-            padding: 2rem;
+            padding: 2.5rem;
+            margin: 0 1rem;
         }
+        .nc-gutter-actions {
+            position: relative;
+            top: 0; right: 0;
+            margin-bottom: 2.5rem;
+            justify-content: center;
+            flex-direction: row;
+        }
+        .nc-gutter-btn.btn-edit, .nc-gutter-btn.nc-btn-cancel-edit { order: 2; }
+        .nc-gutter-btn.btn-delete { order: 1; }
     }
 
-    /* ── Visual Section ───────────────────────────────────────── */
-    .nc-main-image-wrapper {
+    /* ── Typography & Zero-Shift Stacking ─────────────────────── */
+    :root {
+        --nc-font-name: 4rem;
+        --nc-font-name-mobile: 2.5rem;
+        --nc-font-price: 2.5rem;
+        --nc-font-brand: 1.1rem;
+    }
+
+    .nc-stack-grid {
+        display: grid;
+        grid-template-areas: "stack";
+        align-items: center;
         position: relative;
-        border-radius: 1.5rem;
+    }
+    .nc-stack-grid > * {
+        grid-area: stack;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    /* Global Visibility for fixed Actions */
+    .nc-editable { opacity: 0; visibility: hidden; pointer-events: none; }
+    .nc-editable-block { display: none; }
+    
+    .nc-edit-mode .nc-editable { opacity: 1; visibility: visible; pointer-events: all; }
+    .nc-edit-mode .nc-editable-block { display: block; opacity: 1; visibility: visible; pointer-events: all; }
+    
+    .nc-edit-mode .nc-read-only-hide { opacity: 0; visibility: hidden; pointer-events: none; display: none !important; }
+
+    /* ── Click-To-Edit Dynamic Styling ──────────────────────── */
+    /* State: Read Only */
+    .nc-editable-wrapper .nc-input-edit {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    /* State: Being Edited */
+    .nc-edit-mode .nc-editable-wrapper .nc-read-only {
+        display: none;
+    }
+    .nc-edit-mode .nc-editable-wrapper .nc-input-edit {
+        display: block;
+        opacity: 1;
+    }
+
+    /* Change indicators (left border) */
+    .nc-editable-wrapper {
+        position: relative;
+        border-radius: 0.5rem;
+        border-left: 4px solid transparent;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        margin-bottom: 1.25rem;
+    }
+    
+    .nc-editable-wrapper.nc-changed {
+        border-left-color: #ffb74d;
+        padding-left: 0.75rem;
+        margin-left: -1rem; /* Visual offset to keep text aligned */
+    }
+
+    /* Hover highlight for edit targets */
+    .nc-editable-span {
+        display: inline-block;
+        border-radius: 0.5rem;
+        padding: 0.3rem 0.5rem;
+        margin: -0.3rem -0.5rem;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+    
+    .nc-detail-name.nc-editable-span, .nc-spec-value.nc-editable-span {
+        padding: 0.5rem; margin: -0.5rem;
+    }
+    .nc-description.nc-editable-span {
+        padding: 0.7rem 1rem; margin: -0.7rem -1rem;
+    }
+    .nc-detail-brand.nc-editable-span {
+        padding: 0.2rem 0.5rem; margin: -0.2rem -0.5rem;
+    }
+
+    .nc-edit-mode .nc-editable-span {
+        cursor: pointer;
+    }
+    .nc-edit-mode .nc-editable-span:hover {
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+    }
+
+    .nc-detail-name, .nc-detail-name-edit {
+        font-size: var(--nc-font-name);
+        font-weight: 900;
+        line-height: 1.2; /* Consistent line-height */
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: none;
+        color: #fff;
+        width: 100%;
+        font-family: inherit;
+        display: block;
+        min-height: 1.2em; /* Ensure same height even if empty */
+    }
+
+    .nc-detail-name-edit {
+        background: rgba(255,255,255,0.08); /* Slightly lighter */
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 0.75rem;
+        padding: 0.5rem;
+        margin: -0.5rem;
+        resize: none;
         overflow: hidden;
-        background: rgba(0,0,0,0.2);
-        aspect-ratio: 1;
-        cursor: zoom-in;
-        border: 1px solid rgba(255,255,255,0.03);
+        min-height: 1.1em;
+        transition: all 0.3s;
+    }
+    .nc-detail-name-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255,255,255,0.12); }
+
+    .nc-detail-price, .nc-price-input {
+        font-size: var(--nc-font-price);
+        font-weight: 800;
+        color: var(--nc-primary);
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: none;
+        font-family: inherit;
+        display: flex; /* Changed to flex for alignment */
+        align-items: center;
+        line-height: 1.2;
+    }
+
+    .nc-price-input {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.6rem;
+        padding: 0.2rem 0.75rem;
+        margin: -0.2rem -0.25rem;
+        width: 100%;
+        transition: border-color 0.3s;
+    }
+    .nc-price-input:focus { border-color: var(--nc-primary); outline: none; }
+    
+    .nc-editable-wrapper[data-field="Price"] {
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .nc-currency-sign {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--nc-primary);
+        opacity: 0.9;
+        margin-right: 0.5rem;
+        padding-top: 0.2rem;
+    }
+    
+    .nc-price-value-container {
+        flex: 1;
+    }
+
+    .nc-detail-brand {
+        font-size: var(--nc-font-brand);
+        color: var(--nc-primary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        margin-bottom: 0.75rem;
+        display: block;
+        padding: 0;
+        border: none;
+        background: none;
+        font-family: inherit;
+    }
+
+    select.nc-detail-brand {
+        margin: -0.2rem -0.5rem;
+        padding: 0.2rem 0.5rem;
+        cursor: pointer;
+        border-radius: 0.5rem;
+        color: var(--nc-primary);
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    select.nc-detail-brand:focus { border-color: var(--nc-primary); outline: none; }
+
+    /* ── Visual Section & Carousel ───────────────────────────── */
+    .nc-main-image-outer { 
+        width: 100%; aspect-ratio: 1; position: relative; 
+        border-radius: 2rem; overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .nc-main-image-wrapper {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        background: #0f141e;
+        transition: opacity 0.5s ease;
+    }
+
+    .nc-carousel-track {
+        display: flex;
+        width: 100%; height: 100%;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+        will-change: transform;
+    }
+    .nc-edit-mode .nc-carousel-track { opacity: 0; pointer-events: none; }
+
+    .nc-carousel-slide {
+        flex: 0 0 100%;
+        width: 100%; height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 0rem;
     }
 
     .nc-main-image {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%; height: 100%;
+        object-fit: cover; /* Fully covering */
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: zoom-in;
     }
 
-    .nc-main-image-wrapper:hover .nc-main-image {
-        transform: scale(1.08);
-    }
+    .nc-carousel-slide:hover .nc-main-image { transform: scale(1.05); }
 
     .nc-img-nav {
         position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 44px;
-        height: 44px;
+        top: 50%; transform: translateY(-50%);
+        width: 50px; height: 50px;
         border-radius: 50%;
-        background: rgba(14, 18, 26, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 20, 30, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         opacity: 0;
-        transition: all 0.3s;
-        backdrop-filter: blur(4px);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        backdrop-filter: blur(8px);
+        z-index: 10;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
     }
+    .nc-img-nav:hover { background: var(--nc-primary); transform: translateY(-50%) scale(1.1); border-color: transparent; }
+    .nc-main-image-wrapper:hover .nc-img-nav { opacity: 1; }
+    .nc-img-nav.prev { left: 1.5rem; }
+    .nc-img-nav.next { right: 1.5rem; }
 
-    .nc-img-nav:hover {
-        background: var(--nc-primary);
-        color: #fff;
-        transform: translateY(-50%) scale(1.1);
-    }
-
-    .nc-main-image-wrapper:hover .nc-img-nav {
-        opacity: 1;
-    }
-
-    .nc-img-nav.prev { left: 1rem; }
-    .nc-img-nav.next { right: 1rem; }
-
-    .nc-image-badge {
+    .nc-image-badge, .nc-input-badge {
         position: absolute;
-        top: 1.5rem;
-        left: 1.5rem;
+        top: 1.5rem; left: 1.5rem;
         background: var(--nc-primary);
         color: #fff;
-        padding: 0.5rem 1.2rem;
+        padding: 0.6rem 1.4rem;
+        border-radius: 2rem;
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        box-shadow: 0 15px 30px rgba(123, 171, 221, 0.4);
+        z-index: 20;
+        pointer-events: all;
+        transition: transform 0.3s;
+    }
+    .nc-image-badge:hover { transform: translateY(-2px); }
+    .nc-input-badge { border: 2px solid rgba(255,255,255,0.5); cursor: pointer; z-index: 31; box-shadow: 0 5px 15px rgba(0,0,0, 0.2); }
+    .nc-input-badge:focus { outline: none; border-color: #fff; }
+    
+    .nc-image-badge-edit {
+        z-index: 21;
+    }
+
+    .nc-media-edit-box {
+        width: 100%; height: 100%;
+        background: #0f141e;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: absolute; inset: 0;
+        z-index: 30;
+        padding: 5rem 2rem 2rem 2rem;
+        gap: 1rem;
+    }
+
+    .nc-upload-zone {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 2px dashed rgba(255,255,255,0.15);
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.4s;
+        background: rgba(0,0,0,0.2);
+        padding: 2rem 0;
+    }
+    .nc-upload-zone:hover, .nc-upload-zone.drag-over { background: rgba(123, 171, 221, 0.08); border-color: var(--nc-primary); }
+    .nc-upload-zone i { font-size: 2.5rem; color: var(--nc-primary); margin-bottom: 0.5rem; }
+    .nc-upload-zone span { font-weight: 600; font-size: 1rem; color: #fff; }
+    
+    .nc-url-input-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: stretch; }
+    .btn-nc-primary.btn-square { 
+        width: 48px; height: auto; 
+        flex-shrink: 0;
+        border-radius: 12px; 
+        display: flex; align-items: center; justify-content: center; 
+        background: var(--nc-primary);
+        color: #fff;
+        border: none;
+        box-shadow: 0 8px 20px rgba(123, 171, 221, 0.3);
+    }
+
+    /* ── Gallery ──────────────────────────────────────────────── */
+    .nc-gallery-container { margin-top: 2.5rem; }
+    .nc-image-gallery {
+        display: flex;
+        gap: 1.25rem;
+        overflow-x: auto;
+        padding: 0.75rem 0.25rem;
+        scrollbar-width: none;
+    }
+    .nc-image-gallery::-webkit-scrollbar { display: none; }
+
+    .nc-gallery-item {
+        position: relative;
+        flex: 0 0 120px;
+        aspect-ratio: 1;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        background: rgba(255,255,255,0.04);
+        padding: 5px;
+    }
+    .nc-gallery-item:hover { background: rgba(255,255,255,0.1); transform: translateY(-6px); box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
+    .nc-gallery-item.active { border-color: var(--nc-primary); background: rgba(123, 171, 221, 0.12); }
+    .nc-gallery-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 1.2rem; }
+
+    .nc-edit-mode .nc-gallery-scroll {
+        /* Keep it as a row instead of forcing it to grid */
+    }
+
+    .nc-item-actions {
+        position: absolute;
+        top: 0; right: 0;
+        display: none;
+        flex-direction: row;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(14, 18, 26, 0.75);
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        transition: opacity 0.3s;
+        border-bottom-left-radius: 1.2rem;
+        z-index: 5;
+    }
+    .nc-edit-mode .nc-item-actions { display: flex; opacity: 0; pointer-events: none; }
+    .nc-edit-mode .nc-gallery-item:hover .nc-item-actions { opacity: 1; pointer-events: all; }
+    
+    .nc-item-btn {
+        width: 28px; height: 28px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(30,35,45, 0.9);
+        color: #fff;
+        font-size: 12px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
+    }
+    .nc-item-btn:hover { background: var(--nc-primary); transform: scale(1.15); box-shadow: 0 5px 15px rgba(123, 171, 221, 0.3); }
+    .nc-item-btn.btn-star.active { background: #66bb6a; border-color: transparent; }
+    .nc-item-btn.btn-danger:hover { background: #ef5350; }
+    
+    .nc-primary-indicator {
+        position: absolute;
+        bottom: 12px; right: 12px; /* Inward padding */
+        color: #66bb6a;
+        font-size: 1.6rem;
+        display: flex; align-items: center; justify-content: center;
+        text-shadow: 0 0 15px rgba(102, 187, 106, 0.6);
+        z-index: 5;
+    }
+
+    /* ── Meta Stats ─────────────────────────────────────────── */
+    .nc-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.75rem;
+    }
+    .nc-meta-grid.mt-4 { margin-top: 2.5rem !important; }
+    .nc-meta-stat {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1.4rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: transform 0.3s, background 0.3s;
+    }
+    .nc-meta-stat:hover { background: rgba(255,255,255,0.05); transform: translateY(-4px); }
+    .nc-meta-stat-icon {
+        width: 48px; height: 48px;
+        border-radius: 14px;
+        background: rgba(123, 171, 221, 0.12);
+        color: var(--nc-primary);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+    }
+    .nc-meta-stat-label { font-size: 0.75rem; color: var(--nc-text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; display: block; }
+    .nc-meta-stat-value { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    .nc-review-count { font-weight: 400; color: var(--nc-text-muted); font-size: 0.9rem; margin-left: 0.25rem; }
+
+    /* ── Field Logic & Revert ───────────────────────────────── */
+    .nc-revert-btn {
+        position: absolute;
+        right: -3rem; top: 50%;
+        transform: translateY(-50%) scale(0.8);
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(30, 35, 45, 0.8);
+        color: #ffb74d;
+        display: none; /* Only show when changed */
+        align-items: center; justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        transition: all 0.3s;
+    }
+    .nc-revert-btn:hover { background: #ffb74d; color: #1e232d; transform: translateY(-50%) scale(1.1) rotate(-45deg); }
+    .nc-field-changed .nc-revert-btn { display: flex; animation: slideInRevert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+    @@keyframes slideInRevert { from { opacity: 0; transform: translateY(-50%) translateX(-10px) scale(0.5); } to { opacity: 1; transform: translateY(-50%) translateX(0) scale(0.8); } }
+
+    /* ── Purchase Actions ───────────────────────────────────── */
+    .nc-purchase-section { display: flex; gap: 1.25rem; margin-top: 3.5rem; }
+    .nc-buy-btn { flex: 1; padding: 1.4rem; font-size: 1.1rem; border-radius: 1.2rem; font-weight: 800; box-shadow: 0 20px 40px rgba(123, 171, 221, 0.25); }
+    .nc-wishlist-btn { width: 68px; border-radius: 1.2rem; font-size: 1.4rem; }
+
+    /* ── Specs & Banner Editor ──────────────────────────────── */
+    .nc-specs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        align-items: start;
+        background: rgba(255,255,255,0.02);
+        padding: 2rem;
+        border-radius: 1.5rem;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .nc-spec-label { font-size: 0.75rem; text-transform: uppercase; color: var(--nc-text-muted); letter-spacing: 0.1em; margin-bottom: 0.5rem; display: block; }
+    .nc-spec-value { font-size: 0.95rem; font-weight: 600; color: #fff; }
+
+    .nc-checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        width: max-content;
+    }
+    .nc-checkbox-group span { margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
+    .nc-checkbox-group input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer; }
+
+    .badge-nc {
+        padding: 0.4rem 1rem;
         border-radius: 2rem;
         font-size: 0.75rem;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        box-shadow: 0 10px 20px rgba(123, 171, 221, 0.3);
+        display: inline-block;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        color: #fff !important; /* Force white text */
     }
+    .badge-nc.bg-success { background: linear-gradient(135deg, #66bb6a, #43a047); }
+    .badge-nc.bg-secondary { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); }
 
-    .nc-gallery-container {
-        margin-top: 2rem;
-    }
+    .nc-banner-preview { width: 100%; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1); cursor: zoom-in; max-height: 120px; object-fit: cover; }
 
-    .nc-gallery-scroll {
-        display: flex;
-        gap: 1rem;
-        overflow-x: auto;
-        padding: 0.5rem 0;
-        scrollbar-width: none; /* Firefox */
-    }
-
-        .nc-gallery-scroll::-webkit-scrollbar {
-            display: none;
-        }
-    /* Chrome/Safari */
-
-    .nc-gallery-item {
-        flex: 0 0 110px;
-        aspect-ratio: 1;
-        border-radius: 1rem;
-        overflow: hidden;
-        border: 2px solid transparent;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: rgba(255,255,255,0.03);
-        padding: 6px;
-    }
-
-        .nc-gallery-item:hover {
-            background: rgba(255,255,255,0.08);
-            transform: translateY(-4px);
-        }
-
-        .nc-gallery-item.active {
-            border-color: var(--nc-primary);
-            background: rgba(123, 171, 221, 0.1);
-        }
-
-        .nc-gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 0.75rem;
-        }
-
-    /* ── Meta Stats ─────────────────────────────────────────── */
-    .nc-meta-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .nc-meta-stat {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1.25rem;
-        background: rgba(255,255,255,0.02);
-        border-radius: 1.25rem;
-        border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .nc-meta-stat-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
-        background: rgba(123, 171, 221, 0.1);
-        color: var(--nc-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.1rem;
-    }
-
-    .nc-meta-stat-content {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .nc-meta-stat-label {
-        font-size: 0.7rem;
-        color: var(--nc-text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 2px;
-    }
-
-    .nc-meta-stat-value {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--nc-text-primary);
-    }
-
-    /* ── Info Section ────────────────────────────────────────── */
-    .nc-info-header {
-        margin-bottom: 3rem;
-    }
-
-    .nc-detail-brand {
-        font-size: 1.1rem;
-        color: var(--nc-primary);
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        margin-bottom: 0.75rem;
-    }
-
-    .nc-detail-name {
-        font-size: 4rem;
-        font-weight: 900;
-        line-height: 1.1;
-        margin-bottom: 1.5rem;
-    }
-
-    .nc-detail-price {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: var(--nc-primary);
-    }
-
-    .nc-currency {
-        font-size: 1.5rem;
-        font-weight: 400;
-        margin-right: 0.25rem;
-        opacity: 0.7;
-    }
-
-    @@media (max-width: 768px) {
-        .nc-detail-name {
-            font-size: 2.5rem;
-        }
-
-        .nc-detail-price {
-            font-size: 2rem;
-        }
-    }
-
-    .nc-detail-section {
-        margin-bottom: 3rem;
-    }
-
-    .nc-section-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--nc-text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        margin-bottom: 1rem;
-    }
-
-    .nc-detail-desc {
-        font-size: 1.1rem;
-        line-height: 1.7;
-        color: var(--nc-text-muted);
-        font-weight: 400;
-    }
-
-    /* ── Purchase Actions ───────────────────────────────────── */
-    .nc-purchase-section {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .nc-buy-btn {
-        flex: 1;
-        padding: 1.25rem;
-        font-size: 1.1rem;
-        border-radius: 1rem;
-        box-shadow: 0 15px 30px rgba(123, 171, 221, 0.2);
-    }
-
-    .nc-wishlist-btn {
-        width: 62px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 1rem;
-        font-size: 1.3rem;
-    }
-
-    /* ── Admin Management ───────────────────────────────────── */
-    .nc-admin-actions {
-        padding-top: 2.5rem;
-        border-top: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .nc-admin-title {
-        font-size: 0.85rem;
-        color: #ffb74d;
-        text-transform: uppercase;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        margin-bottom: 1.5rem;
-    }
-
-    .nc-action-buttons {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .nc-admin-btn {
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        font-size: 0.9rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s;
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .btn-edit {
-        background: rgba(255,255,255,0.05);
-        color: #fff;
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-
-        .btn-edit:hover {
-            background: rgba(255,255,255,0.1);
-            transform: translateY(-3px);
-        }
-
-    .btn-delete {
-        background: rgba(229, 115, 115, 0.1);
-        color: #e57373;
-        border: 1px solid rgba(229, 115, 115, 0.2);
-    }
-
-    .btn-delete:hover {
-        background: #e57373;
-        color: #fff;
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(229, 115, 115, 0.3);
-    }
-
-    /* Fullscreen Overlay */
+    /* ── Fullscreen & Overlays ──────────────────────────────── */
     .nc-fullscreen-overlay {
         display: none;
-        position: fixed;
-        inset: 0;
+        position: fixed; inset: 0;
         z-index: 10000;
         background: rgba(10,12,16,0.98);
-        align-items: center;
-        justify-content: center;
+        align-items: center; justify-content: center;
         padding: 3rem;
-        backdrop-filter: blur(20px);
+        backdrop-filter: blur(25px);
     }
+    .nc-fullscreen-overlay img { max-width: 95%; max-height: 95%; object-fit: contain; animation: zoomIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    .nc-close-btn { position: absolute; top: 2.5rem; right: 2.5rem; color: #fff; font-size: 3.5rem; cursor: pointer; opacity: 0.6; transition: all 0.3s; }
+    .nc-close-btn:hover { opacity: 1; transform: rotate(90deg) scale(1.1); }
 
-        .nc-fullscreen-overlay img {
-            max-width: 95%;
-            max-height: 95%;
-            object-fit: contain;
-            animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-    .nc-close-btn {
-        position: absolute;
-        top: 2rem;
-        right: 2rem;
-        color: #fff;
-        font-size: 3rem;
-        cursor: pointer;
-        opacity: 0.5;
-        transition: opacity 0.3s;
+    /* Save Bar */
+    .nc-save-bar {
+        position: fixed;
+        bottom: 2.5rem; left: 50%;
+        transform: translateX(-50%);
+        background: rgba(30, 35, 45, 0.98);
+        backdrop-filter: blur(25px);
+        border: 1px solid var(--nc-primary);
+        padding: 1.25rem 2.5rem;
+        border-radius: 2rem;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+        z-index: 1000;
+        animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .nc-save-content { display: flex; align-items: center; gap: 2rem; }
+    .nc-save-text { color: #fff; font-weight: 500; }
+    .nc-save-actions { display: flex; gap: 0.75rem; }
 
-        .nc-close-btn:hover {
-            opacity: 1;
-        }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @@keyframes zoomIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideUp { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
 </style>

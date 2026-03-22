@@ -6,9 +6,3 @@ save this under a column under each product as html code
 add a copy button that copies the html code and a paste button that pastes the code
 add a template system where people can save and load html templates
 
-instead of making a plain edit page for product, when you are in the product details page, clicking the edit button wont make you go to the edit page but the static product details page would become
-the edit page. the labels become text inputs, just put a label near the input to indicate what property it is. the image viewer main div is divided in half, upper is drag upload local image, bottom is url
-the bottom of the main div becomes the current images section in edit page that is draggable reorder and still with the url edit (make this floating popup near the image instead), etc.
-the other properties not in the normal product details page can just be spawned below
-copy how updatable table works with local changes and input indicators and save changes diff
-use products-productid in localStorage to sync changes with updatable table
