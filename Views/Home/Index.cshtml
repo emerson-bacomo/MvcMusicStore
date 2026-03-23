@@ -127,7 +127,7 @@
                         <option value="" style="background: var(--nc-bg-card);">All Categories</option>
                         @foreach (var cat in categories)
                         {
-                            <option value="@cat" selected="@(cat == currentCategory ? "selected" : null)" style="background: var(--nc-bg-card);">@cat</option>
+                            <option value="@cat" selected="@(string.Equals(cat, currentCategory, StringComparison.OrdinalIgnoreCase) ? "selected" : null)" style="background: var(--nc-bg-card);">@cat</option>
                         }
                     </select>
                     <select id="homeBrandSelect"
@@ -149,7 +149,7 @@
                         <option value="" style="background: var(--nc-bg-card);">All Brands</option>
                         @foreach (var br in brands)
                         {
-                            <option value="@br" selected="@(br == currentBrand ? "selected" : null)" style="background: var(--nc-bg-card);">@br</option>
+                            <option value="@br" selected="@(string.Equals(br, currentBrand, StringComparison.OrdinalIgnoreCase) ? "selected" : null)" style="background: var(--nc-bg-card);">@br</option>
                         }
                     </select>
                     <button type="submit" 

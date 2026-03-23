@@ -60,22 +60,32 @@
                 padding: 0 2rem; 
                 transition: var(--transition);">
         <div class="container-fluid px-4 mx-auto">
-            <div class="d-flex align-items-center">
-                <button class="nc-mobile-menu-toggle d-lg-none me-3" type="button" id="ncMobileMenuToggle" aria-label="Open Menu">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand m-0 me-5" asp-controller="Landing" asp-action="Hero" 
-                   style="font-family: 'Orbitron', sans-serif; 
-                          font-size: 1.5rem; 
-                          font-weight: 900; 
-                          background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent)); 
-                          -webkit-background-clip: text; 
-                          -webkit-text-fill-color: transparent; 
-                          background-clip: text; 
-                          letter-spacing: 2px;">
-                    &#9835; NightCord
-                </a>
-            </div>
+            <a class="navbar-brand m-0 me-lg-5" asp-controller="Landing" asp-action="Hero" 
+               style="font-family: 'Orbitron', sans-serif; 
+                      font-size: 1.5rem; 
+                      font-weight: 900; 
+                      background: linear-gradient(135deg, var(--nc-primary), var(--nc-accent)); 
+                      -webkit-background-clip: text; 
+                      -webkit-text-fill-color: transparent; 
+                      background-clip: text; 
+                      letter-spacing: 2px;">
+                &#9835; NightCord
+            </a>
+            
+            <button class="nc-mobile-menu-toggle d-lg-none" type="button" id="ncMobileMenuToggle" aria-label="Open Menu"
+                    style="border: 1px solid var(--nc-border); 
+                           background: var(--nc-bg-card); 
+                           color: var(--nc-primary); 
+                           border-radius: 8px; 
+                           width: 40px; 
+                           height: 40px; 
+                           display: flex; 
+                           align-items: center; 
+                           justify-content: center; 
+                           transition: var(--transition);
+                           box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <i class="fas fa-bars"></i>
+            </button>
             <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">

@@ -283,3 +283,28 @@ window.ncHighlightElement = function(element, query) {
         }
     });
 };
+
+// Mobile Side Menu Setup
+document.addEventListener("DOMContentLoaded", () => {
+    const mobileMenuToggle = document.getElementById("ncMobileMenuToggle");
+    const mobileMenuClose = document.getElementById("ncMobileMenuClose");
+    const mobileMenu = document.getElementById("ncMobileMenu");
+    const mobileMenuOverlay = document.getElementById("ncMobileMenuOverlay");
+
+    function toggleMobileMenu() {
+        const isShowing = mobileMenu.classList.contains("show");
+        if (isShowing) {
+            mobileMenu.classList.remove("show");
+            mobileMenuOverlay.classList.remove("show");
+            document.body.style.overflow = "";
+        } else {
+            mobileMenu.classList.add("show");
+            mobileMenuOverlay.classList.add("show");
+            document.body.style.overflow = "hidden";
+        }
+    }
+
+    if (mobileMenuToggle) mobileMenuToggle.addEventListener("click", toggleMobileMenu);
+    if (mobileMenuClose) mobileMenuClose.addEventListener("click", toggleMobileMenu);
+    if (mobileMenuOverlay) mobileMenuOverlay.addEventListener("click", toggleMobileMenu);
+});

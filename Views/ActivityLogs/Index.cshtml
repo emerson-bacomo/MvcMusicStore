@@ -82,25 +82,25 @@
                 fieldDefinitions: {
                     timestamp: { 
                         label: 'Timestamp',
-                        widthPercentage: '12%',
+                        widthPercentage: '16%',
                         cellClass: 'ut-min-w-fit nc-text-muted text-nowrap',
                         renderContent: (val) => `<span style="font-size:0.85rem;">${val}</span>`
                     },
                     username: { 
                         label: 'User',
-                        widthPercentage: '10%',
+                        widthPercentage: '16%',
                         cellClass: 'ut-min-w-fit',
                         renderContent: (val) => `<span class="nc-text-secondary">${val || "—"}</span>`
                     },
                     fullname: { 
                         label: 'Full Name',
-                        widthPercentage: '12%',
+                        widthPercentage: '16%',
                         cellClass: 'ut-min-w-fit',
                         renderContent: (val) => `<span class="nc-text-secondary">${val || "—"}</span>`
                     },
                     role: { 
                         label: 'Role',
-                        widthPercentage: '8%',
+                        widthPercentage: '16%',
                         cellClass: 'ut-min-w-fit',
                         type: 'select',
                         options: roles.map(r => ({value: r, label: r})),
@@ -112,7 +112,7 @@
                     },
                     action: {
                         label: 'Action',
-                        widthPercentage: '10%',
+                        widthPercentage: '16%',
                         cellClass: 'ut-min-w-fit',
                         type: 'select',
                         options: actions.map(a => ({value: a, label: a})),
@@ -120,7 +120,7 @@
                     },
                     details: {
                         label: 'Details',
-                        widthPercentage: '48%',
+                        widthPercentage: '0%',
                         renderContent: (val) => `<span class="nc-text-muted" style="font-size:0.85rem;">${val}</span>`
                     }
                 },

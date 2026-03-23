@@ -118,14 +118,7 @@ namespace MvcMusic.Controllers
                 query = query.Where(l => l.Timestamp <= endOfDate);
             }
 
-            var totalCount = await query.CountAsync();
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            page = Math.Max(1, Math.Min(totalPages > 0 ? totalPages : 1, page));
-
-            var logs = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var logs = await query.ToListAsync();
 
             var columns = new List<object>
             {

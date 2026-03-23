@@ -14,8 +14,8 @@
 
         <div class="nc-detail-card">
             <!-- Visual Section -->
-            <div class="nc-detail-visual">
-                <div class="nc-main-image-outer">
+            <div class="d-flex flex-column gap-2">
+                <div class="w-100 position-relative overflow-hidden" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
                     <div class="nc-main-image-wrapper" id="mainImageCarousel">
                         <div class="nc-carousel-track" id="carouselTrack">
                             @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
@@ -35,9 +35,9 @@
                             }
                         </div>
                         
-                        <a href="/Products/Index?categoryId=@Model.CategoryId" class="nc-image-badge nc-read-only-hide" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
+                        <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge nc-read-only-hide" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
                         
-                        <div class="nc-editable nc-image-badge-edit">
+                        <div class="nc-editable" style="z-index: 21;">
                             <select name="CategoryId" class="nc-input-badge" onchange="editor.trackFieldChange('CategoryId', this.value)">
                                 @foreach(var c in categories) {
                                     <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
@@ -56,7 +56,7 @@
                         }
                     </div>
 
-                    <div class="nc-editable nc-media-edit-box">
+                    <div class="nc-editable w-100 h-100 d-flex flex-column justify-content-center position-absolute" style="background: #0f141e; inset: 0; z-index: 30; padding: 5rem 2rem 2rem 2rem; gap: 1rem;">
                         <div class="nc-upload-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
                             <i class="fa fa-upload"></i>
                             <span>Drag & Drop or Click to Upload</span>
@@ -64,12 +64,12 @@
                         </div>
                         <div class="nc-url-input-group mt-2">
                             <input type="url" id="newImageUrlInput" class="nc-input" placeholder="Paste Image URL..." />
-                            <button type="button" class="btn-nc-primary btn-square" onclick="editor.addImageUrl()"><i class="fa fa-plus"></i></button>
+                            <button type="button" class="btn-nc-primary" style="width: 48px; height: auto; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--nc-primary); color: #fff; border: none; box-shadow: 0 8px 20px rgba(123, 171, 221, 0.3);" onclick="editor.addImageUrl()"><i class="fa fa-plus"></i></button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="nc-gallery-container @(Model.ProductImages != null && Model.ProductImages.Count > 0 ? "" : "d-none")" id="galleryContainer">
+                <div class="@(Model.ProductImages != null && Model.ProductImages.Count > 0 ? "" : "d-none")" id="galleryContainer">
                     <div class="nc-image-gallery" id="imageGallery">
                         @if (Model.ProductImages != null)
                         {
@@ -95,7 +95,7 @@
 
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
                 {
-                    <div class="nc-meta-grid mt-4">
+                    <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
                         <div class="nc-meta-stat">
                             <div class="nc-meta-stat-icon"><i class="fa fa-box"></i></div>
                             <div class="nc-meta-stat-content">
@@ -153,11 +153,11 @@
             }
 
             <!-- Info Section -->
-            <div class="nc-detail-info">
-                <div class="nc-info-header">
+            <div>
+                <div>
                     <div class="nc-editable-wrapper" data-field="BrandId">
                         <div class="nc-read-only">
-                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })" class="nc-detail-brand nc-editable-span" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
+                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section" class="nc-detail-brand nc-editable-span" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
                         </div>
                         <div class="nc-input-edit">
                             <select name="BrandId" class="nc-detail-brand" onchange="editor.trackFieldChange('BrandId', this.value)">
@@ -178,7 +178,7 @@
                     </div>
 
                     <div class="nc-editable-wrapper mt-3" data-field="Price">
-                        <div class="nc-price-value-container position-relative">
+                        <div class="position-relative flex-grow-1">
                             <div class="nc-read-only" style="position: relative;">
                                 <span class="nc-currency-sign" style="position: absolute; left: 0; top: 0rem; pointer-events: none;">₱</span>
                                 <span class="nc-detail-price nc-editable-span" style="padding: 0.2rem 0.75rem 0.2rem 2.25rem; margin: -0.2rem -0.25rem;">@Model.Price.ToString("N2")</span>
@@ -193,8 +193,8 @@
 
                 <div style="margin-top: 3rem;"></div> <!-- Price gap to description -->
 
-                <div class="nc-detail-section">
-                    <h3 class="nc-section-title">About this product</h3>
+                <div>
+                    <h3>About this product</h3>
                     <div class="nc-editable-wrapper" data-field="Description">
                         <div class="nc-read-only">
                             <p class="nc-description nc-editable-span">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
@@ -207,24 +207,24 @@
 
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
                 {
-                    <div class="nc-detail-section">
-                        <h3 class="nc-section-title">Banner Data</h3>
-                        <div class="nc-specs-grid">
-                            <div class="nc-spec-item">
+                    <div>
+                        <h3>Banner Data</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; background: rgba(255,255,255,0.02); padding: 2rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                            <div>
                                 <span class="nc-spec-label">Banner Status</span>
                                 <div class="nc-editable-wrapper" data-field="IsBanner">
                                     <div class="nc-read-only">
                                         <span class="badge-nc @(Model.IsBanner ? "bg-success" : "bg-secondary") nc-editable-span" style="color: white !important;">@(Model.IsBanner ? "Featured" : "Not Featured")</span>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <label class="nc-checkbox-group">
-                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") onchange="editor.trackFieldChange('IsBanner', this.checked)" />
-                                            <span>Active as Banner</span>
+                                        <label class="d-flex align-items-center" style="gap: 0.75rem; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 0.75rem; width: max-content;">
+                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") onchange="editor.trackFieldChange('IsBanner', this.checked)" style="width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer;" />
+                                            <span style="margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">Active as Banner</span>
                                         </label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="nc-spec-item" style="grid-column: span 2;">
+                            <div style="grid-column: span 2;">
                                 <span class="nc-spec-label">Banner Text</span>
                                 <div class="nc-editable-wrapper" data-field="BannerDescription">
                                     <div class="nc-read-only">
@@ -235,11 +235,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="nc-spec-item" style="grid-column: span 2;">
+                            <div style="grid-column: span 2;">
                                 <span class="nc-spec-label">Banner Image</span>
                                 <div class="nc-read-only-hide mb-2">
                                     @if(!string.IsNullOrEmpty(Model.BannerImageUrl)) {
-                                        <div class="nc-banner-preview-box">
+                                        <div>
                                             <img src="@Model.BannerImageUrl" class="nc-banner-preview" id="currentBannerPreview" onclick="openFullscreen(this.src)" />
                                         </div>
                                     } else {
@@ -248,11 +248,11 @@
                                 </div>
                                 <div class="nc-editable nc-editable-block" style="margin-top: 0.5rem;">
                                     @if(!string.IsNullOrEmpty(Model.BannerImageUrl)) {
-                                        <div class="nc-banner-preview-box mb-2" id="bannerPreviewContainerEdit">
+                                        <div class="mb-2" id="bannerPreviewContainerEdit">
                                             <img src="@Model.BannerImageUrl" class="nc-banner-preview" id="currentBannerPreviewEdit" onclick="openFullscreen(this.src)" />
                                         </div>
                                     } else {
-                                        <div class="nc-banner-preview-box mb-2" id="bannerPreviewContainerEdit" style="display:none;">
+                                        <div class="mb-2" id="bannerPreviewContainerEdit" style="display:none;">
                                             <img src="" class="nc-banner-preview" id="currentBannerPreviewEdit" onclick="openFullscreen(this.src)" />
                                         </div>
                                     }
@@ -276,9 +276,9 @@
 
     <!-- Save Bar (Hidden by default) -->
     <div id="editorSaveBar" class="nc-save-bar" style="display: none;">
-        <div class="nc-save-content">
-            <span class="nc-save-text"><i class="fa fa-info-circle me-2"></i> Unsaved changes detected</span>
-            <div class="nc-save-actions">
+        <div class="d-flex align-items-center" style="gap: 2rem;">
+            <span class="text-white fw-medium"><i class="fa fa-info-circle me-2"></i> Unsaved changes detected</span>
+            <div class="d-flex" style="gap: 0.75rem;">
                 <button type="button" id="clearEditorChanges" class="btn-nc-outline btn-sm"><i class="fa fa-undo"></i> Clear</button>
                 <button type="button" id="saveEditorChanges" class="btn-nc-primary btn-sm"><i class="fa fa-save"></i> Review & Save</button>
             </div>
@@ -1054,10 +1054,6 @@
         margin-right: 0.5rem;
         padding-top: 0.2rem;
     }
-    
-    .nc-price-value-container {
-        flex: 1;
-    }
 
     .nc-detail-brand {
         font-size: var(--nc-font-brand);
@@ -1085,12 +1081,6 @@
     select.nc-detail-brand:focus { border-color: var(--nc-primary); outline: none; }
 
     /* ── Visual Section & Carousel ───────────────────────────── */
-    .nc-main-image-outer { 
-        width: 100%; aspect-ratio: 1; position: relative; 
-        border-radius: 2rem; overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        border: 1px solid rgba(255,255,255,0.05);
-    }
     .nc-main-image-wrapper {
         position: absolute; inset: 0;
         width: 100%; height: 100%;
@@ -1167,23 +1157,6 @@
     .nc-input-badge { border: 2px solid rgba(255,255,255,0.5); cursor: pointer; z-index: 31; box-shadow: 0 5px 15px rgba(0,0,0, 0.2); }
     .nc-input-badge:focus { outline: none; border-color: #fff; }
     
-    .nc-image-badge-edit {
-        z-index: 21;
-    }
-
-    .nc-media-edit-box {
-        width: 100%; height: 100%;
-        background: #0f141e;
-
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        position: absolute; inset: 0;
-        z-index: 30;
-        padding: 5rem 2rem 2rem 2rem;
-        gap: 1rem;
-    }
-
     .nc-upload-zone {
         flex: 1;
         display: flex;
@@ -1202,19 +1175,8 @@
     .nc-upload-zone span { font-weight: 600; font-size: 1rem; color: #fff; }
     
     .nc-url-input-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: stretch; }
-    .btn-nc-primary.btn-square { 
-        width: 48px; height: auto; 
-        flex-shrink: 0;
-        border-radius: 12px; 
-        display: flex; align-items: center; justify-content: center; 
-        background: var(--nc-primary);
-        color: #fff;
-        border: none;
-        box-shadow: 0 8px 20px rgba(123, 171, 221, 0.3);
-    }
 
     /* ── Gallery ──────────────────────────────────────────────── */
-    .nc-gallery-container { margin-top: 2.5rem; }
     .nc-image-gallery {
         display: flex;
         gap: 1.25rem;
@@ -1287,12 +1249,6 @@
     }
 
     /* ── Meta Stats ─────────────────────────────────────────── */
-    .nc-meta-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 1.75rem;
-    }
-    .nc-meta-grid.mt-4 { margin-top: 2.5rem !important; }
     .nc-meta-stat {
         display: flex;
         align-items: center;
@@ -1343,32 +1299,8 @@
     .nc-wishlist-btn { width: 68px; border-radius: 1.2rem; font-size: 1.4rem; }
 
     /* ── Specs & Banner Editor ──────────────────────────────── */
-    .nc-specs-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        align-items: start;
-        background: rgba(255,255,255,0.02);
-        padding: 2rem;
-        border-radius: 1.5rem;
-        border: 1px solid rgba(255,255,255,0.05);
-    }
     .nc-spec-label { font-size: 0.75rem; text-transform: uppercase; color: var(--nc-text-muted); letter-spacing: 0.1em; margin-bottom: 0.5rem; display: block; }
     .nc-spec-value { font-size: 0.95rem; font-weight: 600; color: #fff; }
-
-    .nc-checkbox-group {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        cursor: pointer;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        padding: 0.75rem 1rem;
-        border-radius: 0.75rem;
-        width: max-content;
-    }
-    .nc-checkbox-group span { margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
-    .nc-checkbox-group input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer; }
 
     .badge-nc {
         padding: 0.4rem 1rem;

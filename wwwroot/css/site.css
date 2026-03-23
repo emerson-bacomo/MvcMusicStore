@@ -462,6 +462,97 @@ input[type=number] {
     }
 }
 
+/* ── Mobile Side Menu ────────────────────────────────────────────── */
+.nc-mobile-menu {
+    position: fixed;
+    top: 0;
+    right: -320px;
+    width: 320px;
+    height: 100vh;
+    background: rgba(10, 12, 16, 0.98);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid var(--nc-border);
+    z-index: 1050;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.nc-mobile-menu.show {
+    right: 0;
+}
+
+.nc-mobile-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-mobile-menu-body {
+    flex: 1;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.nc-mobile-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nc-mobile-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    color: var(--nc-text-secondary);
+    border-radius: var(--nc-radius-sm);
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.nc-mobile-nav-link i {
+    width: 24px;
+    margin-right: 0.5rem;
+    color: var(--nc-primary);
+}
+
+.nc-mobile-nav-link:hover, .nc-mobile-nav-link.active {
+    background: rgba(123, 171, 221, 0.1);
+    color: #fff;
+}
+
+.nc-mobile-menu-footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--nc-border);
+    margin-top: auto;
+}
+
+.nc-mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1045;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.nc-mobile-menu-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
 /* ── Tables migrated to UpdatableTable ────────────────────────────── */
 
 /* ── Global Overlays ─────────────────────────────────────────────────────── */

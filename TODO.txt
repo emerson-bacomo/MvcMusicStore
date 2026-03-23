@@ -6,3 +6,15 @@ save this under a column under each product as html code
 add a copy button that copies the html code and a paste button that pastes the code
 add a template system where people can save and load html templates
 
+user change password
+first login of staff or admin can put a configuration page ui where they can choose to change their password since the given password is temporary
+add first password column in employee table and make this visible in employee tab
+make the first password random in add employee
+make sure that the employee like admin cant change their roles
+make sure that the action like delete and add in product are only for admin
+store time as utc but make sure that its displayed localtime
+order table product column not centered vertically
+register password should have bullets as placeholder
+should show as timestamp desc sort by default on page load
+
+
