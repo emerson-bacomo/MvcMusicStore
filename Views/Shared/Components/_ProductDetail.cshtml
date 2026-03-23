@@ -231,7 +231,7 @@
                                         <p class="nc-spec-value nc-editable-span">@(Model.BannerDescription ?? "None")</p>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <textarea name="BannerDescription" class="nc-input nc-input-sm" rows="2" placeholder="Text for featured banner..." oninput="editor.trackFieldChange('BannerDescription', this.value)">@Model.BannerDescription</textarea>
+                                        <textarea name="BannerDescription" class="nc-input nc-input-sm" rows="2" oninput="editor.trackFieldChange('BannerDescription', this.value)">@Model.BannerDescription</textarea>
                                     </div>
                                 </div>
                             </div>

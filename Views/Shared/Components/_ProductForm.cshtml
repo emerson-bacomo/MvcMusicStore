@@ -16,7 +16,7 @@
             <h3 class="nc-form-section-title">Basic Information</h3>
             <div class="nc-form-group">
                 <label class="nc-label" asp-for="Name">Product Name</label>
-                <input asp-for="Name" class="nc-input" placeholder="e.g. Squier Sonic Stratocaster" />
+                <input asp-for="Name" class="nc-input" />
                 <span asp-validation-for="Name" class="nc-validation-error"></span>
             </div>
             
@@ -128,7 +128,7 @@
 
             <div class="nc-form-group">
                 <label class="nc-label" asp-for="Description">Description</label>
-                <textarea asp-for="Description" class="nc-input" rows="3" placeholder="Tell us about this product..."></textarea>
+                <textarea asp-for="Description" class="nc-input" rows="3"></textarea>
                 <span asp-validation-for="Description" class="nc-validation-error"></span>
             </div>
 
@@ -145,7 +145,7 @@
                 </label>
                 <div class="nc-form-group">
                     <label class="nc-label" asp-for="BannerDescription">Banner Description</label>
-                    <textarea asp-for="BannerDescription" class="nc-input" rows="2" placeholder="e.g. Best for beginners"></textarea>
+                    <textarea asp-for="BannerDescription" class="nc-input" rows="2"></textarea>
                     <span asp-validation-for="BannerDescription" class="nc-validation-error"></span>
                 </div>
             </div>

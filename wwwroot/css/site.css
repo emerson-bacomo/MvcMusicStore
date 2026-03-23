@@ -802,3 +802,21 @@ input[type=number] {
     padding: 0;
     text-shadow: 0 0 5px rgba(9, 255, 0, 0.3);
 }
+
+/* Chrome, Safari, Edge (Chromium) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+    display: none !important;
+}
+
+/* Remove default appearance */
+input[type="password"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}

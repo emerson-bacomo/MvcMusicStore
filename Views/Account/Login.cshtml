@@ -18,7 +18,7 @@
         <label class="nc-label" asp-for="Email">
             <i class="fa fa-user me-1"></i> Email or Username
         </label>
-        <input asp-for="Email" type="text" class="nc-input" placeholder="you@example.com or username" />
+        <input asp-for="Email" type="text" class="nc-input" />
         <span asp-validation-for="Email" class="nc-validation-error"></span>
     </div>
 
@@ -27,10 +27,10 @@
             <i class="fa fa-lock me-1"></i> Password
         </label>
         <div style="position: relative;">
-            <input asp-for="Password" class="nc-input" type="password" placeholder="Enter your password" autocomplete="current-password" 
+            <input asp-for="Password" class="nc-input" type="password" autocomplete="current-password" 
                    style="padding-right: 2.5rem;
                           margin-bottom: 0.5rem;" />
-            <button type="button" class="btn-toggle-password" onclick="togglePassword(this)" 
+            <button type="button" class="btn-toggle-password d-none" onclick="togglePassword(this)" 
                     style="position: absolute;
                            right: 0.75rem;
                            top: calc(50% - 0.25rem);
@@ -102,4 +102,20 @@
             icon.classList.replace("fa-eye-slash", "fa-eye");
         }
     }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const passwordInput = document.getElementById("Password");
+        const toggleBtn = passwordInput.parentElement.querySelector(".btn-toggle-password");
+
+        function toggleVisibility() {
+            if (passwordInput.value.length > 0) {
+                toggleBtn.classList.remove("d-none");
+            } else {
+                toggleBtn.classList.add("d-none");
+            }
+        }
+
+        passwordInput.addEventListener("input", toggleVisibility);
+        toggleVisibility();
+    });
 </script>
