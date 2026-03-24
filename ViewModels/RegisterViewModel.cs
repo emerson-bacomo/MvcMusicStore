@@ -4,10 +4,15 @@ namespace MvcMusic.ViewModels
 {
     public class RegisterViewModel
     {
-        [Required(ErrorMessage = "Username is required.")]
-        [StringLength(50, MinimumLength = 3, ErrorMessage = "Username must be between 3 and 50 characters.")]
-        [Display(Name = "Username")]
-        public required string UserName { get; set; }
+        [Required(ErrorMessage = "First Name is required.")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "First Name must be between 2 and 50 characters.")]
+        [Display(Name = "First Name")]
+        public required string FirstName { get; set; }
+
+        [Required(ErrorMessage = "Last Name is required.")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "Last Name must be between 2 and 50 characters.")]
+        [Display(Name = "Last Name")]
+        public required string LastName { get; set; }
 
         [Required(ErrorMessage = "Email is required.")]
         [EmailAddress(ErrorMessage = "Please enter a valid email address.")]

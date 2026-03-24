@@ -21,16 +21,9 @@ namespace MvcMusic.ViewModels
         [Display(Name = "Role")]
         public required string Role { get; set; }
 
-        [Required(ErrorMessage = "Password is required.")]
-        [StringLength(100, MinimumLength = 6)]
         [DataType(DataType.Password)]
         [Display(Name = "Password")]
         public required string Password { get; set; }
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm Password")]
-        [Compare("Password", ErrorMessage = "Passwords do not match.")]
-        public required string ConfirmPassword { get; set; }
     }
 
     public class EmployeeEditViewModel
@@ -63,15 +56,8 @@ namespace MvcMusic.ViewModels
         public required string Id { get; set; }
         public string? UserName { get; set; }
 
-        [Required]
-        [StringLength(100, MinimumLength = 6)]
         [DataType(DataType.Password)]
         [Display(Name = "New Password")]
         public required string NewPassword { get; set; }
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm New Password")]
-        [Compare("NewPassword", ErrorMessage = "Passwords do not match.")]
-        public required string ConfirmPassword { get; set; }
     }
 }

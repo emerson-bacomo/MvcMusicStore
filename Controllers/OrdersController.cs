@@ -9,7 +9,7 @@ using MvcMusic.ViewModels;
 
 namespace MvcMusic.Controllers
 {
-    [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+    [Authorize]
     public class OrdersController : Controller
     {
         private readonly MvcMusicContext _context;
@@ -32,6 +32,7 @@ namespace MvcMusic.Controllers
         }
 
         // GET: /Orders
+        [Authorize(Roles = "Admin,SuperAdmin,SalesStaff")]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 15)
         {
             var totalCount = await _context.Order.CountAsync();
@@ -76,6 +77,31 @@ namespace MvcMusic.Controllers
             return View(orders);
         }
 
+        // GET: /Orders/History
+        public async Task<IActionResult> History(string? status = "All")
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var query = _context.Order
+                .Where(o => o.CustomerId == user.Id)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .ThenInclude(p => p!.ProductImages)
+                .OrderByDescending(o => o.OrderDate)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && status != "All")
+            {
+                query = query.Where(o => o.Status == status);
+            }
+
+            var orders = await query.ToListAsync();
+            ViewBag.CurrentStatus = status;
+
+            return View(orders);
+        }
+
         // GET: /Orders/Detail/5
         public async Task<IActionResult> Detail(int id)
         {
@@ -87,6 +113,11 @@ namespace MvcMusic.Controllers
 
             if (order == null) return NotFound();
 
+            // Security check for regular users
+            var user = await _userManager.GetUserAsync(User);
+            bool isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("SalesStaff");
+            if (!isAdmin && order.CustomerId != user?.Id) return Forbid();
+
             var customer = await _context.Users.FindAsync(order.CustomerId);
             ViewBag.CustomerName = $"{customer?.FirstName} {customer?.LastName}";
             ViewBag.CustomerEmail = customer?.Email;
@@ -96,6 +127,7 @@ namespace MvcMusic.Controllers
 
         // GET: /Orders/GetTableData
         [HttpGet]
+        [Authorize(Roles = "Admin,SuperAdmin,SalesStaff")]
         public async Task<IActionResult> GetTableData(string? status = null, string? includeIds = null)
         {
             var ordersQuery = await _context.Order
@@ -170,6 +202,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin,SalesStaff")]
         public async Task<IActionResult> UpdateOrders([FromBody] List<OrderUpdateModel> changes)
         {
             if (changes == null || !changes.Any()) return Json(new { success = true });
@@ -224,6 +257,7 @@ namespace MvcMusic.Controllers
         // POST: /Orders/MarkDelivered/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin,SalesStaff")]
         public async Task<IActionResult> MarkDelivered(int id)
         {
             var order = await _context.Order.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.Id == id);
@@ -247,6 +281,7 @@ namespace MvcMusic.Controllers
         // POST: /Orders/CancelOrder/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin,SalesStaff")]
         public async Task<IActionResult> CancelOrder(int id)
         {
             var order = await _context.Order.FindAsync(id);

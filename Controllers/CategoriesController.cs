@@ -12,7 +12,7 @@ using MvcMusic.Utils;
 
 namespace MvcMusic.Controllers
 {
-    [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+    [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
     public class CategoriesController : Controller
     {
         private readonly MvcMusicContext _context;
@@ -91,24 +91,62 @@ namespace MvcMusic.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateTableData([FromBody] UpdateTableRequest request)
         {
             if (request == null || request.Changes == null) return BadRequest();
 
+            var logDetails = new List<object>();
             foreach(var rowChange in request.Changes)
             {
                 if (int.TryParse(rowChange.Key, out int id))
                 {
-                    var category = await _context.Category.FindAsync(id);
+                    var category = await _context.Category.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
                     if (category != null)
                     {
-                        foreach(var colChange in rowChange.Value)
-                        {
-                            var colName = colChange.Key.ToLower();
-                            var valueStr = colChange.Value?.ToString();
+                        var previousValues = new Dictionary<string, object> { ["Name"] = category.Name, ["RecordStatus"] = category.RecordStatus.ToString() };
+                        var newValues = new Dictionary<string, object> { ["Name"] = category.Name, ["RecordStatus"] = category.RecordStatus.ToString() };
+                        var changedFields = new List<string>();
 
-                            if (colName == "name") category.Name = valueStr ?? category.Name;
-                            else if (colName == "recordstatus" && Enum.TryParse(valueStr, out RecordStatus status)) category.RecordStatus = status;
+                        var dbCategory = await _context.Category.FindAsync(id);
+                        if (dbCategory != null)
+                        {
+                            foreach(var colChange in rowChange.Value)
+                            {
+                                var colName = colChange.Key.ToLower();
+                                var valueStr = colChange.Value?.ToString();
+
+                                if (colName == "name")
+                                {
+                                    if (dbCategory.Name != valueStr)
+                                    {
+                                        changedFields.Add("Name");
+                                        dbCategory.Name = valueStr ?? dbCategory.Name;
+                                        newValues["Name"] = dbCategory.Name;
+                                    }
+                                }
+                                else if (colName == "recordstatus" && Enum.TryParse(valueStr, out RecordStatus status))
+                                {
+                                    if (dbCategory.RecordStatus != status)
+                                    {
+                                        changedFields.Add("RecordStatus");
+                                        dbCategory.RecordStatus = status;
+                                        newValues["RecordStatus"] = dbCategory.RecordStatus.ToString();
+                                    }
+                                }
+                            }
+                            
+                            if (changedFields.Count > 0)
+                            {
+                                logDetails.Add(new {
+                                    table = "Category",
+                                    id = id,
+                                    type = "UPDATE",
+                                    changedFields = changedFields,
+                                    previousValues = previousValues,
+                                    newValues = newValues
+                                });
+                            }
                         }
                     }
                 }
@@ -116,11 +154,16 @@ namespace MvcMusic.Controllers
             await _context.SaveChangesAsync();
             
             var (cId, cName, cRole, cFullName) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.UpdateTable, $"Performed mass update on {request.Changes.Count} categories.", cId, cName, cRole, cFullName);
+            if (logDetails.Count > 0)
+            {
+                var jsonLogs = System.Text.Json.JsonSerializer.Serialize(logDetails);
+                await _logger.LogAsync(ActivityAction.UpdateTable, jsonLogs, cId, cName, cRole, cFullName);
+            }
 
             return Json(new { success = true });
         }
 
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Create(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name is required.");
@@ -137,6 +180,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int id)
         {
             var category = await _context.Category.FindAsync(id);

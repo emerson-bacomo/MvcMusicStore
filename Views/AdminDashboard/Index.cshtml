@@ -142,6 +142,106 @@
                 </div>
             </div>
         </div>
+        <!-- Row 4: Recent Data Tables -->
+        <div class="dash-tables-row">
+            <!-- Recent Orders -->
+            <div class="dash-table-card">
+                <div class="dash-chart-header">
+                    <div class="dash-chart-title"><i class="fa fa-shopping-bag me-2"></i>Recent Orders</div>
+                    <div class="dash-chart-sub">Latest 10 transactions</div>
+                </div>
+                <div class="dash-table-container">
+                    <table class="nc-recent-table">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Products</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model.RecentOrders)
+                            {
+                                <tr>
+                                    <td class="order-id">#@order.Id</td>
+                                    <td>@order.CustomerName</td>
+                                    <td class="products-cell" title="@order.Products">@order.Products</td>
+                                    <td class="amount">₱@order.Amount.ToString("N2")</td>
+                                    <td>
+                                        @{
+                                            var statusClass = order.Status.ToLower() switch {
+                                                "delivered" => "status-delivered",
+                                                "pending" => "status-pending",
+                                                "shipped" => "status-shipped",
+                                                _ => "status-default"
+                                            };
+                                        }
+                                        <span class="status-badge @statusClass">@order.Status</span>
+                                    </td>
+                                    <td class="date-cell">@order.Date.ToString("MMM d, h:mm tt")</td>
+                                </tr>
+                            }
+                            @if (!Model.RecentOrders.Any())
+                            {
+                                <tr><td colspan="6" class="text-center nc-text-muted py-4">No recent orders found.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dash-table-footer">
+                    <a asp-controller="Orders" asp-action="Index" class="btn-nc-link">View All Orders <i class="fa fa-chevron-right ms-1"></i></a>
+                </div>
+            </div>
+
+            <!-- Recent Activity Logs (Admin/SuperAdmin only) -->
+            @if (ViewBag.ShowLogs == true)
+            {
+                <div class="dash-table-card">
+                    <div class="dash-chart-header">
+                        <div class="dash-chart-title"><i class="fa fa-list-ul me-2"></i>Activity Log</div>
+                        <div class="dash-chart-sub">Recent staff actions</div>
+                    </div>
+                    <div class="dash-table-container">
+                        <table class="nc-recent-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in Model.RecentLogs)
+                                {
+                                    <tr>
+                                        <td class="date-cell utc-time" data-utc="@log.Timestamp.ToString("yyyy-MM-ddTHH:mm:ssZ")">@log.Timestamp.ToString("HH:mm:ss")</td>
+                                        <td>
+                                            <div class="log-user">
+                                                <span class="log-username">@log.Username</span>
+                                                <span class="log-role">@log.Role</span>
+                                            </div>
+                                        </td>
+                                        <td><span class="action-badge">@log.Action</span></td>
+                                        <td class="details-cell">@Html.Raw(log.Details)</td>
+                                    </tr>
+                                }
+                                @if (!Model.RecentLogs.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center nc-text-muted py-4">No recent activity found.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="dash-table-footer">
+                        <a asp-controller="ActivityLogs" asp-action="Index" class="btn-nc-link">View Detailed Logs <i class="fa fa-chevron-right ms-1"></i></a>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
@@ -155,6 +255,15 @@
         }
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Convert UTC to Local
+        document.querySelectorAll('.utc-time').forEach(el => {
+            const utc = el.getAttribute('data-utc');
+            if (utc) {
+                const d = new Date(utc);
+                el.textContent = d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+        });
 
         const ncPrimary = '#7babdd';
         const chartDefaults = {
@@ -525,6 +634,127 @@
 
         .mgmt-card:hover .mgmt-link i {
             transform: translateX(5px);
+        }
+        /* Dashboard Tables */
+        .dash-tables-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dash-table-card {
+            background: var(--nc-bg-card);
+            border: 1px solid var(--nc-border);
+            border-radius: var(--nc-radius);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .dash-table-container {
+            flex-grow: 1;
+            overflow-x: auto;
+            margin: 0 -1.5rem;
+            padding: 0 1.5rem;
+        }
+
+        .nc-recent-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .nc-recent-table th {
+            text-align: left;
+            padding: 1rem 0.75rem;
+            color: var(--nc-text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--nc-border);
+        }
+
+        .nc-recent-table td {
+            padding: 1rem 0.75rem;
+            color: #d2dbea;
+            border-bottom: 1px solid rgba(122, 171, 221, 0.05);
+            vertical-align: middle;
+        }
+
+        .nc-recent-table tr:hover td {
+            background: rgba(122, 171, 221, 0.02);
+        }
+
+        .order-id { font-weight: 700; color: var(--nc-primary); }
+        .amount { font-weight: 700; color: #fff; }
+        
+        .products-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-delivered { background: rgba(129, 199, 132, 0.1); color: #81c784; }
+        .status-pending { background: rgba(255, 183, 77, 0.1); color: #ffb74d; }
+        .status-shipped { background: rgba(129, 140, 248, 0.1); color: #818cf8; }
+        .status-default { background: rgba(100, 112, 135, 0.1); color: #647087; }
+
+        .date-cell { color: var(--nc-text-muted); white-space: nowrap; }
+
+        /* Log specific */
+        .log-user { display: flex; flex-direction: column; }
+        .log-username { font-weight: 700; color: #fff; }
+        .log-role { font-size: 0.65rem; color: var(--nc-text-muted); }
+
+        .action-badge {
+            background: rgba(122, 171, 221, 0.1);
+            color: var(--nc-primary);
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+
+        .details-cell {
+            font-size: 0.8rem;
+            color: var(--nc-text-muted);
+            max-width: 300px;
+        }
+        .details-cell a { color: var(--nc-primary); text-decoration: none; }
+
+        .dash-table-footer {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--nc-border);
+            text-align: right;
+        }
+
+        .btn-nc-link {
+            color: var(--nc-primary);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        .btn-nc-link:hover {
+            color: #fff;
+            transform: translateX(3px);
+            display: inline-block;
         }
     </style>
 }

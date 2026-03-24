@@ -74,7 +74,7 @@
 
             const table = new UpdatableTable('#logs-table', {
                 label: '',
-                storagePrefix: 'activityLog',
+                storagePrefix: 'activityLogsTable',
                 request: {
                     url: '@Url.Action("GetTableData", "ActivityLogs")' + window.location.search,
                     type: 'GET'
@@ -84,7 +84,11 @@
                         label: 'Timestamp',
                         widthPercentage: '16%',
                         cellClass: 'ut-min-w-fit nc-text-muted text-nowrap',
-                        renderContent: (val) => `<span style="font-size:0.85rem;">${val}</span>`
+                        renderContent: (val) => {
+                            if (!val) return "—";
+                            const d = new Date(val); // Parses ISO UTC accurately
+                            return `<span style="font-size:0.85rem;">${d.toLocaleDateString(undefined, { year: '2-digit', month: '2-digit', day: '2-digit' })} ${d.toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>`;
+                        }
                     },
                     username: { 
                         label: 'User',
@@ -121,14 +125,69 @@
                     details: {
                         label: 'Details',
                         widthPercentage: '0%',
-                        renderContent: (val) => `<span class="nc-text-muted" style="font-size:0.85rem;">${val}</span>`
+                        renderContent: (val) => {
+                            if (!val) return '—';
+                            // Try to detect if it's JSON
+                            if (val.trim().startsWith('{') || val.trim().startsWith('[')) {
+                                try {
+                                    const obj = JSON.parse(val);
+                                    const items = Array.isArray(obj) ? obj : [obj];
+                                    const firstSummary = items[0]?.summary || "Data modification detected";
+                                    const summary = items.length > 1 ? `${firstSummary} (and ${items.length - 1} more)` : firstSummary;
+                                    return `
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="nc-text-muted text-truncate" style="font-size:0.85rem; max-width:400px;" title="${summary}">${summary}</span>
+                                            <button class="btn btn-sm btn-nc-outline py-0 px-2 flex-shrink-0" style="font-size:0.7rem; height:22px;" onclick='window.viewLogJson(${JSON.stringify(val)})'>
+                                                <i class="fa fa-code me-1"></i> View Data
+                                            </button>
+                                        </div>
+                                    `;
+                                } catch (e) { /* Not JSON */ }
+                            }
+                            return `<span class="nc-text-muted" style="font-size:0.85rem;">${val}</span>`;
+                        }
                     }
                 },
                 canAdd: false,
                 canEdit: false,
                 canDelete: false,
-                itemsPerPage: 20
+                itemsPerPage: 20,
+                sortConfig: { key: 'timestamp', direction: 'desc' } // Ensure newest first
             });
         });
+
+        window.viewLogJson = function(jsonStr) {
+            try {
+                const obj = JSON.parse(jsonStr);
+                const pretty = JSON.stringify(obj, null, 4);
+                document.getElementById('jsonViewerBody').textContent = pretty;
+                new bootstrap.Modal(document.getElementById('jsonModal')).show();
+            } catch (e) {
+                alert('Invalid JSON data');
+            }
+        };
     </script>
+
+    <!-- JSON Viewer Modal -->
+    <div class="modal fade" id="jsonModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content nc-card" style="border:1px solid var(--nc-border); background: #131822 !important;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title nc-page-title fs-5"><i class="fa fa-code me-2 text-primary"></i> Data Details</h5>
+                    <button type="button" class="ms-auto" data-bs-dismiss="modal" aria-label="Close" style="background: transparent; border: none; color: #fff; opacity: 0.5; padding: 1.25rem !important; margin: -1.25rem -1.25rem -1.25rem auto; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)'" onmouseout="this.style.opacity=0.5; this.style.transform='scale(1)'">
+                        <i class="fa fa-times" style="font-size: 1.2rem;"></i>
+                    </button>
+                </div>
+                <div class="modal-body py-4">
+                    <pre id="jsonViewerBody" class="p-3 rounded" style="background: rgba(0,0,0,0.5); color: #81c784; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; max-height: 500px; overflow: auto; border: 1px solid var(--nc-border);"></pre>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn-nc-outline" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn-nc-primary px-4" onclick="navigator.clipboard.writeText(document.getElementById('jsonViewerBody').textContent); this.innerHTML='<i class=\'fa fa-check me-1\'></i> Copied!'; setTimeout(()=>this.innerHTML='<i class=\'fa fa-copy me-1\'></i> Copy', 2000)">
+                        <i class="fa fa-copy me-1"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 }

@@ -90,6 +90,35 @@
             border: 1px solid rgba(255, 183, 77, 0.3);
         }
 
+        .role-stockstaff {
+            background: rgba(255, 183, 77, 0.1);
+            color: #ffb74d;
+            border: 1px solid rgba(255, 183, 77, 0.2);
+        }
+
+        .role-productstaff {
+            background: rgba(77, 208, 225, 0.1);
+            color: #4dd0e1;
+            border: 1px solid rgba(77, 208, 225, 0.2);
+        }
+
+        .role-salesstaff {
+            background: rgba(186, 104, 200, 0.1);
+            color: #ba68c8;
+            border: 1px solid rgba(186, 104, 200, 0.2);
+        }
+
+        .role-customerstaff {
+            background: rgba(229, 115, 115, 0.1);
+            color: #e57373;
+            border: 1px solid rgba(229, 115, 115, 0.2);
+        }
+
+        .nc-action-link.reset:hover {
+            background: var(--nc-primary);
+            border-color: var(--nc-primary);
+        }
+
         .nc-action-link {
             width: 32px;
             height: 32px;
@@ -204,6 +233,14 @@
                             </form>
                         `;
 
+                        if (row.id !== '@ViewBag.CurrentUserId') {
+                            links += `
+                                <button type="button" class="nc-action-link" title="Reset Password" onclick="window.resetStaffPassword('${row.id}', '${row.username}')" style="margin-left:0.5rem;">
+                                    <i class="fa fa-key"></i>
+                                </button>
+                            `;
+                        }
+
                         if (row.role !== 'SuperAdmin') {
                             if (row.recordStatus === 'Deleted') {
                                 links += `
@@ -226,6 +263,86 @@
                     }
                 }
             }
+        });
+    </script>
+
+    <!-- Reset Password Result Modal -->
+    <div class="modal fade" id="resetPassModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content nc-card" style="border:1px solid var(--nc-border);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title nc-page-title fs-5"><i class="fa fa-key me-2 text-primary"></i> Password Reset</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="nc-text-muted mb-4">A new temporary password has been generated for <strong id="resetTargetUser" class="text-white"></strong>.</p>
+                    
+                    <div class="nc-form-group mb-0">
+                        <label class="nc-label">Temporary Password</label>
+                        <div style="position:relative;">
+                            <input type="text" id="newResetPass" class="nc-input" readonly style="letter-spacing:1px; font-family:'JetBrains Mono', monospace; background: rgba(122,171,221,0.05); padding-right:50px;" />
+                            <button type="button" id="copyResetPass" class="btn border-0 py-0" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--nc-primary);" title="Copy to Clipboard">
+                                <i class="fa fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 p-3 rounded" style="background: rgba(122,171,221,0.05); border: 1px dashed rgba(122,171,221,0.2);">
+                        <div class="nc-text-muted" style="font-size:0.8rem; line-height:1.5;">
+                            <i class="fa fa-info-circle me-1 text-primary"></i> This password will expire after the user's next login. They will be forced to create a new one.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn-nc-primary w-100" data-bs-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.resetStaffPassword = function(userId, username) {
+            if (!confirm('Are you sure you want to reset the password for ' + username + '?')) return;
+
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch('/Employee/ResetPassword/' + userId, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('resetTargetUser').textContent = username;
+                    document.getElementById('newResetPass').value = data.newPassword;
+                    new bootstrap.Modal(document.getElementById('resetPassModal')).show();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred while resetting the password.');
+            });
+        };
+
+        document.getElementById('copyResetPass').addEventListener('click', function() {
+            const input = document.getElementById('newResetPass');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value);
+            
+            const icon = this.querySelector('i');
+            icon.classList.remove('fa-copy');
+            icon.classList.add('fa-check');
+            icon.style.color = 'var(--nc-success)';
+            
+            setTimeout(() => {
+                icon.classList.remove('fa-check');
+                icon.classList.add('fa-copy');
+                icon.style.color = '';
+            }, 2000);
         });
     </script>
 }

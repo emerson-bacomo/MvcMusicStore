@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/floating-inputs.css" asp-append-version="true" />
     <style>
         /* ── Refined Auth Layout Styles ────────────────────────────── */
         .nc-auth-wrapper {
@@ -94,11 +95,11 @@
             backdrop-filter: blur(20px);
         }
 
-        .nc-auth-header { margin-bottom: 3rem; }
+        .nc-auth-header { margin-bottom: 2rem; }
         .nc-auth-title { font-size: 1.8rem; font-weight: 800; color: var(--nc-text-primary); margin-bottom: 0.5rem; }
         .nc-auth-subtitle { color: var(--nc-text-secondary); font-size: 1rem; }
 
-        .nc-form-group { margin-bottom: 1.75rem !important; }
+        /* .nc-form-group replaced by .nc-floating-group */
 
         .nc-auth-divider {
             text-align: center;
@@ -160,6 +161,8 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/js/ValidationEngine.js" asp-append-version="true"></script>
+    <script src="~/js/components/NcFloatingInput.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

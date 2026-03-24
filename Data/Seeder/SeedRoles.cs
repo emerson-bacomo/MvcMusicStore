@@ -10,7 +10,7 @@ namespace MvcMusic.Data
         private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger logger, IActivityLogService activityLogger)
         {
             logger.LogInformation("Seeding roles...");
-            string[] roleNames = { "SuperAdmin", "Admin", "Staff", "User" };
+            string[] roleNames = { "SuperAdmin", "Admin", "Staff", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff", "User" };
             foreach (var roleName in roleNames)
             {
                 if (!await roleManager.RoleExistsAsync(roleName))

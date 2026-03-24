@@ -1,0 +1,266 @@
+@model IEnumerable<MvcMusic.Models.Order>
+@{
+    ViewData["Title"] = "My Orders — NightCord";
+    var currentStatus = ViewBag.CurrentStatus as string ?? "All";
+    
+    var statusTabs = new[] { 
+        new { Id = "All", Label = "All" },
+        new { Id = "Pending", Label = "To Ship" },
+        new { Id = "OnDelivery", Label = "To Receive" },
+        new { Id = "Delivered", Label = "Completed" },
+        new { Id = "Cancelled", Label = "Cancelled" }
+    };
+}
+
+<div class="nc-page">
+    <div class="container-fluid px-4 mx-auto" style="max-width: 1000px;">
+        <div class="nc-page-header">
+            <div>
+                <div class="nc-breadcrumb"><i class="fa fa-shopping-bag"></i> My Purchase</div>
+                <h1 class="nc-page-title">Order History</h1>
+            </div>
+        </div>
+
+        <!-- Shopee-style Status Tabs -->
+        <div class="nc-status-tabs mb-4">
+            @foreach (var tab in statusTabs)
+            {
+                <a asp-action="History" asp-route-status="@(tab.Id == "All" ? null : tab.Id)" 
+                   class="nc-status-tab @(string.Equals(currentStatus, tab.Id, StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    @tab.Label
+                </a>
+            }
+        </div>
+
+        <div class="nc-orders-list">
+            @if (!Model.Any())
+            {
+                <div class="nc-empty-state text-center py-5">
+                    <div class="nc-empty-icon mb-3">
+                        <i class="fa fa-clipboard-list"></i>
+                    </div>
+                    <h3>No orders found</h3>
+                    <p class="text-muted">You haven't placed any orders in this category yet.</p>
+                    <a asp-controller="Home" asp-action="Index" class="btn-nc-primary mt-3">Go Shopping</a>
+                </div>
+            }
+            else
+            {
+                @foreach (var order in Model)
+                {
+                    <div class="nc-order-card mb-4">
+                        <div class="nc-order-card-header d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="nc-order-id">#@order.Id</span>
+                                <span class="nc-order-date">@order.OrderDate.ToString("MMM dd, yyyy")</span>
+                            </div>
+                            <div class="nc-order-status">
+                                @{
+                                    var badgeClass = order.Status == "Delivered" ? "success" : (order.Status == "OnDelivery" ? "primary" : (order.Status == "Pending" ? "warning" : "danger"));
+                                    var iconClass = order.Status == "Delivered" ? "fa-check-circle" : (order.Status == "OnDelivery" ? "fa-truck" : (order.Status == "Pending" ? "fa-clock" : "fa-times-circle"));
+                                    var statusLabel = order.Status == "OnDelivery" ? "TO RECEIVE" : (order.Status == "Pending" ? "TO SHIP" : order.Status.ToUpper());
+                                }
+                                <span class="nc-status-indicator @badgeClass">
+                                    <i class="fa @iconClass me-2"></i> @statusLabel
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="nc-order-card-body">
+                            @foreach (var item in order.OrderItems)
+                            {
+                                <div class="nc-order-item d-flex align-items-center gap-3 py-3">
+                                    <div class="nc-item-img">
+                                        @{
+                                            var productImg = item.Product?.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? item.Product?.ProductImages?.FirstOrDefault()?.Url;
+                                        }
+                                        <img src="@(productImg ?? "https://placehold.co/100x100/1a1f2c/7babdd?text=Item")" alt="@item.ProductName" />
+                                    </div>
+                                    <div class="nc-item-info flex-grow-1">
+                                        <div class="nc-item-name">@item.ProductName</div>
+                                        <div class="nc-item-meta">x @item.Quantity</div>
+                                    </div>
+                                    <div class="nc-item-price">
+                                        ₱@item.Price.ToString("N2")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="nc-order-card-footer d-flex justify-content-between align-items-center mt-3">
+                            <div class="nc-order-total-label">
+                                Order Total: <span class="nc-order-total-amount">₱@order.TotalAmount.ToString("N2")</span>
+                            </div>
+                            <div class="nc-order-actions">
+                                <a asp-action="Detail" asp-route-id="@order.Id" class="btn-nc-outline btn-sm">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .nc-status-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--nc-border);
+            border-radius: 12px;
+            overflow: hidden;
+            position: sticky;
+            top: 1rem;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .nc-status-tab {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            color: var(--nc-text-muted);
+            text-decoration: none !important;
+            font-size: 0.85rem;
+            font-weight: 600;
+            position: relative; /* For the indicator */
+            transition: all 0.25s;
+        }
+
+        .nc-status-tab:hover {
+            color: var(--nc-primary);
+            background: rgba(123, 171, 221, 0.05);
+        }
+
+        .nc-status-tab.active {
+            color: var(--nc-primary);
+            background: rgba(123, 171, 221, 0.08);
+        }
+
+        .nc-status-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0px;
+            left: 15%;
+            right: 15%;
+            height: 3px;
+            background: var(--nc-primary);
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 0 12px var(--nc-primary), 0 0 20px rgba(123, 171, 221, 0.3);
+        }
+
+        .nc-order-card {
+            background: var(--nc-bg-card);
+            border: 1px solid var(--nc-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .nc-order-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(123, 171, 221, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .nc-order-card-header {
+            border-bottom: 1px solid var(--nc-border);
+            padding-bottom: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nc-order-id {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            color: var(--nc-primary);
+            letter-spacing: 1px;
+        }
+
+        .nc-order-date {
+            font-size: 0.8rem;
+            color: var(--nc-text-muted);
+        }
+
+        .nc-status-indicator {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+
+        .nc-status-indicator.success { color: #81c784; }
+        .nc-status-indicator.primary { color: var(--nc-primary); }
+        .nc-status-indicator.warning { color: #ffb74d; }
+        .nc-status-indicator.danger { color: #e57373; }
+
+        .nc-order-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .nc-order-item:last-child {
+            border-bottom: none;
+        }
+
+        .nc-item-img img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--nc-border);
+        }
+
+        .nc-item-name {
+            font-weight: 600;
+            color: var(--nc-text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .nc-item-meta {
+            font-size: 0.8rem;
+            color: var(--nc-text-muted);
+        }
+
+        .nc-item-price {
+            font-weight: 700;
+            color: var(--nc-text-primary);
+        }
+
+        .nc-order-card-footer {
+            border-top: 1px solid var(--nc-border);
+            padding-top: 1.25rem;
+        }
+
+        .nc-order-total-label {
+            font-size: 0.9rem;
+            color: var(--nc-text-muted);
+        }
+
+        .nc-order-total-amount {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--nc-accent);
+            margin-left: 0.5rem;
+        }
+
+        .nc-empty-icon {
+            font-size: 4rem;
+            color: var(--nc-border);
+            opacity: 0.5;
+        }
+
+        @@media (max-width: 768px) {
+            .nc-status-tab {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            .nc-item-img img {
+                width: 50px;
+                height: 50px;
+            }
+            .nc-order-total-amount {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+}

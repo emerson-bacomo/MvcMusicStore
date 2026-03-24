@@ -1,386 +1,732 @@
 class ProductEditor {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
+        if (!this.container) return;
+
         this.productId = this.container.dataset.productId;
-        this.form = document.getElementById('inPlaceEditForm');
-        this.saveBar = document.getElementById('editorSaveBar');
-        this.storageKey = `products-${this.productId}`;
-        
+        this.form = document.getElementById("inPlaceEditForm");
+        this.storageKey = `product-edit-${this.productId}`;
+
         this.originalState = this.captureState();
-        this.currentState = JSON.parse(JSON.stringify(this.originalState));
-        
+        this.changedFields = new Set();
+        this.isInfiniteScrolling = false;
+        this.currentImgIndex = 0;
+        this.dragSrcGalleryEl = null;
+
         this.init();
     }
 
     init() {
-        this.loadFromLocalStorage();
         this.setupEventListeners();
-        this.setupDragAndDrop();
+        this.setupCarousel();
+        this.setupDragDrop();
+        this.loadFromLocalStorage();
         this.checkChanges();
+
+        // Initial auto-resize for textareas
+        this.form.querySelectorAll("textarea").forEach((ta) => this.autoSize(ta));
     }
 
     captureState() {
-        const data = new FormData(this.form);
-        const state = {
-            fields: {},
-            images: this.getCurrentImages()
-        };
-        for (let [key, value] of data.entries()) {
-            if (key !== '__RequestVerificationToken' && key !== 'productImages' && key !== 'existingImages') {
+        const formData = new FormData(this.form);
+        const state = { fields: {}, images: this.getImagesState() };
+        for (let [key, value] of formData.entries()) {
+            if (key !== "__RequestVerificationToken" && !key.includes("productImages") && key !== "bannerImage") {
                 state.fields[key] = value;
             }
         }
         return state;
     }
 
-    getCurrentImages() {
-        return Array.from(this.container.querySelectorAll('.nc-gallery-item:not(.is-removed)')).map(item => ({
-            url: item.dataset.url,
-            isPrimary: item.querySelector('.btn-star').classList.contains('active')
-        }));
+    getImagesState() {
+        return {
+            primary: document.getElementById("primaryImageInput").value,
+            order: document.getElementById("imageOrderInput").value,
+            deleted: document.getElementById("deletedImagesInput").value,
+            bannerUrl: document.getElementById("bannerUrlInput")?.value || "",
+        };
     }
 
     setupEventListeners() {
-        // Toggle Modes
-        document.getElementById('enterEditMode').onclick = () => this.setEditMode(true);
-        document.getElementById('exitEditMode').onclick = () => this.setEditMode(false);
+        // Mode Switches
+        document.getElementById("enterEditMode")?.addEventListener("click", () => this.setEditMode(true));
+        document.getElementById("exitEditMode")?.addEventListener("click", () => this.setEditMode(false));
 
-        // Form Changes
-        this.form.addEventListener('input', () => this.handleFieldChange());
-        this.form.addEventListener('change', () => this.handleFieldChange());
+        // Form Tracking
+        this.form.querySelectorAll("input, select, textarea").forEach((input) => {
+            input.addEventListener("input", (e) => this.handleInputChange(e.target));
+            input.addEventListener("change", (e) => this.handleInputChange(e.target));
+        });
 
-        // Save/Clear
-        document.getElementById('saveEditorChanges').onclick = () => this.saveChanges();
-        document.getElementById('clearEditorChanges').onclick = () => this.clearChanges();
-        
-        // Image Upload
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = () => this.handleFiles(fileInput.files);
-        
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            this.handleFiles(e.dataTransfer.files);
+        // Save / Clear
+        document.getElementById("saveEditorChangesGutter")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.saveChanges();
+        });
+        document.getElementById("saveEditorChanges")?.addEventListener("click", () => this.saveChanges()); 
+
+        document.getElementById("clearEditorChangesGutter")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.clearChanges();
+        });
+        document.getElementById("clearEditorChanges")?.addEventListener("click", () => this.clearChanges());
+
+        // Click outside to close popups
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".nc-localized-popup") && !e.target.closest(".nc-gutter-btn")) {
+                this.closeLocalizedPopups();
+            }
+        });
+
+        // Image Handling
+        document.getElementById("newImageUrlInput")?.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                this.addImageUrl();
+            }
+        });
+
+        // Click to edit spans
+        this.container.querySelectorAll(".nc-editable-span").forEach((span) => {
+            span.addEventListener("click", () => {
+                if (!this.container.classList.contains("nc-edit-mode")) return;
+                const wrapper = span.closest(".nc-editable-wrapper");
+                if (wrapper) {
+                    wrapper.classList.add("nc-is-editing");
+                    const input = wrapper.querySelector("input, select, textarea");
+                    if (input) {
+                        input.focus();
+                        if (input.tagName === "TEXTAREA") this.autoSize(input);
+                    }
+                }
+            });
+        });
+
+        // Focus out to close inline edit
+        this.form.addEventListener("focusout", (e) => {
+            const wrapper = e.target.closest(".nc-editable-wrapper");
+            if (wrapper) {
+                setTimeout(() => {
+                    if (!wrapper.contains(document.activeElement)) {
+                        wrapper.classList.remove("nc-is-editing");
+                        this.updateSpan(wrapper);
+                    }
+                }, 150);
+            }
         });
     }
 
     setEditMode(active) {
         if (active) {
-            this.container.classList.add('nc-edit-mode');
+            this.container.classList.add("nc-edit-mode");
+            this.form.querySelectorAll("textarea").forEach((ta) => this.autoSize(ta));
         } else {
-            this.container.classList.remove('nc-edit-mode');
+            this.container.classList.remove("nc-edit-mode");
         }
     }
 
-    handleFieldChange() {
+    handleInputChange(input) {
+        const field = input.name;
+        if (!field) return;
+
+        if (input.tagName === "TEXTAREA") this.autoSize(input);
+
+        const original = this.originalState.fields[field];
+        const current = input.type === "checkbox" ? (input.checked ? "true" : "false") : input.value;
+
+        const isChanged = String(current) !== String(original);
+        const wrapper = input.closest(".nc-editable-wrapper");
+
+        if (isChanged) {
+            this.changedFields.add(field);
+            if (wrapper) wrapper.classList.add("nc-changed");
+        } else {
+            this.changedFields.delete(field);
+            if (wrapper) wrapper.classList.remove("nc-changed");
+        }
+
+        this.validateField(input);
         this.checkChanges();
         this.saveToLocalStorage();
     }
 
-    checkChanges() {
-        const currentState = this.captureState();
-        let hasChanged = JSON.stringify(this.originalState) !== JSON.stringify(currentState);
-        
-        // Also check for new local files
-        if (document.getElementById('fileInput').files.length > 0) hasChanged = true;
+    validateField(input) {
+        if (!window.ValidationEngine) return;
 
-        this.saveBar.style.display = hasChanged ? 'block' : 'none';
-        
-        // Update indicators (similar to UpdatableTable)
-        this.updateIndicators(currentState);
+        const field = input.name;
+        const val = input.value;
+
+        // Required fields
+        if (["Name", "Price", "CategoryId", "BrandId"].includes(field) && !val) {
+            window.ValidationEngine.setError(input, `${field} is required.`);
+            return;
+        }
+
+        // Price must be positive
+        if (field === "Price" && parseFloat(val) <= 0) {
+            window.ValidationEngine.setError(input, "Price must be greater than 0.");
+            return;
+        }
+
+        // Banner validation
+        if (field === "IsBanner" || field === "BannerDescription" || field === "BannerImageUrl") {
+            const isBanner = this.form.querySelector('[name="IsBanner"]').checked;
+            const bannerDesc = this.form.querySelector('[name="BannerDescription"]');
+            const bannerUrl = this.form.querySelector('[name="BannerImageUrl"]');
+
+            if (isBanner) {
+                if (!bannerDesc.value.trim())
+                    window.ValidationEngine.setError(bannerDesc, "Banner description is required when featured.");
+                else window.ValidationEngine.setError(bannerDesc, "");
+
+                if (!bannerUrl.value.trim())
+                    window.ValidationEngine.setError(bannerUrl, "Banner image is required when featured.");
+                else window.ValidationEngine.setError(bannerUrl, "");
+            } else {
+                window.ValidationEngine.setError(bannerDesc, "");
+                window.ValidationEngine.setError(bannerUrl, "");
+            }
+        } else {
+            window.ValidationEngine.setError(input, "");
+        }
     }
 
-    updateIndicators(current) {
-        // Find inputs that differ from original
-        for (const [key, val] of Object.entries(current.fields)) {
-            const input = this.form.querySelector(`[name="${key}"]`);
-            if (!input) continue;
-            
-            const isChanged = String(this.originalState.fields[key]) !== String(val);
-            if (isChanged) {
-                input.classList.add('ut-changed');
-            } else {
-                input.classList.remove('ut-changed');
+    validateForm() {
+        let isValid = true;
+
+        // 1. Check images count
+        const activeImages = this.container.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)");
+        if (activeImages.length === 0) {
+            window.showToast("At least one product image is required.", "error");
+            isValid = false;
+        }
+
+        // 2. Check Banner requirements
+        const isBanner = this.form.querySelector('[name="IsBanner"]').checked;
+        if (isBanner) {
+            const bannerDesc = this.form.querySelector('[name="BannerDescription"]').value.trim();
+            const bannerUrl = this.form.querySelector('[name="BannerImageUrl"]').value.trim();
+            if (!bannerDesc || !bannerUrl) {
+                window.showToast("Banner featured products require a description and image.", "error");
+                isValid = false;
             }
+        }
+
+        // 3. Trigger all field validations
+        this.form.querySelectorAll("input, select, textarea").forEach((input) => {
+            this.validateField(input);
+            if (input.classList.contains("ut-error")) isValid = false;
+        });
+
+        return isValid;
+    }
+
+    checkChanges() {
+        const count = this.changedFields.size;
+        const indicator = document.getElementById("changesIndicator");
+        const saveBar = document.getElementById("editorSaveBar");
+        const gutterSave = document.getElementById("saveEditorChangesGutter");
+
+        if (indicator) {
+            indicator.textContent = count;
+            indicator.style.display = count > 0 ? "flex" : "none";
+        }
+
+        if (saveBar) saveBar.style.display = count > 0 ? "block" : "none";
+        if (gutterSave) gutterSave.disabled = count === 0;
+    }
+
+    autoSize(el) {
+        if (!el || el.tagName !== "TEXTAREA") return;
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+    }
+
+    updateSpan(wrapper) {
+        const span = wrapper.querySelector(".nc-editable-span");
+        const input = wrapper.querySelector("input, select, textarea");
+        if (!span || !input) return;
+
+        if (input.tagName === "SELECT") {
+            span.textContent = input.options[input.selectedIndex]?.text || "None";
+        } else if (input.type === "checkbox") {
+            span.textContent = input.checked ? "Featured" : "Not Featured";
+            span.className = `badge-nc ${input.checked ? "bg-success" : "bg-secondary"} nc-editable-span`;
+        } else if (input.name === "Price") {
+            span.textContent = parseFloat(input.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+        } else {
+            span.textContent = input.value || (wrapper.dataset.field === "Description" ? "No description" : "None");
         }
     }
 
     // --- Image Management ---
-    addImageUrl() {
-        const input = document.getElementById('newImageUrlInput');
-        const url = input.value.trim();
-        if (!url) return;
-        
-        this.appendImagePreview(url, false);
-        input.value = '';
-        this.handleFieldChange();
+    setupCarousel() {
+        const carouselEl = document.getElementById("productCarousel");
+        if (!carouselEl) return;
+
+        this.bsCarousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+
+        // Sync gallery highlights when carousel slides
+        carouselEl.addEventListener("slid.bs.carousel", (e) => {
+            const idx = e.to;
+            this.currentImgIndex = idx;
+            document.querySelectorAll(".nc-image-gallery .nc-gallery-item").forEach((item, i) => {
+                item.classList.toggle("active", i === idx);
+            });
+        });
     }
 
-    handleFiles(files) {
-        Array.from(files).forEach(file => {
-            if (!file.type.startsWith('image/')) return;
+    toImage(idx) {
+        this.bsCarousel?.to(idx);
+    }
+
+    carouselNext() {
+        this.bsCarousel?.next();
+    }
+
+    carouselPrev() {
+        this.bsCarousel?.prev();
+    }
+
+    setupDragDrop() {
+        ["dropZone", "bannerDropZone"].forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                el.classList.add("drag-over");
+            });
+            ["dragleave", "drop"].forEach((ev) => el.addEventListener(ev, () => el.classList.remove("drag-over")));
+            el.addEventListener("drop", (e) => {
+                e.preventDefault();
+                if (id === "dropZone") this.handleFileSelect({ target: { files: e.dataTransfer.files } });
+                else this.handleBannerSelect({ target: { files: e.dataTransfer.files } });
+            });
+        });
+
+        document.querySelectorAll(".nc-gallery-item").forEach((it) => this.setupGalleryDragAndDrop(it));
+    }
+
+    setupGalleryDragAndDrop(item) {
+        item.setAttribute("draggable", "true");
+        item.addEventListener("dragstart", (e) => {
+            if (!this.container.classList.contains("nc-edit-mode")) {
+                e.preventDefault();
+                return;
+            }
+            this.dragSrcGalleryEl = item;
+            e.dataTransfer.effectAllowed = "move";
+            item.style.opacity = "0.4";
+        });
+
+        item.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            if (this.dragSrcGalleryEl && this.dragSrcGalleryEl !== item) {
+                const container = item.parentNode;
+                const items = Array.from(container.querySelectorAll(".nc-gallery-item"));
+                const srcIdx = items.indexOf(this.dragSrcGalleryEl);
+                const tarIdx = items.indexOf(item);
+                if (srcIdx < tarIdx) container.insertBefore(this.dragSrcGalleryEl, item.nextSibling);
+                else container.insertBefore(this.dragSrcGalleryEl, item);
+            }
+        });
+
+        item.addEventListener("dragend", () => {
+            item.style.opacity = "1";
+            this.updateImageOrder();
+        });
+    }
+
+    handleFileSelect(e) {
+        const files = e.target.files;
+        if (!files) return;
+        Array.from(files).forEach((file) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                this.appendImagePreview(e.target.result, true);
-                this.handleFieldChange();
-            };
+            reader.onload = (ev) => this.appendTempImage(ev.target.result);
             reader.readAsDataURL(file);
         });
     }
 
-    appendImagePreview(url, isLocal) {
-        const gallery = document.getElementById('imageGallery');
-        const item = document.createElement('div');
-        item.className = 'nc-gallery-item active';
-        item.dataset.url = url;
-        
-        const hiddenInput = isLocal ? '' : `<input type="hidden" name="imageUrls" value="${url}" />`;
-        
+    appendTempImage(src) {
+        const gallery = document.getElementById("imageGallery");
+        const item = document.createElement("div");
+        item.className = "nc-gallery-item";
+        item.dataset.url = src;
         item.innerHTML = `
-            <img src="${url}" />
-            ${hiddenInput}
+            <img src="${src}" alt="New Image" />
             <div class="nc-editable nc-item-actions">
-                <button type="button" class="nc-item-btn btn-star" onclick="editor.setPrimaryImage(this)" title="Set Primary"><i class="fa fa-star"></i></button>
-                <button type="button" class="nc-item-btn btn-edit" onclick="editor.editImageUrl(this)" title="Edit URL"><i class="fa fa-pen"></i></button>
-                <button type="button" class="nc-item-btn btn-danger" onclick="editor.toggleRemoveImage(this)" title="Remove"><i class="fa fa-times"></i></button>
+                <button type="button" class="nc-item-btn btn-thumbnail" onclick="editor.setPrimaryImage(this)"><i class="fa fa-image"></i></button>
+                <button type="button" class="nc-item-btn btn-danger" onclick="editor.removeTempImage(this)"><i class="fa fa-trash"></i></button>
             </div>
         `;
-        
         gallery.appendChild(item);
-        document.getElementById('galleryContainer').classList.remove('d-none');
-        this.setupDragAndDrop();
-        this.updateMainImage(url);
+        this.setupGalleryDragAndDrop(item);
+        this.updateImageOrder();
+        this.refreshCarousel();
+        this.changedFields.add("Images");
+        this.checkChanges();
+    }
+
+    removeTempImage(btn) {
+        btn.closest(".nc-gallery-item").remove();
+        this.updateImageOrder();
+        this.refreshCarousel();
+        this.changedFields.add("Images");
+        this.checkChanges();
+    }
+
+    addImageUrl() {
+        const input = document.getElementById("newImageUrlInput");
+        const url = input.value.trim();
+        if (!url) return;
+        this.appendTempImage(url);
+        input.value = "";
     }
 
     setPrimaryImage(btn) {
-        const item = btn.closest('.nc-gallery-item');
-        const url = item.dataset.url;
-        
-        this.container.querySelectorAll('.btn-star').forEach(b => b.classList.remove('active'));
-        this.container.querySelectorAll('.nc-primary-indicator').forEach(i => i.remove());
-        
-        btn.classList.add('active');
-        document.getElementById('primaryImageInput').value = url;
-        
-        const indicator = document.createElement('span');
-        indicator.className = 'nc-primary-indicator nc-read-only';
-        indicator.innerText = 'P';
-        item.appendChild(indicator);
-        
-        this.handleFieldChange();
-    }
-
-    editImageUrl(btn) {
-        const item = btn.closest('.nc-gallery-item');
-        const oldUrl = item.dataset.url;
-        
-        // Use global showSidePopup but lift the whole item
-        window.showSidePopup(
-            item, 
-            "Edit Image URL", 
-            () => {
-                const newUrl = document.getElementById('popupImageUrlInput').value.trim();
-                if (newUrl && newUrl !== oldUrl) {
-                    item.dataset.url = newUrl;
-                    item.querySelector('img').src = newUrl;
-                    const hidden = item.querySelector('input[name="existingImages"], input[name="imageUrls"]');
-                    if (hidden) {
-                        hidden.value = newUrl;
-                        hidden.name = "imageUrls"; // Convert to new URL if edited
-                    }
-                    if (document.getElementById('primaryImageInput').value === oldUrl) {
-                        document.getElementById('primaryImageInput').value = newUrl;
-                    }
-                    this.handleFieldChange();
-                }
-            },
-            "fa-link",
-            "Update",
-            "var(--nc-primary)",
-            `<div style="padding: 1rem;">
-                <input type="text" id="popupImageUrlInput" class="nc-input" value="${oldUrl}" style="width: 300px;" />
-            </div>`,
-            "btn-nc-primary"
-        );
+        const item = btn.closest(".nc-gallery-item");
+        document.querySelectorAll(".btn-thumbnail").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("primaryImageInput").value = item.dataset.url;
+        this.changedFields.add("PrimaryImage");
+        this.checkChanges();
     }
 
     toggleRemoveImage(btn) {
-        const item = btn.closest('.nc-gallery-item');
+        const item = btn.closest(".nc-gallery-item");
         const url = item.dataset.url;
-        const isRemoved = item.classList.toggle('is-removed');
-        
-        const hidden = item.querySelector('input[type="hidden"]');
-        if (hidden) hidden.disabled = isRemoved;
-        
-        const deletedInput = document.getElementById('deletedImagesInput');
-        let deleted = JSON.parse(deletedInput.value);
-        
-        if (isRemoved) {
-            if (url.startsWith('/uploads/') && !deleted.includes(url)) deleted.push(url);
+        item.classList.toggle("nc-to-delete");
+
+        const deletedInput = document.getElementById("deletedImagesInput");
+        const deleted = JSON.parse(deletedInput.value || "[]");
+
+        if (item.classList.contains("nc-to-delete")) {
+            item.style.opacity = "0.3";
+            if (!deleted.includes(url)) deleted.push(url);
         } else {
-            deleted = deleted.filter(u => u !== url);
+            item.style.opacity = "1";
+            const idx = deleted.indexOf(url);
+            if (idx !== -1) deleted.splice(idx, 1);
         }
+
         deletedInput.value = JSON.stringify(deleted);
+        this.updateImageOrder();
+        this.refreshCarousel();
+        this.changedFields.add("Images");
+        this.checkChanges();
+    }
+
+    updateImageOrder() {
+        const urls = Array.from(document.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)")).map((it) => it.dataset.url);
+        document.getElementById("imageOrderInput").value = urls.join(",");
+    }
+
+    refreshCarousel() {
+        const track = document.getElementById("carouselTrack");
+        if (!track) return;
+
+        this.images = Array.from(document.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)"))
+                           .map((it) => it.dataset.url);
+
+        track.innerHTML = "";
+        if (this.images.length === 0) {
+            track.innerHTML = `<div class="carousel-item active h-100"><img src="https://placehold.co/800x600/1a1f2c/7babdd?text=No+Image" class="nc-main-image h-100 w-100" style="object-fit: cover;" /></div>`;
+        } else {
+            this.images.forEach((url, i) => {
+                const slide = document.createElement("div");
+                slide.className = `carousel-item h-100 ${i === 0 ? "active" : ""}`;
+                slide.dataset.url = url;
+                slide.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100"><img src="${url}" class="nc-main-image h-100 w-100" style="object-fit: cover;" onclick="window.openFullscreen(this.src)" /></div>`;
+                track.appendChild(slide);
+            });
+        }
         
-        this.handleFieldChange();
+        // Re-init Bootstrap instance if structure changed
+        this.bsCarousel?.dispose();
+        this.setupCarousel();
     }
 
     updateMainImage(url) {
-        const main = document.getElementById('mainProductImage');
-        main.src = url;
-        this.container.querySelectorAll('.nc-gallery-item').forEach(i => {
-            i.classList.toggle('active', i.dataset.url === url);
-        });
+        const main = document.getElementById("mainProductImage"); // Legacy or current
+        if (main) main.src = url;
     }
 
-    // --- Reordering ---
-    setupDragAndDrop() {
-        const items = this.container.querySelectorAll('.nc-gallery-item');
-        let dragSrcEl = null;
+    handleBannerSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const preview = document.getElementById("currentBannerPreviewEdit");
+            if (preview) {
+                document.getElementById("bannerPreviewContainerEdit").style.display = "block";
+                preview.src = ev.target.result;
+            }
+            document.getElementById("bannerUrlInput").value = ev.target.result;
+            this.handleInputChange(document.getElementById("bannerUrlInput"));
+        };
+        reader.readAsDataURL(file);
+    }
 
-        items.forEach(item => {
-            item.draggable = true;
-            item.ondragstart = (e) => {
-                if (!this.container.classList.contains('nc-edit-mode')) { e.preventDefault(); return; }
-                dragSrcEl = item;
-                e.dataTransfer.effectAllowed = 'move';
-                item.classList.add('is-dragging');
-            };
-            item.ondragover = (e) => {
-                e.preventDefault();
-                if (dragSrcEl !== item) {
-                    const container = item.parentNode;
-                    const all = Array.from(container.children);
-                    const srcIdx = all.indexOf(dragSrcEl);
-                    const tarIdx = all.indexOf(item);
-                    if (srcIdx < tarIdx) container.insertBefore(dragSrcEl, item.nextSibling);
-                    else container.insertBefore(dragSrcEl, item);
+    // --- State Management ---
+    revertAll() {
+        for (const field of this.changedFields) {
+            const input = this.form.querySelector(`[name="${field}"]`);
+            if (input) {
+                const original = this.originalState.fields[field];
+                if (input.type === "checkbox") input.checked = original === "true";
+                else input.value = original;
+
+                const wrapper = input.closest(".nc-editable-wrapper");
+                if (wrapper) {
+                    wrapper.classList.remove("nc-changed");
+                    this.updateSpan(wrapper);
                 }
-                return false;
-            };
-            item.ondragend = () => {
-                item.classList.remove('is-dragging');
-                this.updateOrderInput();
-                this.handleFieldChange();
-            };
-        });
+                if (window.ValidationEngine) window.ValidationEngine.setError(input, "");
+            }
+        }
+
+        // Revert images (reload is easiest for images)
+        if (this.changedFields.has("Images") || this.changedFields.has("PrimaryImage")) {
+            location.reload();
+        }
+
+        this.changedFields.clear();
+        this.checkChanges();
+        localStorage.removeItem(this.storageKey);
     }
 
-    updateOrderInput() {
-        const urls = Array.from(this.container.querySelectorAll('.nc-gallery-item:not(.is-removed)')).map(i => i.dataset.url);
-        document.getElementById('imageOrderInput').value = urls.join(',');
-    }
-
-    // --- Local Storage ---
     saveToLocalStorage() {
-        const state = this.captureState();
+        const state = {
+            fields: {},
+            changed: Array.from(this.changedFields),
+        };
+        this.form.querySelectorAll("input, select, textarea").forEach((input) => {
+            if (input.name) {
+                state.fields[input.name] = input.type === "checkbox" ? input.checked : input.value;
+            }
+        });
         localStorage.setItem(this.storageKey, JSON.stringify(state));
     }
 
     loadFromLocalStorage() {
         const saved = localStorage.getItem(this.storageKey);
         if (!saved) return;
-        
         const state = JSON.parse(saved);
-        // Apply fields
-        for (const [key, val] of Object.entries(state.fields)) {
-            const input = this.form.querySelector(`[name="${key}"]`);
+        for (const [name, val] of Object.entries(state.fields)) {
+            const input = this.form.querySelector(`[name="${name}"]`);
             if (input) {
-                if (input.type === 'checkbox') input.checked = val === 'true';
+                if (input.type === "checkbox") input.checked = val === true;
                 else input.value = val;
+
+                const wrapper = input.closest(".nc-editable-wrapper");
+                if (wrapper) this.updateSpan(wrapper);
             }
         }
-        // Images are complex, for now let's just focus on fields for the MVP of local storage
-        // Full image sync requires more logic for local blobs
+        state.changed?.forEach((f) => {
+            this.changedFields.add(f);
+            const input = this.form.querySelector(`[name="${f}"]`);
+            if (input) {
+                const wrapper = input.closest(".nc-editable-wrapper");
+                if (wrapper) wrapper.classList.add("nc-changed");
+            }
+        });
+        this.checkChanges();
+    }
+
+    // --- New Localized Popups ---
+    showLocalizedPopup(type, title, icon, onConfirm, confirmText, content, confirmClass = "btn-nc-primary") {
+        this.closeLocalizedPopups();
+        
+        const popupId = type === 'save' ? 'localizedSavePopup' : 'localizedClearPopup';
+        const popup = document.getElementById(popupId);
+        if (!popup) return;
+
+        popup.innerHTML = `
+            <div class="ut-popup-header">
+                <i class="fa ${icon}"></i>
+                <span>${title}</span>
+            </div>
+            <div class="ut-diff-container">
+                ${content}
+            </div>
+            <div class="ut-modal-actions">
+                <button type="button" class="ut-popup-btn-cancel">Cancel</button>
+                <button type="button" class="ut-popup-btn-confirm ${confirmClass}">${confirmText}</button>
+            </div>
+        `;
+
+        popup.style.display = 'block';
+
+        popup.querySelector(".ut-popup-btn-cancel").onclick = () => this.closeLocalizedPopups();
+        const confirmBtn = popup.querySelector(".ut-popup-btn-confirm");
+        confirmBtn.onclick = async () => {
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Processing...';
+            confirmBtn.disabled = true;
+            await onConfirm();
+            // Note: reload usually happens on success, so no need to restore btn state here unless it's a soft confirm
+        };
+    }
+
+    closeLocalizedPopups() {
+        this.container.querySelectorAll(".nc-localized-popup").forEach(p => p.style.display = 'none');
+    }
+
+    renderDiffTable(isRevert = false) {
+        const diff = this.calculateDiff(isRevert);
+        if (diff.length === 0) return "<p class='text-center py-3 opacity-50'>No changes detected.</p>";
+
+        return `
+            <table class="ut-diff-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Original</th>
+                        <th>Current</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${diff.map(d => `
+                        <tr>
+                            <td>${d.field}</td>
+                            <td class="ut-diff-old">${d.old}</td>
+                            <td class="ut-diff-new">${d.new}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    calculateDiff(isRevert = false) {
+        const diff = [];
+        const labels = {
+            'Name': 'Product Name',
+            'Price': 'Price',
+            'Description': 'Description',
+            'BrandId': 'Brand',
+            'CategoryId': 'Category',
+            'IsBanner': 'Featured Status',
+            'BannerDescription': 'Banner Text',
+            'BannerImageUrl': 'Banner Image URL',
+            'Images': 'Gallery Order',
+            'PrimaryImage': 'Main Image'
+        };
+
+        this.changedFields.forEach((field) => {
+            const input = this.form.querySelector(`[name="${field}"]`);
+            if (input) {
+                const label = labels[field] || field;
+                let originalVal = this.originalState.fields[field] || "(None)";
+                let currentVal = input.type === "checkbox" ? (input.checked ? "True" : "False") : input.value || "(Empty)";
+                
+                // Formatting
+                if (field === "Price") {
+                    originalVal = "₱" + parseFloat(originalVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                    currentVal = "₱" + parseFloat(currentVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                }
+
+                diff.push({
+                    field: label,
+                    old: isRevert ? currentVal : originalVal,
+                    new: isRevert ? originalVal : currentVal
+                });
+            }
+        });
+
+        if (this.changedFields.has("Images") || this.changedFields.has("PrimaryImage")) {
+            const label = labels["Images"];
+            diff.push({ 
+                field: label, 
+                old: isRevert ? "(Updated)" : "(Original)", 
+                new: isRevert ? "(Original)" : "(Updated)" 
+            });
+        }
+
+        return diff;
     }
 
     clearChanges() {
-        localStorage.removeItem(this.storageKey);
-        location.reload(); // Simplest way to revert everything
+        if (this.changedFields.size === 0) {
+            window.showToast("No changes to clear.", "info");
+            return;
+        }
+
+        const content = this.renderDiffTable(true);
+        this.showLocalizedPopup(
+            'clear',
+            'Revert All Changes?',
+            'fa-undo',
+            async () => {
+                localStorage.removeItem(this.storageKey);
+                location.reload();
+            },
+            'Revert All',
+            content,
+            'btn-danger'
+        );
     }
 
-    // --- Save Logic ---
     async saveChanges() {
-        const diff = this.calculateDiff();
-        if (diff.length === 0 && document.getElementById('fileInput').files.length === 0) {
+        if (!this.validateForm()) return;
+
+        if (this.changedFields.size === 0) {
             window.showToast("No changes to save.", "info");
             return;
         }
 
-        // Show Diff Modal (Custom implementation)
-        this.showDiffModal(diff);
-    }
-
-    calculateDiff() {
-        const current = this.captureState();
-        const diff = [];
-        
-        for (const [key, val] of Object.entries(current.fields)) {
-            if (String(this.originalState.fields[key]) !== String(val)) {
-                diff.push({ field: key, old: this.originalState.fields[key], new: val });
-            }
-        }
-        
-        if (JSON.stringify(this.originalState.images) !== JSON.stringify(current.images)) {
-            diff.push({ field: 'Images', old: 'Modified', new: 'Updated' });
-        }
-        
-        return diff;
-    }
-
-    showDiffModal(diff) {
-        const content = `
-            <div class="ut-diff-container" style="max-height: 400px; overflow-y: auto;">
-                <table class="ut-diff-table">
-                    <thead><tr><th>Property</th><th>Original</th><th>New</th></tr></thead>
-                    <tbody>
-                        ${diff.map(d => `
-                            <tr>
-                                <td>${d.field}</td>
-                                <td class="ut-diff-old">${d.old}</td>
-                                <td class="ut-diff-new">${d.new}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        window.showSidePopup(
-            document.getElementById('saveEditorChanges'),
-            "Confirm Changes",
+        const content = this.renderDiffTable(false);
+        this.showLocalizedPopup(
+            'save',
+            'Confirm Product Updates',
+            'fa-save',
             async () => {
-                const formData = new FormData(this.form);
-                const response = await fetch(`/Products/UpdateDetails/${this.productId}`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    localStorage.removeItem(this.storageKey);
-                    window.showToast(result.message, "success");
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    window.showToast(result.message || "Save failed.", "error");
-                    if (result.errors) console.error(result.errors);
+                try {
+                    const formData = new FormData(this.form);
+                    const response = await fetch(`/Products/UpdateDetails/${this.productId}`, {
+                        method: "POST",
+                        body: formData,
+                        headers: { "X-Requested-With": "XMLHttpRequest" },
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        localStorage.removeItem(this.storageKey);
+                        window.showToast(result.message || "Product updated successfully.");
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        window.showToast(result.message || "Save failed.", "error");
+                    }
+                } catch (err) {
+                    window.showToast("An error occurred during save.", "error");
                 }
             },
-            "fa-save",
-            "Commit Changes",
-            "var(--nc-primary)",
+            'Apply Changes',
             content,
-            "btn-nc-primary",
-            "ut-diff-modal"
+            'btn-nc-primary'
         );
     }
 }
 
+// Global Fullscreen Helper
+window.openFullscreen = function (url) {
+    const overlay = document.getElementById("fullscreenOverlay");
+    const img = document.getElementById("fullscreenImg");
+    if (overlay && img) {
+        img.src = url;
+        overlay.style.display = "flex";
+        document.body.style.overflow = "hidden";
+    }
+};
+
+window.closeFullscreen = function () {
+    const overlay = document.getElementById("fullscreenOverlay");
+    if (overlay) {
+        overlay.style.display = "none";
+        document.body.style.overflow = "";
+    }
+};
+
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    window.editor = new ProductEditor('productDetailContainer');
+document.addEventListener("DOMContentLoaded", () => {
+    window.editor = new ProductEditor("productDetailContainer");
 });

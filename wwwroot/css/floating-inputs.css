@@ -1,0 +1,367 @@
+/* SIS-Style Floating Inputs */
+:root {
+    --nc-floating-label-bg: var(--nc-bg-card);
+    --nc-input-padding-x: 1.25rem;
+    --nc-input-padding-y: 1rem;
+    --nc-input-bg: var(--nc-bg-primary); /* Default base background */
+}
+
+nc-floating-input,
+.nc-floating-group {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    margin-bottom: 2rem;
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 52px; /* Ensure consistent height */
+}
+
+/* Focus illumination for the whole stack */
+nc-floating-input:focus-within,
+.nc-floating-group:focus-within {
+    border-color: var(--nc-primary);
+    box-shadow: 0 0 0 4px rgba(var(--nc-primary-rgb), 0.1);
+}
+
+nc-floating-input.nc-has-content,
+.nc-floating-group.nc-has-content {
+    background: var(--nc-input-bg, transparent);
+}
+
+nc-floating-input .nc-floating-control,
+.nc-floating-control {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: var(--nc-input-padding-y) var(--nc-input-padding-x);
+    font-size: 0.95rem;
+    color: var(--nc-text-primary);
+    background: transparent !important;
+    border: none !important;
+    outline: none;
+    box-shadow: none !important;
+}
+
+/* Removed legacy rounded corners logic - handled by container flex */
+
+/* Page/Container provides the background color when text exists */
+nc-floating-input.nc-has-content .nc-floating-control,
+.nc-floating-control:not(:placeholder-shown) {
+    background: var(--nc-input-bg, transparent);
+}
+
+/* Opaque background inside cards */
+.nc-card {
+    --nc-input-bg: var(--nc-bg-card);
+}
+
+.nc-floating-control:focus {
+    border-color: var(--nc-primary);
+    box-shadow: 0 0 0 4px rgba(var(--nc-primary-rgb), 0.1);
+}
+
+.nc-floating-label {
+    position: absolute;
+    top: var(--nc-input-padding-y);
+    left: var(--nc-input-padding-x); /* Reset to match input text in base state */
+    padding: 0 0.25rem;
+    color: var(--nc-text-muted);
+    font-size: 0.95rem;
+    font-weight: 500;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    width: max-content;
+    max-width: calc(100% - 2.5rem);
+    border-radius: 4px;
+}
+
+.nc-label-text {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Floating State */
+nc-floating-input.nc-is-focused .nc-floating-label,
+nc-floating-input.nc-has-content .nc-floating-label,
+.nc-floating-control:focus ~ .nc-floating-label,
+.nc-floating-control:not(:placeholder-shown) ~ .nc-floating-label {
+    transform: translateY(-1.75rem) scale(0.85);
+    transform-origin: left top; 
+    /* Significant leftward offset specifically for the floating state */
+    left: calc(var(--nc-input-padding-x) - 0.75rem); 
+    color: var(--nc-primary);
+    background: var(--nc-input-bg, var(--nc-bg-primary));
+    padding: 0 12px;
+    opacity: 1;
+}
+
+
+/* Fix for Autofill background */
+.nc-floating-control:-webkit-autofill,
+.nc-floating-control:-webkit-autofill:hover,
+.nc-floating-control:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--nc-text-primary);
+    -webkit-box-shadow: 0 0 0px 1000px #0a0c10 inset; /* Matches --nc-bg-primary */
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Card-specific autofill override */
+.nc-card .nc-floating-control:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px #151a26 inset; /* Matches --nc-bg-card */
+}
+
+/* Error State */
+.nc-floating-control.is-invalid,
+.nc-pd-floating-control.is-invalid {
+    border-color: var(--nc-error) !important;
+    background: rgba(var(--nc-error-rgb), 0.02);
+}
+
+.nc-floating-control.is-invalid ~ .nc-floating-label,
+.nc-pd-floating-control.is-invalid ~ .nc-pd-floating-label {
+    color: var(--nc-error) !important;
+}
+
+.nc-error-inline {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--nc-error);
+    text-transform: uppercase;
+    background: rgba(var(--nc-error-rgb), 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: help;
+    pointer-events: auto; /* Enable hover for tooltip */
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.nc-error-inline::before {
+    content: "\f06a"; /* fa-exclamation-circle */
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", "FontAwesome";
+    font-weight: 900;
+}
+
+.nc-error-inline:hover {
+    background: rgba(var(--nc-error-rgb), 0.2);
+}
+
+/* Error Popup Tooltip */
+.nc-error-popup {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 0;
+    background: #1a0505;
+    color: #ff9999;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    width: max-content;
+    max-width: 280px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255, 100, 100, 0.2);
+    z-index: 100;
+}
+
+/* Arrow for tooltip */
+.nc-error-popup::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--nc-error) transparent transparent transparent;
+}
+
+/* Whole label is the popup trigger */
+.nc-floating-label:hover .nc-error-popup {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Password Toggle Support (Unified Flex Stack) */
+/* The password toggle is now exclusively styled as a flex member within the stack (see .nc-password-toggle at EOF) */
+
+/* Auto-resizing Textarea Support */
+textarea.nc-floating-control {
+    min-height: 100px;
+    resize: none;
+    overflow-y: hidden;
+}
+
+/* ─── Product-Detail Floating Controls ──────────────────────────────────────
+   Larger, context-aware variants for the product detail in-place editor.
+   All inputs and their paired display spans share the same CSS variables
+   so padding is always in perfect sync.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+    --nc-pd-pad-x: 1.1rem;
+    --nc-pd-pad-y: 0.9rem;
+    /* Extra top padding added when a floating label is present so the label
+       doesn't overlap the text value. Label floats to -0.7em above the border. */
+    --nc-pd-pad-y-top: 1.6rem;
+}
+
+/* Wrapper – matches nc-floating-group but without the bottom margin
+   so we can control spacing at the call-site. */
+.nc-pd-floating-group {
+    position: relative;
+    width: 100%;
+}
+
+/* The actual editable control (input, textarea, select) */
+.nc-pd-floating-control {
+    width: 100%;
+    padding: var(--nc-pd-pad-y-top) var(--nc-pd-pad-x) var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    font-size: inherit;          /* inherit from host element (h1, p, etc.) */
+    color: var(--nc-text-primary);
+    background: var(--nc-bg-card); /* Detail page uses card background */
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    outline: none;
+    resize: none;
+    overflow-y: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    box-sizing: border-box;
+}
+
+.nc-pd-floating-control:focus {
+    border-color: var(--nc-primary);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 4px rgba(var(--nc-primary-rgb), 0.1);
+}
+
+/* Floating label inside nc-pd-floating-group */
+.nc-pd-floating-label {
+    position: absolute;
+    top: var(--nc-pd-pad-y);
+    left: var(--nc-pd-pad-x);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nc-text-muted);
+    pointer-events: none;
+    white-space: nowrap;
+    transform: none;
+    transition: color 0.2s, opacity 0.15s, background 0.2s;
+    /* Hidden in view mode – shown only when the page is in edit mode */
+    opacity: 0;
+    pointer-events: none;
+    background: var(--nc-input-bg, var(--nc-bg-card));
+    padding: 0 8px;
+}
+
+/* Show label only in edit mode */
+.nc-edit-mode .nc-pd-floating-label {
+    opacity: 1;
+}
+
+/* Password Toggle (Stack Member) */
+.nc-password-toggle {
+    flex: 0 0 50px;
+    background: transparent;
+    border: none; /* Border is now on container */
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    color: var(--nc-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    transition: all 0.2s;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    height: auto; /* Inherit from stack height */
+}
+
+.nc-password-toggle:hover {
+    color: var(--nc-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Synchronized focus state for the whole stack */
+nc-floating-input.nc-is-focused .nc-floating-control {
+    border-color: var(--nc-primary);
+}
+nc-floating-input.nc-is-focused .nc-password-toggle {
+    border-color: var(--nc-primary);
+}
+
+.nc-pd-floating-control:focus ~ .nc-pd-floating-label {
+    color: var(--nc-primary);
+}
+
+/* ─── Sync span – read-only display element ──────────────────────────────────
+   Apply .nc-pd-sync-span to every nc-editable-span so it occupies the same
+   box dimensions as .nc-pd-floating-control in read-only mode.
+   For spans that sit INSIDE a floating-group additionally add:
+     padding-top: var(--nc-pd-pad-y-top);  (compensate for the label area)
+   ─────────────────────────────────────────────────────────────────────────── */
+.nc-pd-sync-span {
+    display: block;
+    padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    border: 1.5px solid transparent;   /* reserve the same border width */
+    border-radius: 12px;
+    box-sizing: border-box;
+    line-height: inherit;
+    width: 100%;
+}
+
+/* When the span is inside a floating group it needs the label clearance – but only in edit mode */
+.nc-edit-mode .nc-pd-floating-group .nc-pd-sync-span {
+    padding-top: var(--nc-pd-pad-y-top);
+}
+
+/* Select controls in product-detail – styled like nc-pd-floating-control
+   but kept at their natural height (no label area since they show a value). */
+.nc-pd-select {
+    padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    background: var(--nc-bg-card); /* Detail page uses card background */
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    outline: none;
+    color: var(--nc-text-primary);
+    font-size: inherit;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.nc-pd-select:focus {
+    border-color: var(--nc-primary);
+    box-shadow: 0 0 0 4px rgba(var(--nc-primary-rgb), 0.1);
+}
+
+/* Paired span for selects / number inputs (no floating label) */
+.nc-pd-sync-span-plain {
+    display: block;
+    padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    border: 1.5px solid transparent;
+    border-radius: 12px;
+    box-sizing: border-box;
+    line-height: inherit;
+}

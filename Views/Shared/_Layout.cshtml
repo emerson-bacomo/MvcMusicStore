@@ -2,6 +2,13 @@
     var rawPath = Context.Request.Path.ToString().ToLower();
     var isHomeHeroRoute = rawPath == "/" || rawPath.StartsWith("/home") || rawPath.StartsWith("/landing/hero");
     var returnUrl = isHomeHeroRoute ? null : Context.Request.Path + Context.Request.QueryString;
+
+    // Centralized Role Checks to avoid CS0136 scoping errors
+    var isAdmin = User.IsInRole("Admin");
+    var isSuper = User.IsInRole("SuperAdmin");
+    var isStaff = User.IsInRole("Staff") || User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || User.IsInRole("SalesStaff") || User.IsInRole("CustomerStaff");
+    var isEmployee = isAdmin || isSuper || isStaff;
+    var isAdminOrSuper = isAdmin || isSuper;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -12,6 +19,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MvcMusic.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/floating-inputs.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     @* Critical script to prevent FOUC when navigating to anchors *@
     <script>
@@ -95,71 +103,83 @@
                     </li>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+
+                        @if (isAdminOrSuper || User.IsInRole("SalesStaff"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
                                     <i class="fa fa-chart-line me-1"></i> Dashboard
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")" asp-controller="Categories" asp-action="Index">
-                                     <i class="fa fa-box me-1"></i> Categories
-                                 </a>
-                             </li>
-                            <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Brands" ? "active" : "")" asp-controller="Brands" asp-action="Index">
-                                     <i class="fa fa-box me-1"></i> Brands
-                                 </a>
-                             </li>
-                             <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-controller="Products" asp-action="Index">
-                                     <i class="fa fa-box me-1"></i> Products
-                                 </a>
-                             </li>
-                             <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
-                                     <i class="fa fa-users me-1"></i> Customers
-                                 </a>
-                             </li>
-                             <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index">
-                                     <i class="fa fa-shopping-cart me-1"></i> Orders
-                                 </a>
-                             </li>
-                             <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
-                                     <i class="fa fa-headset me-1"></i> Support
-                                 </a>
-                             </li>
-                        }
-                        @if (User.IsInRole("Staff"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
-                                    <i class="fa fa-chart-line me-1"></i> Dashboard
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
-                                     <i class="fa fa-headset me-1"></i> Support
-                                 </a>
-                             </li>
-                        }
-                        @if (User.IsInRole("SuperAdmin"))
-                        {
-                             <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Employee" asp-action="Index">
-                                     <i class="fa fa-user-shield me-1"></i> Employees
-                                 </a>
-                             </li>
-                             <li class="nav-item">
-                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="ActivityLogs" asp-action="Index">
-                                     <i class="fa fa-list-alt me-1"></i> Logs
-                                 </a>
-                             </li>
                         }
 
+                        @if (isAdminOrSuper || User.IsInRole("ProductStaff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")" asp-controller="Categories" asp-action="Index">
+                                    <i class="fa fa-layer-group me-1"></i> Categories
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Brands" ? "active" : "")" asp-controller="Brands" asp-action="Index">
+                                    <i class="fa fa-tags me-1"></i> Brands
+                                </a>
+                            </li>
+                        }
+
+                        @if (isAdminOrSuper || User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || User.IsInRole("SalesStaff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Products" asp-action="Index">
+                                    <i class="fa fa-guitar me-1"></i> Products
+                                </a>
+                            </li>
+                        }
+
+                        @if (isAdminOrSuper || User.IsInRole("CustomerStaff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                                    <i class="fa fa-users me-1"></i> Customers
+                                </a>
+                            </li>
+                        }
+
+                        @if (isAdminOrSuper || User.IsInRole("SalesStaff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index">
+                                    <i class="fa fa-shopping-cart me-1"></i> Orders
+                                </a>
+                            </li>
+                        }
+
+                        @if (isAdminOrSuper || User.IsInRole("CustomerStaff"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
+                                    <i class="fa fa-headset me-1"></i> Support
+                                </a>
+                            </li>
+                        }
+
+                        @if (isSuper)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
+                                    <i class="fa fa-user-shield me-1"></i> Employees
+                                </a>
+                            </li>
+                        }
+
+                        @if (isAdminOrSuper)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="ActivityLogs" asp-action="Index">
+                                    <i class="fa fa-list-alt me-1"></i> Logs
+                                </a>
+                            </li>
+                        }
                     }
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-2 align-items-center">
@@ -212,6 +232,27 @@
                                                   transition: var(--transition); 
                                                   display: block;">
                                             <i class="fa fa-user-circle me-2"></i> View Profile
+                                        </a>
+                                    </li>
+                                    @if (!isEmployee)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Orders" asp-action="History"
+                                               style="color: var(--nc-text-primary) !important; font-size: 0.85rem; font-weight: 500; padding: 0.6rem 1rem; border-radius: 6px; transition: var(--transition); display: block;">
+                                                <i class="fa fa-shopping-bag me-2"></i> My Purchase
+                                            </a>
+                                        </li>
+                                    }
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Profile" asp-action="Settings"
+                                           style="color: var(--nc-text-primary) !important; 
+                                                  font-size: 0.85rem; 
+                                                  font-weight: 500; 
+                                                  padding: 0.6rem 1rem; 
+                                                  border-radius: 6px; 
+                                                  transition: var(--transition); 
+                                                  display: block;">
+                                            <i class="fa fa-cog me-2"></i> Settings
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider" 
@@ -277,30 +318,58 @@
                 </li>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+
+                    @if (isAdminOrSuper || User.IsInRole("SalesStaff"))
                     {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" ? "active" : "")" asp-controller="AdminDashboard" asp-action="Index">
                                 <i class="fa fa-chart-line"></i> Dashboard
                             </a>
                         </li>
+                    }
+
+                    @if (isAdminOrSuper || User.IsInRole("ProductStaff"))
+                    {
                         <li class="nc-mobile-nav-item">
-                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-controller="Products" asp-action="Index">
-                                <i class="fa fa-box"></i> Products
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")" asp-controller="Categories" asp-action="Index">
+                                <i class="fa fa-layer-group"></i> Categories
                             </a>
                         </li>
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Brands" ? "active" : "")" asp-controller="Brands" asp-action="Index">
+                                <i class="fa fa-tags"></i> Brands
+                            </a>
+                        </li>
+                    }
+
+                    @if (isAdminOrSuper || User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || User.IsInRole("SalesStaff"))
+                    {
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Products" asp-action="Index">
+                                <i class="fa fa-guitar"></i> Products
+                            </a>
+                        </li>
+                    }
+
+                    @if (isAdminOrSuper || User.IsInRole("CustomerStaff"))
+                    {
+                        <li class="nc-mobile-nav-item">
+                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                                <i class="fa fa-users"></i> Customers
+                            </a>
+                        </li>
+                    }
+
+                    @if (isAdminOrSuper || User.IsInRole("SalesStaff"))
+                    {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index">
                                 <i class="fa fa-shopping-cart"></i> Orders
                             </a>
                         </li>
-                        <li class="nc-mobile-nav-item">
-                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
-                                <i class="fa fa-headset"></i> Support
-                            </a>
-                        </li>
                     }
-                    @if (User.IsInRole("Staff"))
+
+                    @if (isAdminOrSuper || User.IsInRole("CustomerStaff"))
                     {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
@@ -308,18 +377,18 @@
                             </a>
                         </li>
                     }
-                    @if (User.IsInRole("SuperAdmin"))
+
+                    @if (isSuper)
                     {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
                                 <i class="fa fa-user-shield"></i> Employees
                             </a>
                         </li>
-                        <li class="nc-mobile-nav-item">
-                            <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
-                                <i class="fa fa-headset"></i> Support
-                            </a>
-                        </li>
+                    }
+
+                    @if (isAdminOrSuper)
+                    {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ActivityLogs" ? "active" : "")" asp-controller="ActivityLogs" asp-action="Index">
                                 <i class="fa fa-list-alt"></i> Logs
@@ -337,7 +406,7 @@
                     </a>
                     <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@returnUrl" method="post" class="mt-2">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn-nc-outline w-100 text-danger border-danger" style="font-size: 0.85rem;">
+                        <button type="submit" class="btn-nc-outline w-100 text-danger border-danger" style="font-size: 0.85rem; padding: 0.85rem;">
                             <i class="fa fa-right-from-bracket me-2"></i> Sign Out
                         </button>
                     </form>
@@ -416,6 +485,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/ValidationEngine.js" asp-append-version="true"></script>
     <script>
         window.showToast = function(message, type = 'success') {
             let bgColor = 'var(--nc-primary)';
@@ -461,6 +531,7 @@
         });
     </script>
     <script src="~/js/state-preservation.js" asp-append-version="true"></script>
+    <script src="~/js/components/NcFloatingInput.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

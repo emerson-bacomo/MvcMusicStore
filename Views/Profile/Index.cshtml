@@ -3,27 +3,62 @@
 @{
     ViewData["Title"] = "My Profile";
     var roles = ViewBag.Roles as IList<string> ?? new List<string>();
+    var isCustomer = User.IsInRole("User");
 }
 
 <div class="nc-page">
     <div class="nc-container">
         <div class="nc-profile-card">
             <div class="nc-profile-header">
-                <div class="nc-profile-avatar-large">
-                    @if (!string.IsNullOrEmpty(Model.ProfilePicture))
-                    {
-                        <img src="@Model.ProfilePicture" alt="Profile Picture" />
-                    }
-                    else
-                    {
-                        <div class="nc-avatar-placeholder">
-                            <i class="fa fa-user"></i>
-                        </div>
-                    }
+                <div class="nc-profile-avatar-wrapper">
+                    <div class="nc-profile-avatar-large" id="avatarContainer">
+                        @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                        {
+                            <img src="@Model.ProfilePicture" id="profileAvatarImg" alt="Profile Picture" />
+                        }
+                        else
+                        {
+                            <div class="nc-avatar-placeholder" id="avatarPlaceholder">
+                                <i class="fa fa-user"></i>
+                            </div>
+                        }
+                    </div>
+                    <label for="avatarUpload" class="nc-avatar-edit-badge" title="Change Profile Picture">
+                        <i class="fa fa-camera"></i>
+                        <input type="file" id="avatarUpload" hidden accept="image/*" onchange="uploadAvatar(this)" />
+                    </label>
                 </div>
                 <div class="nc-profile-info">
-                    <h1 class="nc-profile-name">@Model.FirstName @Model.LastName</h1>
-                    <div class="nc-profile-badges">
+                    <div class="d-flex align-items-center gap-3">
+                        <h1 class="nc-profile-name" id="displayFullName">@Model.FirstName @Model.LastName</h1>
+                        @if (isCustomer)
+                        {
+                            <button class="btn-nc-icon-only" onclick="toggleEditName()" title="Edit Name">
+                                <i class="fa fa-pen"></i>
+                            </button>
+                        }
+                    </div>
+                    
+                    <div id="editNameForm" class="hidden mt-2">
+                        <div class="d-flex gap-2">
+                            <div class="nc-floating-group mb-0" style="flex: 1;">
+                                <input type="text" id="editFirstName" class="nc-floating-control" value="@Model.FirstName" placeholder=" " data-label="First Name" />
+                                <label class="nc-floating-label">First Name</label>
+                            </div>
+                            <div class="nc-floating-group mb-0" style="flex: 1;">
+                                <input type="text" id="editLastName" class="nc-floating-control" value="@Model.LastName" placeholder=" " data-label="Last Name" />
+                                <label class="nc-floating-label">Last Name</label>
+                            </div>
+                            <button class="btn-nc-primary px-3" onclick="saveName()" id="btnSaveName">
+                                <i class="fa fa-check"></i>
+                            </button>
+                            <button class="btn-nc-outline px-3" onclick="toggleEditName()">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="nc-profile-badges mt-2">
                         @foreach (var role in roles)
                         {
                             <span class="nc-badge nc-badge-@role.ToLower()">@role</span>
@@ -35,7 +70,9 @@
             <div class="nc-profile-details">
                 <div class="nc-detail-group">
                     <label>Username</label>
-                    <div class="nc-detail-value">@Model.UserName</div>
+                    <div class="nc-detail-value">
+                        <span class="nc-username-tag">@@@Model.UserName</span>
+                    </div>
                 </div>
                 <div class="nc-detail-group">
                     <label>Email Address</label>
@@ -45,11 +82,17 @@
                     <label>Joined Since</label>
                     <div class="nc-detail-value">@Model.DateCreated.ToString("MMMM dd, yyyy")</div>
                 </div>
+                <div class="nc-detail-group">
+                    <label>Account Status</label>
+                    <div class="nc-detail-value">
+                        <span class="text-success"><i class="fa fa-check-circle me-1"></i> Active</span>
+                    </div>
+                </div>
             </div>
 
             <div class="nc-profile-actions">
-                <a asp-action="Edit" class="btn-nc-primary">
-                    <i class="fa fa-pen me-2"></i> Edit Profile
+                <a asp-action="Settings" class="btn-nc-primary">
+                    <i class="fa fa-cog me-2"></i> Account Settings
                 </a>
             </div>
         </div>
@@ -62,9 +105,22 @@
         border: 1px solid var(--nc-border);
         border-radius: 20px;
         padding: 3rem;
-        max-width: 800px;
-        margin: 0 auto;
+        max-width: 850px;
+        margin: 2rem auto;
         box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nc-profile-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 120px;
+        background: linear-gradient(135deg, rgba(var(--nc-primary-rgb), 0.1) 0%, transparent 100%);
+        pointer-events: none;
     }
 
     .nc-profile-header {
@@ -74,6 +130,12 @@
         margin-bottom: 3rem;
         padding-bottom: 2rem;
         border-bottom: 1px solid var(--nc-border);
+        position: relative;
+        z-index: 1;
+    }
+
+    .nc-profile-avatar-wrapper {
+        position: relative;
     }
 
     .nc-profile-avatar-large {
@@ -86,12 +148,37 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        transition: transform 0.3s ease;
     }
 
     .nc-profile-avatar-large img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+    }
+
+    .nc-avatar-edit-badge {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 36px;
+        height: 36px;
+        background: var(--nc-primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 3px solid var(--nc-bg-card);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        transition: all 0.2s ease;
+    }
+
+    .nc-avatar-edit-badge:hover {
+        transform: scale(1.1);
+        background: var(--nc-accent);
     }
 
     .nc-avatar-placeholder {
@@ -103,19 +190,13 @@
     .nc-profile-name {
         font-size: 2.5rem;
         font-weight: 800;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0;
+        color: var(--nc-text-primary);
     }
 
     .nc-profile-badges {
         display: flex;
         gap: 0.5rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .nc-profile-code {
-        font-size: 0.9rem;
-        color: var(--nc-text-muted);
-        font-family: monospace;
     }
 
     .nc-profile-details {
@@ -132,6 +213,7 @@
         text-transform: uppercase;
         letter-spacing: 0.1em;
         margin-bottom: 0.5rem;
+        font-weight: 600;
     }
 
     .nc-detail-value {
@@ -140,13 +222,137 @@
         color: var(--nc-text-primary);
     }
 
-    .nc-badge-superadmin { background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); }
-    .nc-badge-admin { background: rgba(123, 171, 221, 0.15); color: var(--nc-primary); border: 1px solid rgba(123, 171, 221, 0.3); }
-    .nc-badge-staff { background: rgba(129, 199, 132, 0.15); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.3); }
+    .nc-badge-superadmin { background: rgba(255, 215, 0, 0.1); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.2); }
+    .nc-badge-admin { background: rgba(123, 171, 221, 0.1); color: var(--nc-primary); border: 1px solid rgba(123, 171, 221, 0.2); }
+    .nc-badge-productstaff { background: rgba(129, 199, 132, 0.1); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.2); }
+    .nc-badge-salesstaff { background: rgba(244, 143, 177, 0.1); color: #f48fb1; border: 1px solid rgba(244, 143, 177, 0.2); }
     .nc-badge-user { background: rgba(255, 255, 255, 0.05); color: var(--nc-text-muted); border: 1px solid var(--nc-border); }
 
     .nc-profile-actions {
         display: flex;
         justify-content: flex-end;
+        padding-top: 2rem;
+        border-top: 1px solid var(--nc-border);
+    }
+
+    .hidden { display: none !important; }
+
+    .btn-nc-icon-only {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--nc-border);
+        color: var(--nc-text-muted);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .btn-nc-icon-only:hover {
+        background: var(--nc-primary);
+        color: white;
+        border-color: var(--nc-primary);
+    }
+
+    .nc-username-tag {
+        background: rgba(123, 171, 221, 0.1);
+        color: var(--nc-primary);
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        letter-spacing: 0.5px;
+        font-size: 0.95rem;
+        display: inline-block;
+        margin-top: 4px;
+        border: 1px solid rgba(123, 171, 221, 0.2);
     }
 </style>
+
+@section Scripts {
+    <script>
+        function toggleEditName() {
+            const display = document.getElementById('displayFullName').parentElement;
+            const form = document.getElementById('editNameForm');
+            display.classList.toggle('hidden');
+            form.classList.toggle('hidden');
+        }
+
+        async function saveName() {
+            const btn = document.getElementById('btnSaveName');
+            const firstName = document.getElementById('editFirstName').value;
+            const lastName = document.getElementById('editLastName').value;
+
+            if (!firstName || !lastName) {
+                window.showToast("Names cannot be empty.", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+            try {
+                const response = await fetch('@Url.Action("UpdateName", "Profile")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: `firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('displayFullName').textContent = data.fullName;
+                    window.showToast("Name updated successfully.");
+                    toggleEditName();
+                } else {
+                    window.showToast(data.message || "Failed to update name.", "error");
+                }
+            } catch (err) {
+                window.showToast("An error occurred.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-check"></i>';
+            }
+        }
+
+        async function uploadAvatar(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            const container = document.getElementById('avatarContainer');
+            const originalHTML = container.innerHTML;
+            container.innerHTML = '<div class="nc-avatar-placeholder"><i class="fa fa-spinner fa-spin"></i></div>';
+
+            try {
+                const response = await fetch('@Url.Action("UpdateAvatar", "Profile")', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    container.innerHTML = `<img src="${data.url}" id="profileAvatarImg" alt="Profile Picture" />`;
+                    
+                    // Update layout avatar if exists
+                    const navAvatar = document.querySelector('#profileDropdown img');
+                    if (navAvatar) navAvatar.src = data.url;
+                    
+                    window.showToast("Profile picture updated.");
+                } else {
+                    container.innerHTML = originalHTML;
+                    window.showToast(data.message || "Upload failed.", "error");
+                }
+            } catch (err) {
+                container.innerHTML = originalHTML;
+                window.showToast("An error occurred during upload.", "error");
+            }
+        }
+    </script>
+    @Html.AntiForgeryToken()
+}

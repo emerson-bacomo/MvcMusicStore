@@ -59,24 +59,53 @@ namespace MvcMusic.Data
                 }
             }
 
-            // Seed Staff
-            var staffEmail = "staff@nightcord.com";
-            if (await userManager.FindByEmailAsync(staffEmail) == null)
+
+
+            // Seed StockStaff
+            var stockEmail = "stockstaff@nightcord.com";
+            if (await userManager.FindByEmailAsync(stockEmail) == null)
             {
-                var user = new ApplicationUser
+                var user = new ApplicationUser { UserName = $"{year}-T0001", Email = stockEmail, FirstName = "Tina", LastName = "Stone", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                if ((await userManager.CreateAsync(user, "StockStaff@123")).Succeeded)
                 {
-                    UserName = $"{year}-S0001",
-                    Email = staffEmail,
-                    FirstName = "Carlos",
-                    LastName = "Mendez",
-                    EmailConfirmed = true,
-                    DateCreated = DateTime.UtcNow
-                };
-                if ((await userManager.CreateAsync(user, "Staff@123")).Succeeded)
+                    await userManager.AddToRoleAsync(user, "StockStaff");
+                    await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"StockStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
+                }
+            }
+
+            // Seed ProductStaff
+            var productEmail = "productstaff@nightcord.com";
+            if (await userManager.FindByEmailAsync(productEmail) == null)
+            {
+                var user = new ApplicationUser { UserName = $"{year}-P0001", Email = productEmail, FirstName = "Paula", LastName = "Cruz", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                if ((await userManager.CreateAsync(user, "ProductStaff@123")).Succeeded)
                 {
-                    logger.LogInformation("Created Staff user: {Email}", staffEmail);
-                    await userManager.AddToRoleAsync(user, "Staff");
-                    await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"Staff account <a href='/employee/edit/{user.Id}' class='emp-link'>{user.UserName}</a> was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
+                    await userManager.AddToRoleAsync(user, "ProductStaff");
+                    await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"ProductStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
+                }
+            }
+
+            // Seed SalesStaff
+            var salesEmail = "salesstaff@nightcord.com";
+            if (await userManager.FindByEmailAsync(salesEmail) == null)
+            {
+                var user = new ApplicationUser { UserName = $"{year}-L0001", Email = salesEmail, FirstName = "Leon", LastName = "Drake", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                if ((await userManager.CreateAsync(user, "SalesStaff@123")).Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, "SalesStaff");
+                    await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"SalesStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
+                }
+            }
+
+            // Seed CustomerStaff
+            var customerEmail = "customerstaff@nightcord.com";
+            if (await userManager.FindByEmailAsync(customerEmail) == null)
+            {
+                var user = new ApplicationUser { UserName = $"{year}-C0001", Email = customerEmail, FirstName = "Clara", LastName = "Vance", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                if ((await userManager.CreateAsync(user, "CustomerStaff@123")).Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, "CustomerStaff");
+                    await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"CustomerStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
                 }
             }
 

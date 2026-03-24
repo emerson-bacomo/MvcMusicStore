@@ -8,7 +8,7 @@ using MvcMusic.ViewModels;
 
 namespace MvcMusic.Controllers
 {
-    [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+    [Authorize(Roles = "Admin,SuperAdmin,SalesStaff")]
     public class AdminDashboardController : Controller
     {
         private readonly MvcMusicContext _context;
@@ -38,7 +38,9 @@ namespace MvcMusic.Controllers
             vm.TotalCustomers = await _context.UserRoles.CountAsync(ur => ur.RoleId == userRoleId);
 
             var employeeRoleIds = await _context.Roles
-                .Where(r => r.Name == "Admin" || r.Name == "Staff" || r.Name == "SuperAdmin")
+                .Where(r => r.Name == "Admin" || r.Name == "SuperAdmin" ||
+                            r.Name == "StockStaff" || r.Name == "ProductStaff" ||
+                            r.Name == "SalesStaff" || r.Name == "CustomerStaff")
                 .Select(r => r.Id)
                 .ToListAsync();
             vm.TotalEmployees = await _context.UserRoles.CountAsync(ur => employeeRoleIds.Contains(ur.RoleId));
@@ -105,6 +107,46 @@ namespace MvcMusic.Controllers
                     ORDER BY Value DESC
                 ")
                 .ToListAsync();
+
+            // ── Recent Orders (top 10) ───────────────────────────────
+            var recentOrdersRaw = await _context.Order
+                .OrderByDescending(o => o.OrderDate)
+                .Take(10)
+                .Join(_context.Users,
+                    o => o.CustomerId,
+                    u => u.Id,
+                    (o, u) => new { o.Id, o.TotalAmount, o.Status, o.OrderDate, CustomerName = u.FirstName + " " + u.LastName })
+                .ToListAsync();
+
+            var recentOrderIds = recentOrdersRaw.Select(o => o.Id).ToList();
+            var recentItems = await _context.OrderItem
+                .Where(oi => recentOrderIds.Contains(oi.OrderId))
+                .Select(oi => new { oi.OrderId, oi.Quantity, ProductName = oi.Product != null ? oi.Product.Name : "—" })
+                .ToListAsync();
+
+            var recentItemsByOrder = recentItems.GroupBy(i => i.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            vm.RecentOrders = recentOrdersRaw.Select(o => new RecentOrderItem
+            {
+                Id = o.Id,
+                CustomerName = o.CustomerName,
+                Products = recentItemsByOrder.TryGetValue(o.Id, out var ri) ? string.Join(", ", ri.Select(i => i.ProductName).Distinct()) : "—",
+                TotalQuantity = recentItemsByOrder.TryGetValue(o.Id, out var qi) ? qi.Sum(i => i.Quantity) : 0,
+                Amount = o.TotalAmount,
+                Status = o.Status,
+                Date = o.OrderDate
+            }).ToList();
+
+            // ── Recent Activity Logs (top 10, Admin/SuperAdmin only) ──
+            bool showLogs = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+            ViewBag.ShowLogs = showLogs;
+            if (showLogs)
+            {
+                vm.RecentLogs = await _context.ActivityLog
+                    .OrderByDescending(l => l.Timestamp)
+                    .Take(10)
+                    .ToListAsync();
+            }
 
             return View(vm);
         }

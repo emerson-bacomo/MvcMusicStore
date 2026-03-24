@@ -67,7 +67,8 @@ namespace MvcMusic.Controllers
                 FirstName = model.FirstName,
                 LastName = model.LastName,
                 EmailConfirmed = true,
-                DateCreated = DateTime.UtcNow
+                DateCreated = DateTime.UtcNow,
+                RequiresPasswordChange = true
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -99,7 +100,7 @@ namespace MvcMusic.Controllers
                 FirstName = user.FirstName ?? "",
                 LastName = user.LastName ?? "",
                 Email = user.Email ?? "",
-                Role = roles.FirstOrDefault() ?? "Staff",
+                Role = roles.FirstOrDefault() ?? "",
                 UserName = user.UserName
             };
             return View(vm);
@@ -123,11 +124,29 @@ namespace MvcMusic.Controllers
 
             // Update role
             var currentRoles = await _userManager.GetRolesAsync(user);
-            var allowedRoles = new[] { "Admin", "Staff" };
-            if (!currentRoles.Contains(model.Role) && allowedRoles.Contains(model.Role))
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+
+            // Only SuperAdmin can change roles
+            if (model.Role != currentRoles.FirstOrDefault() && isCurrentSuperAdmin)
             {
-                await _userManager.RemoveFromRolesAsync(user, currentRoles.Intersect(allowedRoles).ToArray());
-                await _userManager.AddToRoleAsync(user, model.Role);
+                // SuperAdmin cannot change their own role
+                if (user.Id == currentUser!.Id)
+                {
+                    TempData["Error"] = "SuperAdmins cannot change their own role.";
+                    return RedirectToAction(nameof(Edit), new { id = model.Id });
+                }
+
+                var allowedRoles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff", "SuperAdmin" };
+                if (allowedRoles.Contains(model.Role))
+                {
+                    await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                    await _userManager.AddToRoleAsync(user, model.Role);
+                }
+            }
+            else if (model.Role != currentRoles.FirstOrDefault() && !isCurrentSuperAdmin)
+            {
+                TempData["Error"] = "Only SuperAdmins can change roles.";
             }
 
             var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
@@ -208,8 +227,51 @@ namespace MvcMusic.Controllers
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 return Json(new { success = true });
 
-            TempData["Success"] = "Employee account restored.";
+        TempData["Success"] = "Employee account restored.";
             return RedirectToAction(nameof(Index));
+        }
+
+        // POST: /employees/reset-password/{id}
+        [HttpPost]
+        [Authorize(Roles = "SuperAdmin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return Json(new { success = false, message = "User not found." });
+
+            // SuperAdmins cannot reset their own password through this endpoint (security best practice)
+            // They should use the profile settings.
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (user.Id == currentUser!.Id)
+            {
+                return Json(new { success = false, message = "You cannot reset your own password here. Use Profile Settings." });
+            }
+
+            // Generate a random password
+            var charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+            var random = new Random();
+            var newPassword = new string(Enumerable.Repeat(charset, 12).Select(s => s[random.Next(s.Length)]).ToArray());
+            
+            // Add at least one digit and one special if missing
+            if (!newPassword.Any(char.IsDigit)) newPassword = newPassword.Substring(0, 11) + random.Next(10).ToString();
+            if (!newPassword.Any(c => "!@#$%^&*()_+".Contains(c))) newPassword = newPassword.Substring(0, 10) + "!" + newPassword.Last();
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (result.Succeeded)
+            {
+                user.RequiresPasswordChange = true;
+                await _userManager.UpdateAsync(user);
+
+                var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
+                await _logger.LogAsync(ActivityAction.UpdateTable, $"Reset password for employee {user.UserName} ({user.Email})", cId, cName, cRole, cFull);
+
+                return Json(new { success = true, newPassword = newPassword });
+            }
+
+            return Json(new { success = false, message = string.Join(", ", result.Errors.Select(e => e.Description)) });
         }
 
         // AJAX endpoint for UpdatableTable
@@ -217,10 +279,15 @@ namespace MvcMusic.Controllers
         public async Task<IActionResult> GetTableData(string? includeIds = null)
         {
             var admins = await _userManager.GetUsersInRoleAsync("Admin");
-            var staffs = await _userManager.GetUsersInRoleAsync("Staff");
             var superAdmins = await _userManager.GetUsersInRoleAsync("SuperAdmin");
+            var stockStaffs = await _userManager.GetUsersInRoleAsync("StockStaff");
+            var productStaffs = await _userManager.GetUsersInRoleAsync("ProductStaff");
+            var salesStaffs = await _userManager.GetUsersInRoleAsync("SalesStaff");
+            var customerStaffs = await _userManager.GetUsersInRoleAsync("CustomerStaff");
 
-            var allEmployeesRaw = admins.Concat(staffs).Concat(superAdmins).DistinctBy(u => u.Id).ToList();
+            var allEmployeesRaw = admins.Concat(superAdmins)
+                .Concat(stockStaffs).Concat(productStaffs).Concat(salesStaffs).Concat(customerStaffs)
+                .DistinctBy(u => u.Id).ToList();
 
             if (!string.IsNullOrEmpty(includeIds))
             {
@@ -234,8 +301,11 @@ namespace MvcMusic.Controllers
                         {
                             // Verify they have an employee role
                             if (await _userManager.IsInRoleAsync(extraUser, "Admin") || 
-                                await _userManager.IsInRoleAsync(extraUser, "Staff") || 
-                                await _userManager.IsInRoleAsync(extraUser, "SuperAdmin"))
+                                await _userManager.IsInRoleAsync(extraUser, "SuperAdmin") ||
+                                await _userManager.IsInRoleAsync(extraUser, "StockStaff") ||
+                                await _userManager.IsInRoleAsync(extraUser, "ProductStaff") ||
+                                await _userManager.IsInRoleAsync(extraUser, "SalesStaff") ||
+                                await _userManager.IsInRoleAsync(extraUser, "CustomerStaff"))
                             {
                                 allEmployeesRaw.Add(extraUser);
                             }
@@ -248,8 +318,12 @@ namespace MvcMusic.Controllers
             foreach(var u in allEmployeesRaw)
             {
                 var role = admins.Any(a => a.Id == u.Id) ? "Admin" 
-                         : staffs.Any(s => s.Id == u.Id) ? "Staff" 
-                         : "SuperAdmin";
+                         : superAdmins.Any(s => s.Id == u.Id) ? "SuperAdmin"
+                         : stockStaffs.Any(s => s.Id == u.Id) ? "StockStaff"
+                         : productStaffs.Any(s => s.Id == u.Id) ? "ProductStaff"
+                         : salesStaffs.Any(s => s.Id == u.Id) ? "SalesStaff"
+                         : customerStaffs.Any(s => s.Id == u.Id) ? "CustomerStaff"
+                         : "";
                 allEmployees.Add((u, role));
             }
 
@@ -292,8 +366,11 @@ namespace MvcMusic.Controllers
             var prefix = role switch
             {
                 "Admin" => "A",
-                "Staff" => "S",
                 "SuperAdmin" => "X",
+                "StockStaff" => "T",
+                "ProductStaff" => "P",
+                "SalesStaff" => "L",
+                "CustomerStaff" => "C",
                 _ => "E"
             };
 

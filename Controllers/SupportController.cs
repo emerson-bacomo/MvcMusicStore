@@ -10,7 +10,7 @@ using MvcMusic.Models;
 
 namespace MvcMusic.Controllers
 {
-    [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+    [Authorize(Roles = "Admin,SuperAdmin,CustomerStaff")]
     public class SupportController : Controller
     {
         private readonly MvcMusicContext _context;

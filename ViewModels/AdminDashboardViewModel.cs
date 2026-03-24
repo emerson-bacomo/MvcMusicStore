@@ -23,6 +23,9 @@ namespace MvcMusic.ViewModels
         // Revenue by category
         public List<ChartPoint> RevenueByCategory { get; set; } = new();
 
+        // Dashboard recent tables
+        public List<RecentOrderItem> RecentOrders { get; set; } = new();
+        public List<ActivityLog> RecentLogs { get; set; } = new();
     }
 
     public class RecentOrderItem

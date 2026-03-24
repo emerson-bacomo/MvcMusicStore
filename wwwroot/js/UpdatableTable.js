@@ -20,7 +20,8 @@ export default class UpdatableTable {
             "item";
 
         this.searchQuery = "";
-        this.sortConfig = { key: null, direction: "none" };
+        this.defaultSortConfig = config.sortConfig || { key: "id", direction: "desc" };
+        this.sortConfig = { ...this.defaultSortConfig };
         this.currentPage = 1;
         this.pageSize = config.pageSize || 25;
         this.statusFilters = {
@@ -203,6 +204,10 @@ export default class UpdatableTable {
                 this.searchQuery = value.toLowerCase();
                 const searchInput = this.container.querySelector(".ut-search-input");
                 if (searchInput) searchInput.value = value;
+            } else if (key === "sort") {
+                this.sortConfig.key = value;
+            } else if (key === "dir") {
+                this.sortConfig.direction = value;
             } else {
                 this.filters[key] = value;
             }
@@ -470,6 +475,14 @@ export default class UpdatableTable {
         } else {
             url.searchParams.delete("status");
         }
+        
+        if (this.sortConfig.key && this.sortConfig.direction !== "none") {
+            url.searchParams.set("sort", this.sortConfig.key);
+            url.searchParams.set("dir", this.sortConfig.direction);
+        } else {
+            url.searchParams.delete("sort");
+            url.searchParams.delete("dir");
+        }
 
         window.history.replaceState({}, "", url);
         this.saveToLocalStorage();
@@ -537,13 +550,13 @@ export default class UpdatableTable {
         if (this.sortConfig.key === colId) {
             if (this.sortConfig.direction === "asc") this.sortConfig.direction = "desc";
             else if (this.sortConfig.direction === "desc") {
-                this.sortConfig.direction = "none";
-                this.sortConfig.key = null;
+                this.sortConfig = { ...this.defaultSortConfig, direction: "none" };
             }
         } else {
             this.sortConfig.key = colId;
             this.sortConfig.direction = "asc";
         }
+        this.updateUrl();
         this.renderTable();
     }
 
@@ -668,9 +681,17 @@ export default class UpdatableTable {
             }
         });
 
-        if (this.sortConfig.key && this.sortConfig.direction !== "none") {
-            const key = this.sortConfig.key;
-            const dir = this.sortConfig.direction === "asc" ? 1 : -1;
+        let sortKey = this.sortConfig.key;
+        let sortDir = this.sortConfig.direction;
+
+        if (!sortKey || sortDir === "none") {
+            sortKey = this.defaultSortConfig?.key || "id";
+            sortDir = this.defaultSortConfig?.direction || "desc";
+        }
+
+        if (sortKey && sortDir !== "none") {
+            const key = sortKey;
+            const dir = sortDir === "asc" ? 1 : -1;
             processed.sort((a, b) => {
                 let v1 = a[key + "Label"] !== undefined ? a[key + "Label"] : a[key];
                 let v2 = b[key + "Label"] !== undefined ? b[key + "Label"] : b[key];
@@ -699,7 +720,7 @@ export default class UpdatableTable {
             if (!this.filters.visibleColumns.has(col.id) && col.id !== "actions") return;
 
             const label = this.fieldDefinitions[col.id]?.label || this.toLabelCase(col.id);
-            const isSorting = this.sortConfig.key === col.id;
+            const isSorting = this.sortConfig.key === col.id && this.sortConfig.direction !== "none";
             let sortIcon = '<i class="fa fa-sort ut-sort-ghost"></i>';
             if (isSorting) {
                 sortIcon =
@@ -1748,8 +1769,38 @@ export default class UpdatableTable {
     formatValue(val, colId = null, useHighlight = false) {
         if (val === null || val === undefined) return "";
         let str = "";
-        if (typeof val === "object") str = val.name || val.label || val.value || JSON.stringify(val);
-        else {
+        
+        // UTC to Local Conversion for Date/Time fields
+        const isDateColumn = colId && (
+            colId.toLowerCase().includes("date") || 
+            colId.toLowerCase().includes("time") || 
+            colId.toLowerCase().includes("timestamp") ||
+            this.fieldDefinitions[colId]?.type === "date"
+        );
+
+        if (isDateColumn && val) {
+            try {
+                const date = new Date(val);
+                if (!isNaN(date.getTime())) {
+                    // Check if the original string was UTC (ends with Z or has no offset but intended as UTC)
+                    // ASP.NET JSON usually serializes as ISO 8601 UTC
+                    str = date.toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                } else {
+                    str = String(val);
+                }
+            } catch (e) {
+                str = String(val);
+            }
+        } else if (typeof val === "object") {
+            str = val.name || val.label || val.value || JSON.stringify(val);
+        } else {
             const col = colId ? this.data.columns.find((c) => c.id === colId) : null;
             const fDef = colId ? this.fieldDefinitions[colId] : null;
 

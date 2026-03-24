@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Add Employee";
-    var roles = new[] { "Admin", "Staff" };
+    var roles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff" };
 }
 
 <div class="nc-page">
@@ -62,10 +62,19 @@
                                 </select>
                                 <div class="nc-text-muted mt-2" style="font-size:0.8rem;">
                                     <div id="role-desc-Admin" class="role-desc" style="display:none;">
-                                        <i class="fa fa-shield-halved me-1 nc-text-primary"></i> <strong>Admin:</strong> Full CRUD authority (Create, Read, Update, Delete) for products and customer management.
+                                        <i class="fa fa-shield-halved me-1 nc-text-primary"></i> <strong>Admin:</strong> Full access to all areas.
                                     </div>
-                                    <div id="role-desc-Staff" class="role-desc" style="display:none;">
-                                        <i class="fa fa-user-pen me-1" style="color:#81c784;"></i> <strong>Staff:</strong> Update authority only (Restock, change prices, update descriptions, Manage banners). Cannot create or delete products.
+                                    <div id="role-desc-StockStaff" class="role-desc" style="display:none;">
+                                        <i class="fa fa-boxes-stacking me-1" style="color:#ffb74d;"></i> <strong>Stock Staff:</strong> Can only update stock quantities on the Products table.
+                                    </div>
+                                    <div id="role-desc-ProductStaff" class="role-desc" style="display:none;">
+                                        <i class="fa fa-pen me-1" style="color:#4dd0e1;"></i> <strong>Product Staff:</strong> Can edit product name, brand, category, descriptions, and images. Also manages Brands and Categories tables.
+                                    </div>
+                                    <div id="role-desc-SalesStaff" class="role-desc" style="display:none;">
+                                        <i class="fa fa-chart-line me-1" style="color:#ba68c8;"></i> <strong>Sales Staff:</strong> Access to Dashboard and Orders management only.
+                                    </div>
+                                    <div id="role-desc-CustomerStaff" class="role-desc" style="display:none;">
+                                        <i class="fa fa-headset me-1" style="color:#e57373;"></i> <strong>Customer Staff:</strong> Access to Customer management and Support inbox only.
                                     </div>
                                 </div>
                                 <span asp-validation-for="Role" class="nc-validation-error"></span>
@@ -74,18 +83,24 @@
                     </div>
 
                     <div class="nc-form-section">
-                        <div class="nc-form-section-title">Password</div>
-                        <div class="nc-form-grid">
-                            <div class="nc-form-group">
-                                <label asp-for="Password" class="nc-label"></label>
-                                <input asp-for="Password" type="password" class="nc-input" />
-                                <span asp-validation-for="Password" class="nc-validation-error"></span>
+                        <div class="nc-form-section-title">Password Management</div>
+                        <div class="nc-form-group">
+                            <label asp-for="Password" class="nc-label">Generated Temporary Password</label>
+                            <div class="d-flex gap-2">
+                                <div style="position:relative; flex-grow:1;">
+                                    <input asp-for="Password" id="genPassword" class="nc-input" readonly style="letter-spacing:1px; font-family:'JetBrains Mono', monospace; background: rgba(122,171,221,0.05);" />
+                                    <button type="button" id="copyPassword" class="btn border-0 py-0" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--nc-primary);" title="Copy to Clipboard">
+                                        <i class="fa fa-copy"></i>
+                                    </button>
+                                </div>
+                                <button type="button" id="regeneratePassword" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm);" title="Regenerate">
+                                    <i class="fa fa-sync-alt"></i>
+                                </button>
                             </div>
-                            <div class="nc-form-group">
-                                <label asp-for="ConfirmPassword" class="nc-label"></label>
-                                <input asp-for="ConfirmPassword" type="password" class="nc-input" />
-                                <span asp-validation-for="ConfirmPassword" class="nc-validation-error"></span>
+                            <div class="nc-text-muted mt-2" style="font-size:0.75rem;">
+                                <i class="fa fa-info-circle me-1"></i> This is a temporary password. The user will be required to change it upon their first login.
                             </div>
+                            <span asp-validation-for="Password" class="nc-validation-error"></span>
                         </div>
                     </div>
 
@@ -93,7 +108,7 @@
                         <button type="submit" class="btn-nc-primary" style="padding:0.75rem 2rem;border-radius:var(--nc-radius-sm);">
                             <i class="fa fa-user-plus me-2"></i> Create Employee
                         </button>
-                        <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.75rem 1.5rem;border-radius:var(--nc-radius-sm);">Cancel</a>
+                        <a asp-action="Index" class="btn-nc-outline" style="padding:0.75rem 1.5rem;border-radius:var(--nc-radius-sm);">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -113,6 +128,7 @@
 @section Scripts { 
     <partial name="_ValidationScriptsPartial" /> 
     <script>
+        // Role descriptions
         document.getElementById('Role').addEventListener('change', function() {
             var selectedRole = this.value;
             document.querySelectorAll('.role-desc').forEach(el => el.style.display = 'none');
@@ -120,6 +136,49 @@
                 var desc = document.getElementById('role-desc-' + selectedRole);
                 if (desc) desc.style.display = 'block';
             }
+        });
+
+        // Password generation
+        function generateRandomPassword(length = 12) {
+            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@@#$%^&*()_+";
+            let retVal = "";
+            for (let i = 0, n = charset.length; i < length; ++i) {
+                retVal += charset.charAt(Math.floor(Math.random() * n));
+            }
+            // Ensure at least one special char and one number
+            if (!/[0-9]/.test(retVal) || !/[!@@#$%^&*()_+]/.test(retVal)) {
+                return generateRandomPassword(length);
+            }
+            return retVal;
+        }
+
+        const passInput = document.getElementById('genPassword');
+        const copyBtn = document.getElementById('copyPassword');
+        const regenBtn = document.getElementById('regeneratePassword');
+
+        function setPass() {
+            passInput.value = generateRandomPassword();
+        }
+
+        setPass();
+
+        regenBtn.addEventListener('click', setPass);
+
+        copyBtn.addEventListener('click', function() {
+            passInput.select();
+            passInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(passInput.value);
+            
+            const icon = this.querySelector('i');
+            icon.classList.remove('fa-copy');
+            icon.classList.add('fa-check');
+            icon.style.color = 'var(--nc-success)';
+            
+            setTimeout(() => {
+                icon.classList.remove('fa-check');
+                icon.classList.add('fa-copy');
+                icon.style.color = '';
+            }, 2000);
         });
     </script>
 }

@@ -8,7 +8,7 @@ using MvcMusic.Utils;
 
 namespace MvcMusic.Controllers
 {
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Admin,SuperAdmin,CustomerStaff")]
     public class CustomersController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;

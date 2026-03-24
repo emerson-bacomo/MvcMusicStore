@@ -77,40 +77,38 @@ window.showSidePopup = function (
     if (extraClass && extraClass.includes("save")) popup.setAttribute("data-popup-type", "save");
 
     document.body.appendChild(popup);
-    const scrollY = window.scrollY;
-
-    // Forces layout to ensure offsetWidth is accurate
-    const popupWidth = popup.offsetWidth;
-    const popupHeight = popup.offsetHeight;
-
-    if (isWide) {
-        if (showOnTop) {
-            popup.style.top = `${rect.top + scrollY - popupHeight - 12}px`;
-        } else {
-            popup.style.top = `${rect.bottom + scrollY + 12}px`;
-        }
-        popup.style.transform = "none";
-        popup.style.left = `${rect.left + rect.width / 2 - popupWidth / 2}px`;
-    } else if (customContent) {
-        popup.style.top = `${rect.bottom + scrollY + 12}px`;
-        popup.style.transform = "none";
-        if (showOnLeft) {
-            popup.style.left = `${rect.right - popupWidth}px`;
-        } else {
-            popup.style.left = `${rect.left}px`;
-        }
-    } else {
-        // Standard siding for narrow triggers
-        popup.style.top = `${rect.top + scrollY + rect.height / 2}px`;
-        if (showOnLeft) {
-            popup.style.left = `${rect.left - 12}px`;
-        } else {
-            popup.style.left = `${rect.right + 12}px`;
-        }
-    }
-
-    // Reveal after positioning is set in the next frame
+    // Reveal and Position accurately in the next frame to allow layout to settle
     requestAnimationFrame(() => {
+        const popupWidth = popup.offsetWidth;
+        const popupHeight = popup.offsetHeight;
+        const scrollY = window.scrollY;
+
+        if (isWide) {
+            if (showOnTop) {
+                popup.style.top = `${rect.top + scrollY - popupHeight - 12}px`;
+            } else {
+                popup.style.top = `${rect.bottom + scrollY + 12}px`;
+            }
+            popup.style.transform = "none";
+            popup.style.left = `${rect.left + rect.width / 2 - popupWidth / 2}px`;
+        } else if (customContent) {
+            popup.style.top = `${rect.bottom + scrollY + 12}px`;
+            popup.style.transform = "none";
+            if (showOnLeft) {
+                popup.style.left = `${rect.right - popupWidth}px`;
+            } else {
+                popup.style.left = `${rect.left}px`;
+            }
+        } else {
+            // Standard siding for narrow triggers
+            popup.style.top = `${rect.top + scrollY + rect.height / 2}px`;
+            if (showOnLeft) {
+                popup.style.left = `${rect.left - 12}px`;
+            } else {
+                popup.style.left = `${rect.right + 12}px`;
+            }
+        }
+
         popup.style.visibility = "visible";
         popup.style.opacity = "1";
     });

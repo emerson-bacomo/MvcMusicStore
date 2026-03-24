@@ -16,21 +16,25 @@
             <!-- Visual Section -->
             <div class="d-flex flex-column gap-2">
                 <div class="w-100 position-relative overflow-hidden" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
-                    <div class="nc-main-image-wrapper" id="mainImageCarousel">
-                        <div class="nc-carousel-track" id="carouselTrack">
+                    <div id="productCarousel" class="carousel slide h-100 nc-main-image-wrapper">
+                        <div class="carousel-inner h-100" id="carouselTrack">
                             @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
                             {
+                                var first = true;
                                 foreach (var img in Model.ProductImages.OrderBy(p => p.SortOrder))
                                 {
-                                    <div class="nc-carousel-slide" data-url="@img.Url">
-                                        <img src="@img.Url" alt="@Model.Name" class="nc-main-image" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
+                                    <div class="carousel-item h-100 @(first ? "active" : "")" data-url="@img.Url">
+                                        <div class="d-flex align-items-center justify-content-center h-100">
+                                            <img src="@img.Url" alt="@Model.Name" class="nc-main-image h-100 w-100" style="object-fit: cover;" onclick="openFullscreen(this.src)" onerror="this.src='https://placehold.co/800x600/1a1f2c/7babdd?text=NightCord'" />
+                                        </div>
                                     </div>
+                                    first = false;
                                 }
                             }
                             else
                             {
-                                <div class="nc-carousel-slide">
-                                    <img src="https://placehold.co/800x600/1a1f2c/7babdd?text=No+Image" class="nc-main-image" />
+                                <div class="carousel-item active h-100">
+                                    <img src="https://placehold.co/800x600/1a1f2c/7babdd?text=No+Image" class="nc-main-image h-100 w-100" style="object-fit: cover;" />
                                 </div>
                             }
                         </div>
@@ -47,10 +51,10 @@
 
                         @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
                         {
-                            <button type="button" class="nc-img-nav prev" onclick="editor.carouselPrev(event)" aria-label="Previous Image">
+                            <button class="carousel-control-prev nc-img-nav" type="button" data-bs-target="#productCarousel" data-bs-slide="prev" style="left: 1.5rem; opacity: 1;">
                                 <i class="fa fa-chevron-left"></i>
                             </button>
-                            <button type="button" class="nc-img-nav next" onclick="editor.carouselNext(event)" aria-label="Next Image">
+                            <button class="carousel-control-next nc-img-nav" type="button" data-bs-target="#productCarousel" data-bs-slide="next" style="right: 1.5rem; opacity: 1;">
                                 <i class="fa fa-chevron-right"></i>
                             </button>
                         }
@@ -100,14 +104,14 @@
                             <div class="nc-meta-stat-icon"><i class="fa fa-box"></i></div>
                             <div class="nc-meta-stat-content">
                                 <span class="nc-meta-stat-label">Stock Status</span>
-                                <div class="nc-editable-wrapper" data-field="Stock">
+                                <div class="nc-editable-wrapper" style="margin-bottom: 0;" data-field="Stock">
                                     <div class="nc-read-only">
-                                        <span class="nc-meta-stat-value nc-editable-span" style="color: @(Model.Stock > 10 ? "#81c784" : Model.Stock > 0 ? "#ffb74d" : "#e57373"); padding: 0.2rem 0.6rem; margin: -0.2rem -0.6rem;">
+                                        <span class="nc-meta-stat-value nc-editable-span nc-pd-sync-span-plain" style="color: @(Model.Stock > 10 ? "#81c784" : Model.Stock > 0 ? "#ffb74d" : "#e57373");">
                                             @Model.Stock units available
                                         </span>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-input nc-input-sm" style="width: 100px; padding: 0.2rem 0.6rem;" oninput="editor.trackFieldChange('Stock', this.value)" />
+                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-pd-select" style="width: 100%; padding: 0.15rem 0.5rem;" oninput="editor.trackFieldChange('Stock', this.value)" />
                                     </div>
                                 </div>
                             </div>
@@ -141,10 +145,27 @@
                         <i class="fa fa-pen"></i>
                     </button>
                     
-                    <!-- Edit Mode Buttons (Cancel replaces Edit position) -->
-                    <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit nc-editable" style="display:none;" title="Cancel Editing">
-                        <i class="fa fa-times"></i>
-                    </button>
+                    <!-- Edit Mode Buttons -->
+                    <div class="nc-editable-actions flex-column gap-3">
+                        <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit" title="Exit Cancel">
+                            <i class="fa fa-times"></i>
+                        </button>
+
+                        <div class="nc-action-wrapper position-relative">
+                            <div id="changesIndicator" class="nc-changes-badge" style="display: none;" title="Unsaved Changes">0</div>
+                            <button type="button" id="saveEditorChangesGutter" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white;" title="Save Changes">
+                                <i class="fa fa-save"></i>
+                            </button>
+                            <div id="localizedSavePopup" class="ut-diff-modal nc-localized-popup" style="display:none; right: calc(100% + 15px); top: 0;"></div>
+                        </div>
+
+                        <div class="nc-action-wrapper position-relative">
+                            <button type="button" id="clearEditorChangesGutter" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #ffb74d;" title="Clear Changes">
+                                <i class="fa fa-undo"></i>
+                            </button>
+                            <div id="localizedClearPopup" class="ut-diff-modal nc-localized-popup" style="display:none; right: calc(100% + 15px); top: 0;"></div>
+                        </div>
+                    </div>
 
                     <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this)" title="Delete Product">
                         <i class="fa fa-trash"></i>
@@ -157,10 +178,10 @@
                 <div>
                     <div class="nc-editable-wrapper" data-field="BrandId">
                         <div class="nc-read-only">
-                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section" class="nc-detail-brand nc-editable-span" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
+                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section" class="nc-detail-brand nc-editable-span nc-pd-sync-span-plain d-inline-block" style="text-decoration:none; padding-left: 0.5rem; margin-left: -0.5rem;">@(Model.Brand?.Name ?? "No Brand")</a>
                         </div>
                         <div class="nc-input-edit">
-                            <select name="BrandId" class="nc-detail-brand" onchange="editor.trackFieldChange('BrandId', this.value)">
+                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select">
                                 @foreach(var b in brands) {
                                     <option value="@b.Id" selected="@(b.Id == Model.BrandId ? "selected" : null)">@b.Name</option>
                                 }
@@ -168,24 +189,31 @@
                         </div>
                     </div>
 
-                    <div class="nc-editable-wrapper mt-2" data-field="Name">
+                    <div class="nc-editable-wrapper" style="margin-bottom: 2rem;" data-field="Name">
                         <div class="nc-read-only">
-                            <h1 class="nc-detail-name nc-editable-span">@Model.Name</h1>
+                            <h1 class="nc-detail-name nc-editable-span nc-pd-sync-span" style="margin:0;">@Model.Name</h1>
                         </div>
                         <div class="nc-input-edit">
-                            <textarea name="Name" class="nc-input nc-detail-name-edit" rows="1" oninput="editor.autoSize(this); editor.trackFieldChange('Name', this.value)">@Model.Name</textarea>
+                            <div class="nc-pd-floating-group nc-static-placeholder">
+                                <textarea name="Name" id="edit-name" class="nc-pd-floating-control nc-detail-name-edit" rows="1" placeholder=" ">@Model.Name</textarea>
+                                <label for="edit-name" class="nc-pd-floating-label">Product Name</label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="nc-editable-wrapper mt-3" data-field="Price">
+                    <div class="nc-editable-wrapper" data-field="Price">
                         <div class="position-relative flex-grow-1">
-                            <div class="nc-read-only" style="position: relative;">
-                                <span class="nc-currency-sign" style="position: absolute; left: 0; top: 0rem; pointer-events: none;">₱</span>
-                                <span class="nc-detail-price nc-editable-span" style="padding: 0.2rem 0.75rem 0.2rem 2.25rem; margin: -0.2rem -0.25rem;">@Model.Price.ToString("N2")</span>
+                            <div class="nc-read-only position-relative">
+                                <div style="display: flex; align-items: center; width: 100%;">
+                                    <span class="nc-currency-sign" style="position: absolute; left: 1rem; z-index: 5; margin: 0; padding: 0;">₱</span>
+                                    <span class="nc-detail-price nc-editable-span nc-pd-sync-span-plain" style="padding-left: 2.75rem; width: 100%;">@Model.Price.ToString("N2")</span>
+                                </div>
                             </div>
                             <div class="nc-input-edit position-relative">
-                                <span class="nc-currency-sign" style="position: absolute; left: 0.75rem; top: 0.2rem; z-index: 5; pointer-events: none; opacity: 0.8;">₱</span>
-                                <input type="number" step="0.01" name="Price" value="@Model.Price" class="nc-price-input" style="padding-left: 2.25rem;" oninput="editor.trackFieldChange('Price', this.value)" />
+                                <div style="display: flex; align-items: center; width: 100%;">
+                                    <span class="nc-currency-sign" style="position: absolute; left: 1rem; z-index: 5; margin: 0; padding: 0;">₱</span>
+                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" style="padding-left: 2.75rem; width: 100%;" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -193,14 +221,17 @@
 
                 <div style="margin-top: 3rem;"></div> <!-- Price gap to description -->
 
-                <div>
-                    <h3>About this product</h3>
+                <div class="mt-4">
+                    <h3 class="nc-section-title">About this product</h3>
                     <div class="nc-editable-wrapper" data-field="Description">
                         <div class="nc-read-only">
-                            <p class="nc-description nc-editable-span">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
+                            <p class="nc-description nc-editable-span nc-pd-sync-span" style="margin:0;">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
                         </div>
                         <div class="nc-input-edit">
-                            <textarea name="Description" class="nc-input" rows="5" oninput="editor.trackFieldChange('Description', this.value)">@Model.Description</textarea>
+                            <div class="nc-pd-floating-group">
+                                <textarea name="Description" id="edit-description" class="nc-pd-floating-control nc-description-edit" rows="5" placeholder=" ">@Model.Description</textarea>
+                                <label for="edit-description" class="nc-pd-floating-label">Description</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -218,7 +249,7 @@
                                     </div>
                                     <div class="nc-input-edit">
                                         <label class="d-flex align-items-center" style="gap: 0.75rem; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 0.75rem; width: max-content;">
-                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") onchange="editor.trackFieldChange('IsBanner', this.checked)" style="width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer;" />
+                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") style="width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer;" />
                                             <span style="margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">Active as Banner</span>
                                         </label>
                                     </div>
@@ -228,10 +259,10 @@
                                 <span class="nc-spec-label">Banner Text</span>
                                 <div class="nc-editable-wrapper" data-field="BannerDescription">
                                     <div class="nc-read-only">
-                                        <p class="nc-spec-value nc-editable-span">@(Model.BannerDescription ?? "None")</p>
+                                        <p class="nc-spec-value nc-editable-span nc-pd-sync-span" style="margin:0;">@(Model.BannerDescription ?? "None")</p>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <textarea name="BannerDescription" class="nc-input nc-input-sm" rows="2" oninput="editor.trackFieldChange('BannerDescription', this.value)">@Model.BannerDescription</textarea>
+                                        <textarea name="BannerDescription" id="edit-banner-desc" class="nc-description-edit" rows="2" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; color: #fff; width: 100%; font-family: inherit;">@Model.BannerDescription</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -259,10 +290,11 @@
                                     <div class="nc-upload-zone" onclick="document.getElementById('bannerFileInput').click()" id="bannerDropZone" style="padding: 1rem 0;">
                                         <i class="fa fa-upload"></i>
                                         <span>Drop/Click Banner</span>
-                                        <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" onchange="editor.handleBannerSelect(event)" />
+                                        <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" />
                                     </div>
                                     <div class="nc-url-input-group mt-2">
-                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-input" placeholder="Banner URL..." oninput="editor.trackFieldChange('BannerImageUrl', this.value); if(this.value) { document.getElementById('bannerPreviewContainerEdit').style.display='block'; document.getElementById('currentBannerPreviewEdit').src = this.value; }" />
+                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-pd-select" placeholder="Banner URL..." />
+                                        <label for="bannerUrlInput" class="nc-pd-floating-label" style="display:none;">Banner Image URL</label>
                                     </div>
                                 </div>
                             </div>
@@ -274,16 +306,26 @@
         </div>
     </form>
 
-    <!-- Save Bar (Hidden by default) -->
-    <div id="editorSaveBar" class="nc-save-bar" style="display: none;">
-        <div class="d-flex align-items-center" style="gap: 2rem;">
-            <span class="text-white fw-medium"><i class="fa fa-info-circle me-2"></i> Unsaved changes detected</span>
-            <div class="d-flex" style="gap: 0.75rem;">
-                <button type="button" id="clearEditorChanges" class="btn-nc-outline btn-sm"><i class="fa fa-undo"></i> Clear</button>
-                <button type="button" id="saveEditorChanges" class="btn-nc-primary btn-sm"><i class="fa fa-save"></i> Review & Save</button>
+    <!-- Save Changes Modal -->
+    <div class="modal fade" id="saveDiffModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content nc-card" style="border:1px solid var(--nc-border); background: #131822 !important;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title nc-page-title fs-5">Confirm Changes</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="padding: 0.8rem;"></button>
+                </div>
+                <div class="modal-body py-4" id="saveDiffModalBody">
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn-nc-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-nc-primary px-4" onclick="document.getElementById('inPlaceEditForm').submit()">
+                        <i class="fa fa-save me-1"></i> Apply Changes
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+
 </div>
 
 <div id="fullscreenOverlay" class="nc-fullscreen-overlay" onclick="closeFullscreen()">
@@ -291,533 +333,7 @@
     <img id="fullscreenImg" src="" />
 </div>
 
-<script>
-    const editor = {
-        originalValues: {},
-        currentValues: {},
-        changedFields: new Set(),
-        images: [],
-        currentImgIndex: 0,
-        isInfiniteScrolling: false,
-        dragSrcGalleryEl: null,
 
-        init: function() {
-            console.log("Product Editor Initializing...");
-            this.images = Array.from(document.querySelectorAll('.nc-carousel-slide'))
-                               .map(s => s.dataset.url)
-                               .filter(url => url && !url.includes('placehold.co'));
-            
-            // Capture initial values
-            const form = document.getElementById('inPlaceEditForm');
-            if (form) {
-                const formData = new FormData(form);
-                for (let [key, value] of formData.entries()) {
-                    if (key !== '__RequestVerificationToken') {
-                        this.originalValues[key] = value;
-                        this.currentValues[key] = value;
-                    }
-                }
-            }
-
-            this.setupClickToEdit();
-            this.setupCarousel();
-            this.setupRevertIndicators();
-            this.setupDragDrop();
-        },
-
-        setupDragDrop: function() {
-            ['dropZone', 'bannerDropZone'].forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
-                ['dragleave', 'drop'].forEach(ev => el.addEventListener(ev, () => el.classList.remove('drag-over')));
-                el.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    if (id === 'dropZone') this.handleFileSelect({ target: { files: e.dataTransfer.files } });
-                    else this.handleBannerSelect({ target: { files: e.dataTransfer.files } });
-                });
-            });
-        },
-
-        setupClickToEdit: function() {
-            document.querySelectorAll('.nc-editable-span').forEach(span => {
-                span.addEventListener('click', (e) => {
-                    const wrapper = span.closest('.nc-editable-wrapper');
-                    if (!wrapper) return;
-                    
-                    // Only enter edit mode if we are actually in global edit mode
-                    const container = document.getElementById('productDetailContainer');
-                    if (!container.classList.contains('nc-edit-mode')) return;
-
-                    wrapper.classList.add('nc-is-editing');
-                    const input = wrapper.querySelector('input, select, textarea');
-                    if (input) {
-                        input.focus();
-                        if (input.tagName === 'TEXTAREA') this.autoSize(input);
-                    }
-                });
-            });
-
-            // Initialize drag and drop
-            document.querySelectorAll('.nc-gallery-item').forEach(el => editor.setupGalleryDragAndDrop(el));
-
-            // Blur to exit field edit mode (but keep global edit mode)
-            document.addEventListener('focusout', (e) => {
-                if (e.target.matches('.nc-input, .nc-price-input, select, textarea')) {
-                    const wrapper = e.target.closest('.nc-editable-wrapper');
-                    if (wrapper) {
-                        // Small delay to allow clicking buttons if any
-                        setTimeout(() => {
-                            if (!wrapper.contains(document.activeElement)) {
-                                wrapper.classList.remove('nc-is-editing');
-                                this.updateSpans(wrapper);
-                            }
-                        }, 150);
-                    }
-                }
-            });
-        },
-
-        updateSpans: function(wrapper) {
-            const span = wrapper.querySelector('.nc-editable-span');
-            const input = wrapper.querySelector('input, select, textarea');
-            if (span && input) {
-                if (input.tagName === 'SELECT') {
-                    span.textContent = input.options[input.selectedIndex]?.text || "None";
-                } else if (input.type === 'checkbox') {
-                    span.textContent = input.checked ? "Featured" : "Not Featured";
-                    span.className = `badge-nc ${input.checked ? 'bg-success' : 'bg-secondary'} nc-editable-span`;
-                } else {
-                    span.textContent = input.value || (wrapper.dataset.field === 'Description' ? "No description" : "None");
-                }
-            }
-        },
-
-        setupRevertIndicators: function() {
-            document.addEventListener('mousedown', (e) => {
-                const wrapper = e.target.closest('.nc-editable-wrapper');
-                if (!wrapper || !wrapper.classList.contains('nc-changed')) return;
-
-                // Detect click on the left border (indicator)
-                const rect = wrapper.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                
-                if (clickX >= 0 && clickX <= 15) {
-                    this.showRevertPopup(wrapper, e.clientX, e.clientY);
-                }
-            });
-        },
-
-        showRevertPopup: function(wrapper, x, y) {
-            const field = wrapper.dataset.field;
-            const original = this.originalValues[field];
-            const current = this.currentValues[field];
-            
-            // Remove existing popups
-            document.querySelectorAll('.nc-revert-popup').forEach(p => p.remove());
-
-            const popup = document.createElement('div');
-            popup.className = 'nc-revert-popup';
-            popup.style.left = `${x}px`;
-            popup.style.top = `${y + 10}px`;
-
-            let originalDisplay = original;
-            if (field === 'IsBanner') originalDisplay = original === 'true' ? "Featured" : "Not Featured";
-            if (field === 'BrandId') {
-                const select = wrapper.querySelector('select');
-                const opt = select.querySelector(`option[value="${original}"]`);
-                originalDisplay = opt ? opt.text : original;
-            }
-
-            popup.innerHTML = `
-                <div style="font-size: 0.75rem; color: var(--nc-text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">Original Value</div>
-                <div style="font-weight: 600; color: #fff; margin-bottom: 1rem; word-break: break-all;">${originalDisplay}</div>
-                <button type="button" class="btn-nc-primary btn-sm w-100" onclick="editor.revertField('${field}')">
-                    <i class="fa fa-undo me-2"></i> Revert Change
-                </button>
-            `;
-
-            document.body.appendChild(popup);
-
-            // Close popup on click outside
-            const closeHandler = (e) => {
-                if (!popup.contains(e.target)) {
-                    popup.remove();
-                    document.removeEventListener('mousedown', closeHandler);
-                }
-            };
-            setTimeout(() => document.addEventListener('mousedown', closeHandler), 10);
-        },
-
-        trackFieldChange: function(field, value) {
-            const wrapper = document.querySelector(`.nc-editable-wrapper[data-field="${field}"]`);
-            const original = this.originalValues[field];
-            
-            // Normalize for comparison
-            const isChanged = String(value) !== String(original);
-            
-            if (isChanged) {
-                if (wrapper) wrapper.classList.add('nc-changed');
-                this.changedFields.add(field);
-                this.currentValues[field] = value;
-            } else {
-                if (wrapper) wrapper.classList.remove('nc-changed');
-                this.changedFields.delete(field);
-                this.currentValues[field] = original;
-            }
-
-            this.updateSaveBar();
-        },
-
-        revertField: function(field) {
-            const wrapper = document.querySelector(`.nc-editable-wrapper[data-field="${field}"]`);
-            const input = wrapper?.querySelector('input, select, textarea');
-            if (!input) return;
-
-            const original = this.originalValues[field];
-            if (input.type === 'checkbox') {
-                input.checked = original === 'true' || original === true;
-            } else {
-                input.value = original;
-            }
-
-            this.trackFieldChange(field, original);
-            this.updateSpans(wrapper);
-            document.querySelectorAll('.nc-revert-popup').forEach(p => p.remove());
-        },
-
-        autoSize: function(el) {
-            if (!el || el.tagName !== 'TEXTAREA') return;
-            el.style.height = 'auto';
-            el.style.height = (el.scrollHeight) + 'px';
-        },
-
-        // ── Carousel Logic (Infinite) ──────────────────────────
-        setupCarousel: function() {
-            const track = document.getElementById('carouselTrack');
-            if (!track || this.images.length <= 1) return;
-
-            // Clone first and last for infinite effect
-            const slides = Array.from(track.querySelectorAll('.nc-carousel-slide'));
-            const firstClone = slides[0].cloneNode(true);
-            const lastClone = slides[slides.length - 1].cloneNode(true);
-            
-            track.appendChild(firstClone);
-            track.insertBefore(lastClone, slides[0]);
-
-            this.currentImgIndex = 1; // Start at the real first slide
-            this.updateCarouselPos(false);
-        },
-
-        updateCarouselPos: function(smooth = true) {
-            const track = document.getElementById('carouselTrack');
-            if (!track) return;
-            track.style.transition = smooth ? 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
-            track.style.transform = `translateX(-${this.currentImgIndex * 100}%)`;
-
-            // Update gallery highlights
-            const realIdx = this.getRealIndex();
-            document.querySelectorAll('.nc-image-gallery .nc-gallery-item').forEach((item, i) => {
-                item.classList.toggle('active', i === realIdx);
-            });
-        },
-
-        getRealIndex: function() {
-            if (this.images.length === 0) return 0;
-            let idx = this.currentImgIndex - 1;
-            if (idx < 0) idx = this.images.length - 1;
-            if (idx >= this.images.length) idx = 0;
-            return idx;
-        },
-
-        carouselNext: function(e) {
-            if (e) e.stopPropagation();
-            if (this.isInfiniteScrolling) return;
-            this.currentImgIndex++;
-            this.updateCarouselPos();
-
-            if (this.currentImgIndex > this.images.length) {
-                this.isInfiniteScrolling = true;
-                setTimeout(() => {
-                    this.currentImgIndex = 1;
-                    this.updateCarouselPos(false);
-                    this.isInfiniteScrolling = false;
-                }, 600);
-            }
-        },
-
-        carouselPrev: function(e) {
-            if (e) e.stopPropagation();
-            if (this.isInfiniteScrolling) return;
-            this.currentImgIndex--;
-            this.updateCarouselPos();
-
-            if (this.currentImgIndex < 1) {
-                this.isInfiniteScrolling = true;
-                setTimeout(() => {
-                    this.currentImgIndex = this.images.length;
-                    this.updateCarouselPos(false);
-                    this.isInfiniteScrolling = false;
-                }, 600);
-            }
-        },
-
-        toImage: function(index) {
-            this.currentImgIndex = index + 1;
-            this.updateCarouselPos();
-        },
-
-        // ── Image Management ──────────────────────────────────
-        handleFileSelect: function(e) {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-
-            for (let file of files) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.appendTempImage(event.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        },
-
-        appendTempImage: function(src) {
-            const gallery = document.getElementById('imageGallery');
-            const container = document.getElementById('galleryContainer');
-            container.classList.remove('d-none');
-
-            const item = document.createElement('div');
-            item.className = 'nc-gallery-item';
-            item.dataset.url = src;
-            item.innerHTML = `
-                <img src="${src}" alt="New Image" />
-                <div class="nc-editable nc-item-actions">
-                    <button type="button" class="nc-item-btn btn-thumbnail" onclick="editor.setPrimaryImage(this)"><i class="fa fa-image"></i></button>
-                    <button type="button" class="nc-item-btn btn-danger" onclick="this.closest('.nc-gallery-item').remove(); editor.refreshCarousel();"><i class="fa fa-trash"></i></button>
-                </div>
-            `;
-            gallery.appendChild(item);
-            this.setupGalleryDragAndDrop(item);
-            this.refreshCarousel();
-            this.changedFields.add('Images');
-            this.updateSaveBar();
-        },
-
-        setupGalleryDragAndDrop: function(item) {
-            item.setAttribute('draggable', 'true');
-            item.addEventListener('dragstart', function(e) {
-                if (!document.getElementById('productDetailContainer').classList.contains('nc-edit-mode')) {
-                    e.preventDefault();
-                    return;
-                }
-                if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'button' || e.target.closest('.nc-item-btn')) {
-                    e.preventDefault();
-                    return;
-                }
-                editor.dragSrcGalleryEl = this;
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', this.innerHTML);
-                this.style.opacity = '0.4';
-            });
-
-            item.addEventListener('dragover', function(e) {
-                if (e.preventDefault) e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-
-                if (editor.dragSrcGalleryEl && editor.dragSrcGalleryEl !== this) {
-                    const container = this.parentNode;
-                    const items = Array.from(container.querySelectorAll('.nc-gallery-item'));
-                    const srcIndex = items.indexOf(editor.dragSrcGalleryEl);
-                    const targetIndex = items.indexOf(this);
-
-                    if (srcIndex < targetIndex) {
-                        container.insertBefore(editor.dragSrcGalleryEl, this.nextSibling);
-                    } else {
-                        container.insertBefore(editor.dragSrcGalleryEl, this);
-                    }
-                }
-                return false;
-            });
-
-            item.addEventListener('dragenter', function(e) {
-                if (editor.dragSrcGalleryEl && editor.dragSrcGalleryEl !== this) {
-                    this.style.border = '2px dashed var(--nc-primary)';
-                }
-            });
-
-            item.addEventListener('dragleave', function(e) {
-                this.style.border = '2px solid transparent';
-            });
-
-            item.addEventListener('drop', function(e) {
-                if (e.stopPropagation) e.stopPropagation();
-                return false;
-            });
-
-            item.addEventListener('dragend', function(e) {
-                this.style.opacity = '1';
-                document.querySelectorAll('.nc-gallery-item').forEach(el => {
-                    el.style.border = '2px solid transparent';
-                });
-                editor.updateImageOrder();
-                editor.refreshCarousel();
-                editor.changedFields.add('Images');
-                editor.updateSaveBar();
-            });
-        },
-
-        addImageUrl: function() {
-            const input = document.getElementById('newImageUrlInput');
-            const url = input.value.trim();
-            if (!url) return;
-            this.appendTempImage(url);
-            input.value = '';
-        },
-
-        handleBannerSelect: function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const wrapper = document.querySelector('.nc-editable-wrapper[data-field="BannerImageUrl"]');
-                const previewImgEdit = document.getElementById('currentBannerPreviewEdit');
-                if (previewImgEdit) {
-                    document.getElementById('bannerPreviewContainerEdit').style.display = 'block';
-                    previewImgEdit.src = event.target.result;
-                }
-                this.trackFieldChange('BannerImageUrl', event.target.result);
-            };
-            reader.readAsDataURL(file);
-        },
-
-        refreshCarousel: function() {
-            const track = document.getElementById('carouselTrack');
-            if (!track) return;
-            
-            this.images = Array.from(document.querySelectorAll('.nc-gallery-item:not(.nc-to-delete)'))
-                               .map(it => it.dataset.url);
-            
-            track.innerHTML = '';
-            if (this.images.length === 0) {
-                track.innerHTML = `<div class="nc-carousel-slide"><img src="https://placehold.co/800x600/1a1f2c/7babdd?text=No+Image" class="nc-main-image" /></div>`;
-            } else {
-                this.images.forEach(url => {
-                    const slide = document.createElement('div');
-                    slide.className = 'nc-carousel-slide';
-                    slide.dataset.url = url;
-                    slide.innerHTML = `<img src="${url}" class="nc-main-image" onclick="openFullscreen(this.src)" />`;
-                    track.appendChild(slide);
-                });
-            }
-            this.setupCarousel(); // Re-clone for infinite
-            this.updateImageOrder();
-        },
-
-        setPrimaryImage: function(btn) {
-            const item = btn.closest('.nc-gallery-item');
-            document.querySelectorAll('.btn-thumbnail').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            document.getElementById('primaryImageInput').value = item.dataset.url;
-            this.changedFields.add('PrimaryImage');
-            this.updateSaveBar();
-        },
-
-        editImageUrl: function(btn) {
-            const item = btn.closest('.nc-gallery-item');
-            const oldUrl = item.dataset.url;
-            const newUrl = prompt("Enter new Image URL:", oldUrl);
-            if (newUrl && newUrl !== oldUrl) {
-                item.dataset.url = newUrl;
-                item.querySelector('img').src = newUrl;
-                this.refreshCarousel();
-                this.changedFields.add('Images');
-                this.updateSaveBar();
-            }
-        },
-
-        toggleRemoveImage: function(btn) {
-            const item = btn.closest('.nc-gallery-item');
-            const url = item.dataset.url;
-            item.classList.toggle('nc-to-delete');
-            
-            const deletedInput = document.getElementById('deletedImagesInput');
-            const deleted = JSON.parse(deletedInput.value || "[]");
-            
-            if (item.classList.contains('nc-to-delete')) {
-                item.style.opacity = '0.3';
-                deleted.push(url);
-            } else {
-                item.style.opacity = '1';
-                const idx = deleted.indexOf(url);
-                if (idx !== -1) deleted.splice(idx, 1);
-            }
-            
-            deletedInput.value = JSON.stringify(deleted);
-            this.refreshCarousel();
-            this.changedFields.add('Images');
-            this.updateSaveBar();
-        },
-
-        updateImageOrder: function() {
-            const urls = Array.from(document.querySelectorAll('.nc-gallery-item')).map(it => it.dataset.url);
-            document.getElementById('imageOrderInput').value = urls.join(',');
-        },
-
-        updateSaveBar: function() {
-            const bar = document.getElementById('editorSaveBar');
-            if (bar) bar.style.display = (this.changedFields.size > 0) ? 'block' : 'none';
-        }
-    };
-
-    document.addEventListener('DOMContentLoaded', () => {
-        editor.init();
-        document.getElementById('enterEditMode')?.addEventListener('click', enterEditMode);
-        document.getElementById('exitEditMode')?.addEventListener('click', cancelEditMode);
-        
-        document.getElementById('clearEditorChanges')?.addEventListener('click', () => {
-            if (confirm("Clear all unsaved changes?")) location.reload();
-        });
-
-        document.getElementById('saveEditorChanges')?.addEventListener('click', () => {
-            document.getElementById('inPlaceEditForm').submit();
-        });
-    });
-
-    function enterEditMode() {
-        document.getElementById('productDetailContainer').classList.add('nc-edit-mode');
-        document.getElementById('enterEditMode').style.display = 'none';
-        document.getElementById('exitEditMode').style.display = 'flex';
-        document.querySelectorAll('textarea.nc-input').forEach(ta => editor.autoSize(ta));
-    }
-
-    function cancelEditMode() {
-        if (editor.changedFields.size > 0 && !confirm("Discard unsaved changes?")) return;
-        Array.from(editor.changedFields).forEach(field => editor.revertField(field));
-        document.getElementById('productDetailContainer').classList.remove('nc-edit-mode');
-        document.getElementById('enterEditMode').style.display = 'flex';
-        document.getElementById('exitEditMode').style.display = 'none';
-        editor.changedFields.clear();
-        editor.updateSaveBar();
-    }
-
-    function updateMainImage(url, el) {
-        const idx = editor.images.indexOf(url);
-        if (idx !== -1) editor.toImage(idx);
-    }
-
-    function openFullscreen(url) {
-        document.getElementById('fullscreenImg').src = url;
-        document.getElementById('fullscreenOverlay').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeFullscreen() {
-        document.getElementById('fullscreenOverlay').style.display = 'none';
-        document.body.style.overflow = '';
-    }
-</script>
 
 <style>
     /* ── Details Container & Card ──────────────────────────────── */
@@ -870,9 +386,30 @@
         box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
     
-    .nc-gutter-btn:hover { background: var(--nc-primary); transform: translateX(8px) scale(1.05); color: #fff; box-shadow: 0 15px 30px rgba(123, 171, 221, 0.4); }
-    .nc-gutter-btn.btn-cancel:hover { background: #ef5350; box-shadow: 0 15px 30px rgba(239, 83, 80, 0.4); }
-    .nc-gutter-btn.btn-delete:hover { background: #ef5350; box-shadow: 0 15px 30px rgba(239, 83, 80, 0.4); }
+    .nc-gutter-btn.btn-save:hover { background: #4caf50; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(76, 175, 80, 0.4); }
+    .nc-gutter-btn.btn-delete:hover { background: #ef5350; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(239, 83, 80, 0.4); }
+    .nc-gutter-btn.btn-clear:hover, .nc-gutter-btn.nc-btn-cancel-edit:hover { transform: translateY(-4px); }
+
+    .nc-changes-badge {
+        width: 52px;
+        height: 52px;
+        background: #ffb74d;
+        color: #000;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.2rem;
+        border: 4px solid var(--nc-bg-card);
+        margin-bottom: -0.5rem;
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @@keyframes popIn {
+        from { transform: scale(0); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
 
     @@media (max-width: 1550px) {
         .nc-gutter-actions {
@@ -922,9 +459,11 @@
     /* Global Visibility for fixed Actions */
     .nc-editable { opacity: 0; visibility: hidden; pointer-events: none; }
     .nc-editable-block { display: none; }
+    .nc-editable-actions { display: none; }
     
     .nc-edit-mode .nc-editable { opacity: 1; visibility: visible; pointer-events: all; }
     .nc-edit-mode .nc-editable-block { display: block; opacity: 1; visibility: visible; pointer-events: all; }
+    .nc-edit-mode .nc-editable-actions { display: flex; opacity: 1; pointer-events: all; }
     
     .nc-edit-mode .nc-read-only-hide { opacity: 0; visibility: hidden; pointer-events: none; display: none !important; }
 
@@ -938,26 +477,136 @@
     
     /* State: Being Edited */
     .nc-edit-mode .nc-editable-wrapper .nc-read-only {
-        display: none;
+        display: none !important;
     }
     .nc-edit-mode .nc-editable-wrapper .nc-input-edit {
         display: block;
         opacity: 1;
     }
 
-    /* Change indicators (left border) */
+    /* Change indicators (left-boundary accent) */
     .nc-editable-wrapper {
         position: relative;
-        border-radius: 0.5rem;
-        border-left: 4px solid transparent;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         margin-bottom: 1.25rem;
     }
     
-    .nc-editable-wrapper.nc-changed {
-        border-left-color: #ffb74d;
-        padding-left: 0.75rem;
-        margin-left: -1rem; /* Visual offset to keep text aligned */
+    .nc-editable-wrapper.nc-changed::before {
+        content: '';
+        position: absolute;
+        left: -1rem;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #ffb74d;
+        border-radius: 2px;
+        animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ── Localized Popups (Ported from UpdatableTable) ────────── */
+    .nc-localized-popup {
+        position: absolute;
+        width: min(500px, 80vw);
+        background: #1a1f2c;
+        border: 1.5px solid var(--nc-border);
+        border-radius: 1.25rem;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        padding: 1.5rem;
+        z-index: 1100;
+        animation: nc-popup-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: default;
+    }
+
+    @@keyframes nc-popup-in {
+        from { opacity: 0; transform: translateX(15px) scale(0.95); }
+        to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    .ut-popup-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #fff;
+    }
+
+    .ut-diff-container {
+        max-height: 350px;
+        overflow-y: auto;
+        margin-bottom: 1.5rem;
+        border-radius: 0.75rem;
+        background: rgba(0,0,0,0.2);
+        padding: 0.5rem;
+    }
+
+    .ut-diff-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .ut-diff-table th {
+        color: var(--nc-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        padding: 0.75rem 1rem;
+        border-bottom: 2px solid var(--nc-border);
+        text-align: left;
+    }
+
+    .ut-diff-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        color: #fff;
+    }
+
+    .ut-diff-old { color: #ef5350; text-decoration: line-through; opacity: 0.6; }
+    .ut-diff-new { color: #66bb6a; font-weight: 700; }
+
+    .ut-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .ut-popup-btn-cancel {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--nc-border);
+        color: #fff;
+        padding: 0.5rem 1.25rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .ut-popup-btn-cancel:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+
+    .ut-popup-btn-confirm {
+        background: var(--nc-primary);
+        border: none;
+        color: #fff;
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        transition: all 0.2s;
+    }
+
+    .ut-popup-btn-confirm:hover { filter: brightness(1.2); transform: translateY(-2px); }
+    .ut-popup-btn-confirm.btn-danger { background: #ef5350; color: #fff !important; }
+
+    /* Fix image preview in diff (if needed) */
+    .ut-diff-thumb {
+        width: 32px; height: 32px;
+        border-radius: 4px;
+        object-fit: cover;
+        margin-right: 0.75rem;
+    }
+
+    @@keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-5px); }
+        to { opacity: 1; transform: translateX(0); }
     }
 
     /* Hover highlight for edit targets */
@@ -1261,6 +910,7 @@
     }
     .nc-meta-stat:hover { background: rgba(255,255,255,0.05); transform: translateY(-4px); }
     .nc-meta-stat-icon {
+        flex-shrink: 0;
         width: 48px; height: 48px;
         border-radius: 14px;
         background: rgba(123, 171, 221, 0.12);
@@ -1349,6 +999,82 @@
     .nc-save-content { display: flex; align-items: center; gap: 2rem; }
     .nc-save-text { color: #fff; font-weight: 500; }
     .nc-save-actions { display: flex; gap: 0.75rem; }
+
+    /* Floating Labels Fixes */
+    .nc-pd-floating-group { position: relative; margin-top: 1.25rem; }
+    .nc-pd-floating-label {
+        position: absolute;
+        top: 0.5rem; /* Center vertically when empty */
+        left: 0.75rem;
+        font-size: 0.95rem; /* Larger when empty */
+        font-weight: 500;
+        color: rgba(255,255,255,0.4);
+        background: transparent !important;
+        padding: 0;
+        border-radius: 4px;
+        z-index: 10;
+        pointer-events: none;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Floating State: Active only when focused or has value */
+    .nc-pd-floating-control:focus ~ .nc-pd-floating-label,
+    .nc-pd-floating-control:not(:placeholder-shown) ~ .nc-pd-floating-label {
+        top: -0.75rem;
+        left: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--nc-primary);
+        background: #000 !important;
+        padding: 0 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .nc-detail-name-edit ~ .nc-pd-floating-label { top: 0.5rem; }
+    .nc-edit-mode .nc-detail-name-edit:focus ~ .nc-pd-floating-label,
+    .nc-edit-mode .nc-detail-name-edit:not(:placeholder-shown) ~ .nc-pd-floating-label {
+        top: -0.75rem;
+    }
+
+    /* Static Placeholder Mode (Label disappears without floating) */
+    .nc-static-placeholder .nc-pd-floating-label {
+        top: 0.5rem;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.2s, visibility 0.2s;
+    }
+    
+    .nc-static-placeholder .nc-pd-floating-control:focus ~ .nc-pd-floating-label,
+    .nc-static-placeholder .nc-pd-floating-control:not(:placeholder-shown) ~ .nc-pd-floating-label {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+
+    .nc-section-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1.5rem;
+        opacity: 0.9;
+    }
+
+    .nc-description-edit {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        color: #fff;
+        width: 100%;
+        font-family: inherit;
+        line-height: 1.6;
+        transition: all 0.3s;
+    }
+    .nc-description-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255,255,255,0.08); }
 
     @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @@keyframes slideUp { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }

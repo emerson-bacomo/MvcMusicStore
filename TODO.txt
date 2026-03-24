@@ -5,18 +5,3 @@ make sure to add all basic word functionalities like per letter attributes (font
 save this under a column under each product as html code
 add a copy button that copies the html code and a paste button that pastes the code
 add a template system where people can save and load html templates
-
-user change password
-make employees page have reset password but only for superadmin authority, new password is random
-first login of staff or admin can put a configuration page ui where they can choose to change their password since the given password is temporary
-
-make the first password random in add employee
-make sure that only superadmin can change roles, and superadmins cant change their own role anymore since its highest
-make sure that the action like delete and add in product are only for admin
-store time as utc but make sure that its displayed localtime
-order table product column not centered vertically
-copy how SIS project handles update logs with current and new data shown as json on table
-should show as timestamp desc sort by default on page load
-
-leave some space for asp-validation-for in auth pages, so that layout wont shift
-add custom floating validation ui that uses asp validation for, since some layout are too compressed for it to leave space for error span

@@ -13,6 +13,7 @@ namespace MvcMusic.Models
         public string? ProfilePicture { get; set; }
 
         public bool IsBanned { get; set; } = false;
+        public bool RequiresPasswordChange { get; set; } = false;
 
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
         public RecordStatus RecordStatus { get; set; } = RecordStatus.Active;

@@ -62,6 +62,12 @@ namespace MvcMusic.Controllers
                     if (ip == "::1" || ip == "127.0.0.1") ip = "Localhost";
                     await _logger.LogAsync(ActivityAction.Login, $"User logged in from {ip}", user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);
 
+                    // Check if password change is required
+                    if (user.RequiresPasswordChange)
+                    {
+                        return RedirectToAction(nameof(ChangePassword));
+                    }
+
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                         return Redirect(returnUrl);
 
@@ -71,6 +77,51 @@ namespace MvcMusic.Controllers
 
             ModelState.AddModelError(string.Empty, "Invalid login attempt. Please check your credentials.");
             return View(model);
+        }
+
+        // GET: /account/change-password
+        [HttpGet]
+        public async Task<IActionResult> ChangePassword()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction(nameof(Login));
+            return View();
+        }
+
+        // POST: /account/change-password
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(string newPassword)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction(nameof(Login));
+
+            if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
+            {
+                ModelState.AddModelError(string.Empty, "Password must be at least 6 characters long.");
+                return View();
+            }
+
+            // Remove existing password and set new one (bypass current password check to make it easier for temporary password transition)
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (result.Succeeded)
+            {
+                user.RequiresPasswordChange = false;
+                await _userManager.UpdateAsync(user);
+                
+                var roles = await _userManager.GetRolesAsync(user);
+                await _logger.LogAsync(ActivityAction.UpdateTable, "User changed their temporary password.", user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);
+                
+                TempData["Success"] = "Password changed successfully.";
+                return RedirectToRoleDashboard(roles);
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+
+            return View();
         }
 
         // GET: /account/register
@@ -95,9 +146,21 @@ namespace MvcMusic.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
+            var baseUsername = $"{model.FirstName.Trim().ToLower().Replace(" ", "")}.{model.LastName.Trim().ToLower().Replace(" ", "")}";
+            var uniqueUsername = baseUsername;
+            int counter = 1;
+
+            while (await _userManager.FindByNameAsync(uniqueUsername) != null)
+            {
+                uniqueUsername = $"{baseUsername}{counter}";
+                counter++;
+            }
+
             var user = new ApplicationUser
             {
-                UserName = model.UserName,
+                UserName = uniqueUsername,
+                FirstName = model.FirstName.Trim(),
+                LastName = model.LastName.Trim(),
                 Email = model.Email,
                 EmailConfirmed = true,
                 DateCreated = DateTime.UtcNow
@@ -153,13 +216,20 @@ namespace MvcMusic.Controllers
         {
             if (roles == null)
             {
-                if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Staff"))
+                if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || 
+                    User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || 
+                    User.IsInRole("SalesStaff") || User.IsInRole("CustomerStaff"))
+                {
                     return RedirectToAction("Index", "AdminDashboard");
+                }
                 return RedirectToAction("Index", "Home");
             }
 
-            if (roles.Contains("SuperAdmin") || roles.Contains("Admin") || roles.Contains("Staff"))
+            if (roles.Contains("SuperAdmin") || roles.Contains("Admin") || 
+                roles.Any(r => r.EndsWith("Staff")))
+            {
                 return RedirectToAction("Index", "AdminDashboard");
+            }
             return RedirectToAction("Index", "Home");
         }
     }

@@ -10,7 +10,7 @@ using MvcMusic.ViewModels;
 namespace MvcMusic.Controllers
 {
     [Route("activity-logs")]
-    [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class ActivityLogsController : Controller
     {
         private readonly MvcMusicContext _context;
@@ -65,7 +65,7 @@ namespace MvcMusic.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,SuperAdmin,Staff")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetTableData(
             string? userId = null, 
             string? searchTerm = null, 
@@ -133,7 +133,7 @@ namespace MvcMusic.Controllers
             var rows = logs.ToDictionary(l => l.Id, l => (object)new
             {
                 id = l.Id,
-                timestamp = l.Timestamp.ToString("yy-MM-dd HH:mm:ss"),
+                timestamp = l.Timestamp.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 username = string.IsNullOrEmpty(l.Username) ? "—" : l.Username,
                 fullname = string.IsNullOrEmpty(l.UserFullName) ? "—" : l.UserFullName,
                 role = l.Role ?? "",
