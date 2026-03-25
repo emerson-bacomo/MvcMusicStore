@@ -289,7 +289,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
-        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
         {
             if (id != product.Id) return Json(new { success = false, message = "Id mismatch" });
 
@@ -297,23 +297,27 @@ namespace MvcMusic.Controllers
             {
                 try
                 {
+                    var deletedFiles = !string.IsNullOrEmpty(deletedImages) ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(deletedImages) : new List<string>();
                     product.ProductImages.Clear();
-                    if (existingImages != null) foreach (var url in existingImages) if (!string.IsNullOrWhiteSpace(url)) product.ProductImages.Add(new ProductImage { Url = url });
+                    if (existingImages != null) 
+                    {
+                        foreach (var url in existingImages) 
+                        {
+                            if (!string.IsNullOrWhiteSpace(url) && (deletedFiles == null || !deletedFiles.Contains(url))) 
+                                product.ProductImages.Add(new ProductImage { Url = url });
+                        }
+                    }
                     if (productImages != null) foreach (var file in productImages) { var filePath = await SaveFile(file); product.ProductImages.Add(new ProductImage { Url = filePath }); }
                     if (imageUrls != null) foreach (var url in imageUrls) if (!string.IsNullOrWhiteSpace(url)) product.ProductImages.Add(new ProductImage { Url = url });
 
-                    if (!string.IsNullOrEmpty(deletedImages))
+                    if (deletedFiles != null && deletedFiles.Any())
                     {
-                        var deletedFiles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(deletedImages);
-                        if (deletedFiles != null)
+                        foreach (var fileUrl in deletedFiles)
                         {
-                            foreach (var fileUrl in deletedFiles)
+                            if (fileUrl.StartsWith("/uploads/"))
                             {
-                                if (fileUrl.StartsWith("/uploads/"))
-                                {
-                                    var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", fileUrl.TrimStart('/'));
-                                    if (System.IO.File.Exists(physicalPath)) System.IO.File.Delete(physicalPath);
-                                }
+                                var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", fileUrl.TrimStart('/'));
+                                if (System.IO.File.Exists(physicalPath)) System.IO.File.Delete(physicalPath);
                             }
                         }
                     }
@@ -383,7 +387,7 @@ namespace MvcMusic.Controllers
                             table = "Product",
                             id = id,
                             type = "UPDATE_INPLACE",
-                            summary = $"Edited product <a href='/products/details/{id}' class='product-link'>{existingProduct.Name}</a> in-place.",
+                            summary = $"Edited product <a href='/products/details/{id}' class='product-link'>{existingProduct.Name}</a>.",
                             changedFields = changedFields,
                             previousValues = previousValues,
                             newValues = newValues
@@ -400,7 +404,12 @@ namespace MvcMusic.Controllers
                     return Json(new { success = false, message = ex.Message });
                 }
             }
-            return Json(new { success = false, message = "Invalid model state.", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+            var rawForm = " | Raw Form: " + string.Join(", ", Request.Form.Keys.Take(10));
+            var errors = ModelState.Where(x => x.Value.Errors.Count > 0)
+                                   .Select(x => $"{x.Key}: {string.Join(", ", x.Value.Errors.Select(e => e.ErrorMessage + (e.Exception != null ? " (" + e.Exception.Message + ")" : ""))) }")
+                                   .ToList();
+            var errorMessage = "Invalid model state. Errors: " + string.Join(" | ", errors) + rawForm;
+            return Json(new { success = false, message = errorMessage, errors = errors });
         }
 
         // GET: /products/create
@@ -412,11 +421,10 @@ namespace MvcMusic.Controllers
             return View();
         }
 
-        // POST: /products/create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? primaryImage, string? imageOrder)
         {
             if (ModelState.IsValid)
             {
@@ -462,6 +470,8 @@ namespace MvcMusic.Controllers
                 TempData["Success"] = $"Product '{product.Name}' created successfully.";
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
             return View(product);
         }
 
@@ -480,11 +490,10 @@ namespace MvcMusic.Controllers
             return View(product);
         }
 
-        // POST: /products/edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,Rating,SoldAmount")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
         {
             if (id != product.Id) return NotFound();
 
@@ -587,6 +596,8 @@ namespace MvcMusic.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
             return View(product);
         }
 

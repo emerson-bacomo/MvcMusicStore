@@ -50,6 +50,25 @@
         })();
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        /* Fix Toastify wrapping the close button */
+        .toastify {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 1.5rem !important;
+            max-width: 450px !important;
+        }
+        .toastify-content { flex: 1; }
+        .toast-close { 
+            position: static !important; 
+            padding: 0 !important; 
+            margin: 0 !important;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .toast-close:hover { opacity: 1; }
+    </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>

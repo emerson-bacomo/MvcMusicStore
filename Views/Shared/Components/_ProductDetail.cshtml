@@ -41,8 +41,8 @@
                         
                         <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge nc-read-only-hide" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
                         
-                        <div class="nc-editable" style="z-index: 21;">
-                            <select name="CategoryId" class="nc-input-badge" onchange="editor.trackFieldChange('CategoryId', this.value)">
+                        <div class="nc-editable" style="z-index: 1050; position: absolute; top: 1.5rem; left: 1.5rem; width: auto;">
+                            <select name="CategoryId" class="nc-pd-select nc-pd-category-select" onchange="editor.trackFieldChange('CategoryId', this.value)">
                                 @foreach(var c in categories) {
                                     <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
                                 }
@@ -80,10 +80,11 @@
                             foreach (var img in Model.ProductImages.OrderBy(p => p.SortOrder))
                             {
                                 var isPrimary = img.IsPrimary || (Model.ProductImages.FirstOrDefault(p => p.IsPrimary) == null && img == Model.ProductImages.OrderBy(x => x.SortOrder).First());
-                                    <div class="nc-gallery-item @(img.Url == primaryUrl ? "active" : "")" 
+                                    <div class="nc-gallery-item @(img.Url == primaryUrl ? "active is-thumbnail" : "")" 
                                          data-url="@img.Url" 
                                          onclick="if(!document.getElementById('productDetailContainer').classList.contains('nc-edit-mode')) updateMainImage('@img.Url', this)">
                                         <img src="@img.Url" alt="Thumbnail" />
+                                        <div class="nc-gallery-status-icon nc-editable"><i class="fa fa-image"></i></div>
                                         <input type="hidden" name="existingImages" value="@img.Url" />
                                         
                                         <div class="nc-editable nc-item-actions">
@@ -178,10 +179,10 @@
                 <div>
                     <div class="nc-editable-wrapper" data-field="BrandId">
                         <div class="nc-read-only">
-                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section" class="nc-detail-brand nc-editable-span nc-pd-sync-span-plain d-inline-block" style="text-decoration:none; padding-left: 0.5rem; margin-left: -0.5rem;">@(Model.Brand?.Name ?? "No Brand")</a>
+                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section" class="nc-detail-brand nc-editable-span nc-pd-sync-span-plain d-inline-block" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
                         </div>
                         <div class="nc-input-edit">
-                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select">
+                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select nc-pd-brand-select">
                                 @foreach(var b in brands) {
                                     <option value="@b.Id" selected="@(b.Id == Model.BrandId ? "selected" : null)">@b.Name</option>
                                 }
@@ -195,8 +196,9 @@
                         </div>
                         <div class="nc-input-edit">
                             <div class="nc-pd-floating-group nc-static-placeholder">
-                                <textarea name="Name" id="edit-name" class="nc-pd-floating-control nc-detail-name-edit" rows="1" placeholder=" ">@Model.Name</textarea>
-                                <label for="edit-name" class="nc-pd-floating-label">Product Name</label>
+                                <textarea name="Name" id="edit-name" class="nc-pd-floating-control nc-detail-name-edit" rows="1" placeholder=" "
+                                          data-label="Product Name" data-val-required="Product Name is required." data-val-length-min="3" data-val-length-max="50">@Model.Name</textarea>
+                                <label for="edit-name" class="nc-pd-floating-label"><span class="nc-label-text">Product Name</span></label>
                             </div>
                         </div>
                     </div>
@@ -228,9 +230,10 @@
                             <p class="nc-description nc-editable-span nc-pd-sync-span" style="margin:0;">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
                         </div>
                         <div class="nc-input-edit">
-                            <div class="nc-pd-floating-group">
-                                <textarea name="Description" id="edit-description" class="nc-pd-floating-control nc-description-edit" rows="5" placeholder=" ">@Model.Description</textarea>
-                                <label for="edit-description" class="nc-pd-floating-label">Description</label>
+                            <div class="nc-pd-floating-group nc-static-placeholder">
+                                <textarea name="Description" id="edit-description" class="nc-pd-floating-control nc-detail-name-edit" rows="3" placeholder=" "
+                                          data-label="Description" data-val-length-max="1000">@Model.Description</textarea>
+                                <label for="edit-description" class="nc-pd-floating-label"><span class="nc-label-text">Description</span></label>
                             </div>
                         </div>
                     </div>
@@ -238,8 +241,8 @@
 
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
                 {
-                    <div>
-                        <h3>Banner Data</h3>
+                    <div class="mt-4">
+                        <h3 class="nc-section-title">Banner Data</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; background: rgba(255,255,255,0.02); padding: 2rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05);">
                             <div>
                                 <span class="nc-spec-label">Banner Status</span>
@@ -718,16 +721,7 @@
         font-family: inherit;
     }
 
-    select.nc-detail-brand {
-        margin: -0.2rem -0.5rem;
-        padding: 0.2rem 0.5rem;
-        cursor: pointer;
-        border-radius: 0.5rem;
-        color: var(--nc-primary);
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    select.nc-detail-brand:focus { border-color: var(--nc-primary); outline: none; }
+
 
     /* ── Visual Section & Carousel ───────────────────────────── */
     .nc-main-image-wrapper {
@@ -850,9 +844,46 @@
     .nc-gallery-item:hover { background: rgba(255,255,255,0.1); transform: translateY(-6px); box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
     .nc-gallery-item.active { border-color: var(--nc-primary); background: rgba(123, 171, 221, 0.12); }
     .nc-gallery-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 1.2rem; }
+    
+    .nc-gallery-status-icon {
+        position: absolute;
+        bottom: 0.75rem;
+        right: 0.75rem;
+        font-size: 1.1rem;
+        color: var(--nc-primary);
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 5;
+        background: rgba(123, 171, 221, 0.15);
+        width: 32px;
+        height: 32px;
+        display: none; /* Only show for thumbnail */
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid rgba(123, 171, 221, 0.3);
+    }
+    
+    .nc-gallery-item.is-thumbnail .nc-gallery-status-icon {
+        display: flex;
+    }
+    
+    .nc-gallery-item:hover .nc-gallery-status-icon {
+        opacity: 0;
+    }
+    
+    .nc-item-btn.btn-thumbnail.active {
+        background: var(--nc-primary) !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(123, 171, 221, 0.4);
+    }
 
-    .nc-edit-mode .nc-gallery-scroll {
-        /* Keep it as a row instead of forcing it to grid */
+    .nc-edit-mode .nc-image-gallery {
+        flex-wrap: wrap;
+        overflow-x: hidden;
+    }
+    .nc-edit-mode .nc-gallery-item {
+        flex-shrink: 0;
     }
 
     .nc-item-actions {
@@ -1039,17 +1070,51 @@
 
     /* Static Placeholder Mode (Label disappears without floating) */
     .nc-static-placeholder .nc-pd-floating-label {
-        top: 0.5rem;
+        top: 0.5rem !important; /* Force stay at center even when active */
         opacity: 1;
         visibility: visible;
-        transition: opacity 0.2s, visibility 0.2s;
+        transition: none; /* Make it disappear immediately */
     }
     
+    .nc-static-placeholder .nc-pd-floating-control:focus ~ .nc-pd-floating-label .nc-label-text,
+    .nc-static-placeholder .nc-pd-floating-control:focus ~ .nc-pd-floating-label .nc-error-inline,
+    .nc-static-placeholder .nc-pd-floating-control:not(:placeholder-shown) ~ .nc-pd-floating-label .nc-label-text,
+    .nc-static-placeholder .nc-pd-floating-control:not(:placeholder-shown) ~ .nc-pd-floating-label .nc-error-inline {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transition: none;
+    }
+    
+    /* Ensure the label container itself is visible enough to anchor the popup 
+       and set its width to 100% so the popup can scale to the full input width */
     .nc-static-placeholder .nc-pd-floating-control:focus ~ .nc-pd-floating-label,
     .nc-static-placeholder .nc-pd-floating-control:not(:placeholder-shown) ~ .nc-pd-floating-label {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
+        opacity: 1 !important;
+        visibility: visible !important;
+        background: transparent !important;
+        width: 100% !important; /* Allow child popup to use full width */
+        left: 0 !important;
+    }
+
+    /* Show popup on focus or hover if invalid */
+    .nc-pd-floating-control.is-invalid:focus ~ .nc-pd-floating-label .nc-error-popup,
+    .nc-pd-floating-group:hover .nc-pd-floating-control.is-invalid ~ .nc-pd-floating-label .nc-error-popup,
+    .nc-show-all-errors .nc-error-popup {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: translateY(0) !important;
+        width: max-content !important;
+        max-width: 100% !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        z-index: 1000 !important;
+    }
+    
+    .nc-description-edit, #edit-description {
+        font-size: 1.1rem !important; /* Match read-only display */
+        line-height: 1.7 !important;
+        padding-top: var(--nc-pd-pad-y-top) !important;
+        padding-bottom: var(--nc-pd-pad-y) !important;
     }
 
 
@@ -1078,4 +1143,105 @@
 
     @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @@keyframes slideUp { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    .ut-gallery-diff-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    .ut-gallery-diff-img {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+    .ut-gallery-diff-info {
+        font-size: 0.75rem;
+        flex: 1;
+    }
+    .ut-gallery-diff-pos {
+        font-weight: 700;
+        color: var(--nc-primary);
+    }
+    .ut-gallery-diff-tag {
+        font-size: 0.65rem;
+        background: var(--nc-primary);
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+    .nc-pd-select {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        background: none !important;
+        border: none !important;
+        outline: none !important;
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        width: 100%;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+    }
+
+    .nc-pd-category-select {
+        padding: 0.6rem 2.75rem 0.6rem 1.25rem !important;
+        background: #1a1f2c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237babdd' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 1rem center !important;
+        background-size: 14px !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 2rem !important;
+        border: 1px solid rgba(123, 171, 221, 0.3) !important;
+        color: var(--nc-primary) !important;
+        font-weight: 800 !important;
+        font-size: 0.85rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        width: auto !important;
+    }
+
+    .nc-pd-brand-select {
+        font-size: var(--nc-font-brand) !important;
+        color: var(--nc-primary) !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.15em !important;
+        background: #1a1f2c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237babdd' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 1rem center !important;
+        background-size: 14px !important;
+        padding: 0.4rem 2.5rem 0.4rem 0.75rem !important;
+        margin-left: -0.75rem !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 10px !important;
+        width: auto !important;
+    }
+
+    .nc-detail-brand.nc-editable-span {
+        padding: 0.4rem 2.5rem 0.4rem 0.75rem !important;
+        margin-left: -0.75rem !important;
+        border: 1.5px solid transparent !important; /* Size match */
+    }
+
+    .nc-price-input {
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        color: var(--nc-primary) !important;
+        height: 100% !important;
+        line-height: normal !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 1rem !important;
+        padding: 0 1rem !important;
+    }
+
+    .nc-pd-select option {
+        background-color: #1a1f2c !important;
+        color: #fff !important;
+        padding: 1.25rem !important;
+        font-family: sans-serif !important;
+        font-size: 1rem !important;
+    }
 </style>

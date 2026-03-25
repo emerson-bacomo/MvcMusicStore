@@ -22,7 +22,8 @@
 
         <div class="nc-card nc-form-card">
             <div class="nc-card-body">
-                <asp-validation-summary class="nc-validation-summary" model-only="false"></asp-validation-summary>
+                <div asp-validation-summary="All" class="nc-validation-summary" 
+                     style="@(ViewData.ModelState.IsValid ? "display: none;" : "margin-bottom: 2rem;")"></div>
 
                 <form asp-action="Create" method="post">
                     @Html.AntiForgeryToken()
@@ -153,6 +154,7 @@
         }
 
         const passInput = document.getElementById('genPassword');
+        passInput.type = "text";
         const copyBtn = document.getElementById('copyPassword');
         const regenBtn = document.getElementById('regeneratePassword');
 

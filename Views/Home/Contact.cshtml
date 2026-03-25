@@ -13,14 +13,16 @@
                     <p class="lead text-muted mb-5">
                         Whether you're looking for technical support, order inquiries, or just want to chat about gear, our team is ready to assist.
                     </p>
-                    <div class="d-flex flex-wrap gap-3">
-                        <a asp-controller="Chat" asp-action="Index" class="btn-nc-primary px-5 py-3 fs-5">
-                            <i class="fa fa-comments me-2"></i> Start Live Chat
-                        </a>
-                        <a href="#contact-details" class="btn-nc-outline px-5 py-3 fs-5">
-                            View Contact Info
-                        </a>
-                    </div>
+                    @{
+                        if (User.IsInRole("Customer"))
+                        {
+                            <div class="d-flex flex-wrap gap-3">
+                                <a asp-controller="Chat" asp-action="Index" class="btn-nc-primary px-5 py-3 fs-5">
+                                    <i class="fa fa-comments me-2"></i> Start Live Chat
+                                </a>
+                            </div>
+                        }
+                    }
                 </div>
                 <div class="col-lg-5 d-none d-lg-block">
                     <div class="nc-hero-visual">
@@ -66,17 +68,6 @@
                         <address class="nc-text-primary fs-5 fw-bold m-0">Manila, Philippines</address>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Map/CTA Section -->
-    <div class="nc-contact-footer py-5">
-        <div class="nc-container">
-            <div class="nc-cta-card p-5 text-center">
-                <h2 class="fw-bold mb-3">Ready to upgrade your sound?</h2>
-                <p class="text-muted mb-5">Join thousands of musicians who trust NightCord for their gear.</p>
-                <a asp-controller="Home" asp-action="Index" class="btn-nc-primary px-5 py-3">Explore Collections</a>
             </div>
         </div>
     </div>

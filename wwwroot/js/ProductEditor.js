@@ -156,15 +156,19 @@ class ProductEditor {
         const field = input.name;
         const val = input.value;
 
-        // Required fields
-        if (["Name", "Price", "CategoryId", "BrandId"].includes(field) && !val) {
-            window.ValidationEngine.setError(input, `${field} is required.`);
+        // Use ValidationEngine for standard data-val attributes (Name length, etc.)
+        const isBaseValid = window.ValidationEngine.validate(input);
+        if (!isBaseValid) return;
+
+        // Custom Numeric check for Price
+        if (field === "Price" && parseFloat(val) <= 0) {
+            window.ValidationEngine.setError(input, "Price must be greater than 0.");
             return;
         }
 
-        // Price must be positive
-        if (field === "Price" && parseFloat(val) <= 0) {
-            window.ValidationEngine.setError(input, "Price must be greater than 0.");
+        // Categories/Brands (if not handled by data-val-required)
+        if (["CategoryId", "BrandId"].includes(field) && !val) {
+            window.ValidationEngine.setError(input, `${field} is required.`);
             return;
         }
 
@@ -175,19 +179,19 @@ class ProductEditor {
             const bannerUrl = this.form.querySelector('[name="BannerImageUrl"]');
 
             if (isBanner) {
-                if (!bannerDesc.value.trim())
+                if (!bannerDesc?.value.trim())
                     window.ValidationEngine.setError(bannerDesc, "Banner description is required when featured.");
                 else window.ValidationEngine.setError(bannerDesc, "");
 
-                if (!bannerUrl.value.trim())
+                if (!bannerUrl?.value.trim())
                     window.ValidationEngine.setError(bannerUrl, "Banner image is required when featured.");
                 else window.ValidationEngine.setError(bannerUrl, "");
             } else {
-                window.ValidationEngine.setError(bannerDesc, "");
-                window.ValidationEngine.setError(bannerUrl, "");
+                if (bannerDesc) window.ValidationEngine.setError(bannerDesc, "");
+                if (bannerUrl) window.ValidationEngine.setError(bannerUrl, "");
             }
         } else {
-            window.ValidationEngine.setError(input, "");
+            // Already handled by isBaseValid, but ensure no double errors
         }
     }
 
@@ -215,7 +219,15 @@ class ProductEditor {
         // 3. Trigger all field validations
         this.form.querySelectorAll("input, select, textarea").forEach((input) => {
             this.validateField(input);
-            if (input.classList.contains("ut-error")) isValid = false;
+            if (input.classList.contains("is-invalid")) {
+                isValid = false;
+                // Force show the popup container for 2 seconds
+                const wrapper = input.closest(".nc-pd-floating-group");
+                if (wrapper) {
+                    wrapper.classList.add("nc-show-all-errors");
+                    setTimeout(() => wrapper.classList.remove("nc-show-all-errors"), 2000);
+                }
+            }
         });
 
         return isValid;
@@ -334,6 +346,8 @@ class ProductEditor {
         item.addEventListener("dragend", () => {
             item.style.opacity = "1";
             this.updateImageOrder();
+            this.changedFields.add("Images");
+            this.checkChanges();
         });
     }
 
@@ -348,17 +362,35 @@ class ProductEditor {
     }
 
     appendTempImage(src) {
+        const galleryContainer = document.getElementById("galleryContainer");
+        if (galleryContainer) galleryContainer.classList.remove("d-none");
+
         const gallery = document.getElementById("imageGallery");
         const item = document.createElement("div");
         item.className = "nc-gallery-item";
         item.dataset.url = src;
+
+        // Add imageUrls input ONLY for remote URLs (not data URLs from local files)
+        const isRemote = src.startsWith("http") || src.startsWith("/");
+        const hiddenInput = isRemote ? `<input type="hidden" name="imageUrls" value="${src}" />` : "";
+
         item.innerHTML = `
             <img src="${src}" alt="New Image" />
+            <div class="nc-gallery-status-icon nc-editable"><i class="fa fa-image"></i></div>
+            ${hiddenInput}
             <div class="nc-editable nc-item-actions">
                 <button type="button" class="nc-item-btn btn-thumbnail" onclick="editor.setPrimaryImage(this)"><i class="fa fa-image"></i></button>
                 <button type="button" class="nc-item-btn btn-danger" onclick="editor.removeTempImage(this)"><i class="fa fa-trash"></i></button>
             </div>
         `;
+        const isFirst = gallery.querySelectorAll(".nc-gallery-item").length === 0;
+        if (isFirst) {
+            item.classList.add("is-thumbnail");
+            const btn = item.querySelector(".btn-thumbnail");
+            if (btn) btn.classList.add("active");
+            document.getElementById("primaryImageInput").value = src;
+        }
+
         gallery.appendChild(item);
         this.setupGalleryDragAndDrop(item);
         this.updateImageOrder();
@@ -387,6 +419,9 @@ class ProductEditor {
         const item = btn.closest(".nc-gallery-item");
         document.querySelectorAll(".btn-thumbnail").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
+        
+        document.querySelectorAll(".nc-gallery-item").forEach(it => it.classList.remove("is-thumbnail"));
+        item.classList.add("is-thumbnail");
         document.getElementById("primaryImageInput").value = item.dataset.url;
         this.changedFields.add("PrimaryImage");
         this.checkChanges();
@@ -576,26 +611,58 @@ class ProductEditor {
         const diff = this.calculateDiff(isRevert);
         if (diff.length === 0) return "<p class='text-center py-3 opacity-50'>No changes detected.</p>";
 
-        return `
-            <table class="ut-diff-table">
-                <thead>
+        let html = '<div class="ut-diff-table-wrapper"><table class="ut-diff-table">';
+        html += '<thead><tr><th>Property</th><th>Original</th><th>Current</th></tr></thead>';
+        html += '<tbody>';
+
+        diff.forEach(d => {
+            if (d.type === 'gallery') {
+                html += `<tr><td>${d.field}</td><td colspan="2">`;
+                
+                // Show Gallery Changes specifically
+                const allUrls = Array.from(new Set([...d.oldOrder, ...d.newOrder]));
+                allUrls.forEach((url, idx) => {
+                    const oldIdx = d.oldOrder.indexOf(url);
+                    const newIdx = d.newOrder.indexOf(url);
+                    const isRemoved = newIdx === -1;
+                    const isAdded = oldIdx === -1;
+                    const isMoved = !isRemoved && !isAdded && oldIdx !== newIdx;
+                    const isPrimary = url === d.newPrimary;
+                    const wasPrimary = url === d.oldPrimary;
+                    const primaryChanged = isPrimary !== wasPrimary;
+
+                    if (isRemoved || isAdded || isMoved || primaryChanged) {
+                        html += `
+                            <div class="ut-gallery-diff-item ${isRemoved ? 'opacity-30' : ''}">
+                                <img src="${url}" class="ut-gallery-diff-img" />
+                                <div class="ut-gallery-diff-info">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="ut-gallery-diff-pos">
+                                            ${isAdded ? 'New Image' : (isRemoved ? 'Removed' : `<i class="fa fa-arrows-alt-h mx-1"></i> ${oldIdx + 1} → ${newIdx + 1}`)}
+                                        </span>
+                                        ${isPrimary ? '<span class="ut-gallery-diff-tag">Thumbnail</span>' : ''}
+                                    </div>
+                                    <div class="opacity-50" style="font-size: 0.6rem; word-break: break-all;">${url.split('/').pop()}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += '</td></tr>';
+            } else {
+                html += `
                     <tr>
-                        <th>Property</th>
-                        <th>Original</th>
-                        <th>Current</th>
+                        <td>${d.field}</td>
+                        <td class="ut-diff-old">${d.old}</td>
+                        <td class="ut-diff-new">${d.new}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    ${diff.map(d => `
-                        <tr>
-                            <td>${d.field}</td>
-                            <td class="ut-diff-old">${d.old}</td>
-                            <td class="ut-diff-new">${d.new}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
+                `;
+            }
+        });
+
+        html += '</tbody></table></div>';
+        return html;
     }
 
     calculateDiff(isRevert = false) {
@@ -608,19 +675,18 @@ class ProductEditor {
             'CategoryId': 'Category',
             'IsBanner': 'Featured Status',
             'BannerDescription': 'Banner Text',
-            'BannerImageUrl': 'Banner Image URL',
-            'Images': 'Gallery Order',
-            'PrimaryImage': 'Main Image'
+            'BannerImageUrl': 'Banner Image URL'
         };
 
         this.changedFields.forEach((field) => {
+            if (field === "Images" || field === "PrimaryImage" || field === "imageOrder") return; // Handled separately
+
             const input = this.form.querySelector(`[name="${field}"]`);
             if (input) {
                 const label = labels[field] || field;
                 let originalVal = this.originalState.fields[field] || "(None)";
                 let currentVal = input.type === "checkbox" ? (input.checked ? "True" : "False") : input.value || "(Empty)";
                 
-                // Formatting
                 if (field === "Price") {
                     originalVal = "₱" + parseFloat(originalVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
                     currentVal = "₱" + parseFloat(currentVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -635,11 +701,18 @@ class ProductEditor {
         });
 
         if (this.changedFields.has("Images") || this.changedFields.has("PrimaryImage")) {
-            const label = labels["Images"];
-            diff.push({ 
-                field: label, 
-                old: isRevert ? "(Updated)" : "(Original)", 
-                new: isRevert ? "(Original)" : "(Updated)" 
+            const oldOrder = (this.originalState.images.order || "").split(',').filter(x => x);
+            const newOrder = (document.getElementById("imageOrderInput").value || "").split(',').filter(x => x);
+            const oldPrimary = this.originalState.images.primary;
+            const newPrimary = document.getElementById("primaryImageInput").value;
+
+            diff.push({
+                field: "Gallery Changes",
+                type: "gallery",
+                oldOrder: isRevert ? newOrder : oldOrder,
+                newOrder: isRevert ? oldOrder : newOrder,
+                oldPrimary: isRevert ? newPrimary : oldPrimary,
+                newPrimary: isRevert ? oldPrimary : newPrimary
             });
         }
 
@@ -694,7 +767,11 @@ class ProductEditor {
                         window.showToast(result.message || "Product updated successfully.");
                         setTimeout(() => location.reload(), 1000);
                     } else {
-                        window.showToast(result.message || "Save failed.", "error");
+                        let errorMsg = result.message || "Save failed.";
+                        if (result.errors && result.errors.length > 0) {
+                            errorMsg += " " + result.errors.join(" ");
+                        }
+                        window.showToast(errorMsg, "error");
                     }
                 } catch (err) {
                     window.showToast("An error occurred during save.", "error");

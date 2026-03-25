@@ -12,11 +12,11 @@ namespace MvcMusic.Models
         public required string Name { get; set; }
 
         [Required]
-        public int CategoryId { get; set; }
+        public int? CategoryId { get; set; }
         public virtual Category? Category { get; set; }
 
         [Required]
-        public int BrandId { get; set; }
+        public int? BrandId { get; set; }
         public virtual Brand? Brand { get; set; }
 
         [Required]
