@@ -29,7 +29,7 @@
                         </h5>
                         
                         <div class="nc-floating-group">
-                            <input asp-for="Email" class="nc-floating-control" placeholder=" " data-label="Email Address" required />
+                            <input asp-for="Email" class="nc-floating-control" placeholder=" " data-label="Email Address" required data-ajax-url="@Url.Action("IsEmailAvailable", "Account")" />
                             <label class="nc-floating-label" asp-for="Email">Email Address</label>
                         </div>
 
@@ -64,7 +64,7 @@
                         </div>
 
                         <div class="nc-floating-group nc-password-wrapper">
-                            <input asp-for="NewPassword" class="nc-floating-control" type="password" placeholder=" " data-label="New Password" autocomplete="new-password" />
+                            <input asp-for="NewPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " data-label="New Password" autocomplete="new-password" />
                             <label class="nc-floating-label" asp-for="NewPassword">New Password</label>
                         </div>
 

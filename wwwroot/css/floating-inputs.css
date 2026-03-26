@@ -3,7 +3,8 @@
     --nc-floating-label-bg: var(--nc-bg-card);
     --nc-input-padding-x: 1.25rem;
     --nc-input-padding-y: 1rem;
-    --nc-input-bg: var(--nc-bg-primary); /* Default base background */
+    --nc-input-bg: var(--nc-bg-primary);
+    /* Default base background */
 }
 
 nc-floating-input,
@@ -17,7 +18,8 @@ nc-floating-input,
     border: 1.5px solid rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 52px; /* Ensure consistent height */
+    min-height: 52px;
+    /* Ensure consistent height */
 }
 
 /* Focus illumination for the whole stack */
@@ -67,7 +69,8 @@ nc-floating-input.nc-has-content .nc-floating-control,
 .nc-floating-label {
     position: absolute;
     top: var(--nc-input-padding-y);
-    left: var(--nc-input-padding-x); /* Reset to match input text in base state */
+    left: var(--nc-input-padding-x);
+    /* Reset to match input text in base state */
     padding: 0 0.25rem;
     color: var(--nc-text-muted);
     font-size: 0.95rem;
@@ -94,12 +97,12 @@ nc-floating-input.nc-has-content .nc-floating-control,
 /* Floating State */
 nc-floating-input.nc-is-focused .nc-floating-label,
 nc-floating-input.nc-has-content .nc-floating-label,
-.nc-floating-control:focus ~ .nc-floating-label,
-.nc-floating-control:not(:placeholder-shown) ~ .nc-floating-label {
+.nc-floating-control:focus~.nc-floating-label,
+.nc-floating-control:not(:placeholder-shown)~.nc-floating-label {
     transform: translateY(-1.75rem) scale(0.85);
-    transform-origin: left top; 
+    transform-origin: left top;
     /* Significant leftward offset specifically for the floating state */
-    left: calc(var(--nc-input-padding-x) - 0.75rem); 
+    left: calc(var(--nc-input-padding-x) - 0.75rem);
     color: var(--nc-primary);
     background: var(--nc-input-bg, var(--nc-bg-primary));
     padding: 0 12px;
@@ -112,13 +115,15 @@ nc-floating-input.nc-has-content .nc-floating-label,
 .nc-floating-control:-webkit-autofill:hover,
 .nc-floating-control:-webkit-autofill:focus {
     -webkit-text-fill-color: var(--nc-text-primary);
-    -webkit-box-shadow: 0 0 0px 1000px #0a0c10 inset; /* Matches --nc-bg-primary */
+    -webkit-box-shadow: 0 0 0px 1000px #0a0c10 inset;
+    /* Matches --nc-bg-primary */
     transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Card-specific autofill override */
 .nc-card .nc-floating-control:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0px 1000px #151a26 inset; /* Matches --nc-bg-card */
+    -webkit-box-shadow: 0 0 0px 1000px #151a26 inset;
+    /* Matches --nc-bg-card */
 }
 
 /* Error State */
@@ -128,9 +133,10 @@ nc-floating-input.nc-has-content .nc-floating-label,
     background: rgba(var(--nc-error-rgb), 0.02);
 }
 
-.nc-floating-control.is-invalid ~ .nc-floating-label,
-.nc-pd-floating-control.is-invalid ~ .nc-pd-floating-label {
+.nc-floating-control.is-invalid~.nc-floating-label,
+.nc-pd-floating-control.is-invalid~.nc-pd-floating-label {
     color: var(--nc-error) !important;
+    pointer-events: auto;
 }
 
 .nc-error-inline {
@@ -138,7 +144,6 @@ nc-floating-input.nc-has-content .nc-floating-label,
     font-size: 0.7rem;
     color: var(--nc-error);
     text-transform: uppercase;
-    background: rgba(var(--nc-error-rgb), 0.1);
     padding: 2px 8px;
     border-radius: 4px;
     margin-left: 0.5rem;
@@ -146,19 +151,17 @@ nc-floating-input.nc-has-content .nc-floating-label,
     align-items: center;
     gap: 4px;
     cursor: help;
-    pointer-events: auto; /* Enable hover for tooltip */
+    pointer-events: auto;
+    /* Enable hover for tooltip */
     transition: background 0.2s;
     flex-shrink: 0;
 }
 
 .nc-error-inline::before {
-    content: "\f06a"; /* fa-exclamation-circle */
+    content: "\f06a";
+    /* fa-exclamation-circle */
     font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", "FontAwesome";
     font-weight: 900;
-}
-
-.nc-error-inline:hover {
-    background: rgba(var(--nc-error-rgb), 0.2);
 }
 
 /* Error Popup Tooltip */
@@ -171,13 +174,18 @@ nc-floating-input.nc-has-content .nc-floating-label,
     padding: 0.75rem 1rem;
     border-radius: 8px;
     font-size: 0.85rem;
-    width: max-content;
-    max-width: 280px;
+    width: 400px;
+    max-width: 90vw;
     pointer-events: none;
+    white-space: pre-wrap;
+    /* For multi-line errors */
+    overflow-wrap: break-word;
+    /* To wrap on max-width */
+    line-height: 2;
     opacity: 0;
     transform: translateY(10px);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 100, 100, 0.2);
     z-index: 100;
 }
@@ -234,9 +242,11 @@ textarea.nc-floating-control {
 .nc-pd-floating-control {
     width: 100%;
     padding: var(--nc-pd-pad-y-top) var(--nc-pd-pad-x) var(--nc-pd-pad-y) var(--nc-pd-pad-x);
-    font-size: inherit;          /* inherit from host element (h1, p, etc.) */
+    font-size: inherit;
+    /* inherit from host element (h1, p, etc.) */
     color: var(--nc-text-primary);
-    background: var(--nc-bg-card); /* Detail page uses card background */
+    background: var(--nc-bg-card);
+    /* Detail page uses card background */
     border: 1.5px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     outline: none;
@@ -282,7 +292,8 @@ textarea.nc-floating-control {
 .nc-password-toggle {
     flex: 0 0 50px;
     background: transparent;
-    border: none; /* Border is now on container */
+    border: none;
+    /* Border is now on container */
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
     color: var(--nc-text-secondary);
@@ -295,7 +306,8 @@ textarea.nc-floating-control {
     margin: 0;
     padding: 0;
     box-shadow: none;
-    height: auto; /* Inherit from stack height */
+    height: auto;
+    /* Inherit from stack height */
 }
 
 .nc-password-toggle:hover {
@@ -307,11 +319,12 @@ textarea.nc-floating-control {
 nc-floating-input.nc-is-focused .nc-floating-control {
     border-color: var(--nc-primary);
 }
+
 nc-floating-input.nc-is-focused .nc-password-toggle {
     border-color: var(--nc-primary);
 }
 
-.nc-pd-floating-control:focus ~ .nc-pd-floating-label {
+.nc-pd-floating-control:focus~.nc-pd-floating-label {
     color: var(--nc-primary);
 }
 
@@ -324,7 +337,8 @@ nc-floating-input.nc-is-focused .nc-password-toggle {
 .nc-pd-sync-span {
     display: block;
     padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
-    border: 1.5px solid transparent;   /* reserve the same border width */
+    border: 1.5px solid transparent;
+    /* reserve the same border width */
     border-radius: 12px;
     box-sizing: border-box;
     line-height: inherit;
@@ -340,7 +354,8 @@ nc-floating-input.nc-is-focused .nc-password-toggle {
    but kept at their natural height (no label area since they show a value). */
 .nc-pd-select {
     padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
-    background: var(--nc-bg-card); /* Detail page uses card background */
+    background: var(--nc-bg-card);
+    /* Detail page uses card background */
     border: 1.5px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     outline: none;

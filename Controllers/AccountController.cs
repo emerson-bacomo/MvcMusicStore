@@ -205,6 +205,23 @@ namespace MvcMusic.Controllers
             return RedirectToAction("Index", "Home");
         }
 
+        // GET: /account/is-email-available
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> IsEmailAvailable(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return Json(true);
+            
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return Json(true);
+            
+            // If user exists, check if it's the currently logged-in user (allow their own email)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser != null && user.Id == currentUser.Id) return Json(true);
+            
+            return Json(false);
+        }
+
         // GET: /account/access-denied
         [HttpGet]
         public IActionResult AccessDenied()

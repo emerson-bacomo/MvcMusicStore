@@ -22,9 +22,11 @@
         <input asp-for="LastName" class="nc-floating-control" placeholder=" " />
     </nc-floating-input>
 
-    <nc-floating-input label="Email Address" icon="fa fa-envelope">
-        <input asp-for="Email" class="nc-floating-control" type="email" placeholder=" " />
-    </nc-floating-input>
+    <div class="mb-4">
+        <nc-floating-input label="Email Address" icon="fa fa-envelope">
+            <input asp-for="Email" class="nc-floating-control" type="email" placeholder=" " data-ajax-url="@Url.Action("IsEmailAvailable", "Account")" />
+        </nc-floating-input>
+    </div>
 
     <nc-floating-input label="Password" icon="fa fa-lock" class="nc-password-wrapper">
         <input asp-for="Password" class="nc-floating-control nc-password-strength" type="password" placeholder=" " autocomplete="new-password" id="Password" />
