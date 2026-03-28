@@ -23,6 +23,17 @@ class ProductEditor {
         this.loadFromLocalStorage();
         this.checkChanges();
 
+        // URL State Sync
+        if (window.location.hash === "#edit") {
+            this.setEditMode(true);
+        }
+        window.addEventListener("hashchange", () => {
+            const shouldEdit = window.location.hash === "#edit";
+            if (shouldEdit !== this.container.classList.contains("nc-edit-mode")) {
+                this.setEditMode(shouldEdit);
+            }
+        });
+
         // Initial auto-resize for textareas
         this.form.querySelectorAll("textarea").forEach((ta) => this.autoSize(ta));
     }
@@ -61,22 +72,29 @@ class ProductEditor {
         // Save / Clear
         document.getElementById("saveEditorChangesGutter")?.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.saveChanges();
+            this.saveChanges(e.currentTarget);
         });
-        document.getElementById("saveEditorChanges")?.addEventListener("click", () => this.saveChanges()); 
+        document.getElementById("saveEditorChanges")?.addEventListener("click", (e) => this.saveChanges(e.currentTarget));
 
         document.getElementById("clearEditorChangesGutter")?.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.clearChanges();
+            this.clearChanges(e.currentTarget);
         });
-        document.getElementById("clearEditorChanges")?.addEventListener("click", () => this.clearChanges());
+        document.getElementById("clearEditorChanges")?.addEventListener("click", (e) => this.clearChanges(e.currentTarget));
+
 
         // Click outside to close popups
         document.addEventListener("click", (e) => {
-            if (!e.target.closest(".nc-localized-popup") && !e.target.closest(".nc-gutter-btn")) {
+            if (e.target.id === "ncGlobalOverlay") {
+                this.closeLocalizedPopups();
+                return;
+            }
+
+            if (!e.target.closest(".nc-localized-popup") && !e.target.closest(".nc-gutter-btn") && !e.target.closest(".nc-changed-indicator")) {
                 this.closeLocalizedPopups();
             }
         });
+
 
         // Image Handling
         document.getElementById("newImageUrlInput")?.addEventListener("keypress", (e) => {
@@ -119,9 +137,15 @@ class ProductEditor {
     setEditMode(active) {
         if (active) {
             this.container.classList.add("nc-edit-mode");
+            if (window.location.hash !== "#edit") {
+                history.replaceState(null, null, "#edit");
+            }
             this.form.querySelectorAll("textarea").forEach((ta) => this.autoSize(ta));
         } else {
             this.container.classList.remove("nc-edit-mode");
+            if (window.location.hash === "#edit") {
+                history.replaceState(null, null, " ");
+            }
         }
     }
 
@@ -131,21 +155,44 @@ class ProductEditor {
 
         if (input.tagName === "TEXTAREA") this.autoSize(input);
 
-        const original = this.originalState.fields[field];
-        const current = input.type === "checkbox" ? (input.checked ? "true" : "false") : input.value;
+        const val = input.type === "checkbox" ? (input.checked ? "true" : "false") : input.value;
+        this.trackFieldChange(field, val);
+        
+        this.validateField(input);
+        this.saveToLocalStorage();
+    }
 
-        const isChanged = String(current) !== String(original);
+    trackFieldChange(field, value) {
+        if (!field) return;
+        
+        const input = this.form.querySelector(`[name="${field}"]`);
+        if (!input) return;
+
+        const initial = input.dataset.initialValue;
+        let current = value !== undefined ? String(value) : (input.type === "checkbox" ? (input.checked ? "true" : "false") : String(input.value));
+        
+        let isChanged = current !== String(initial);
+
+        // Normalize numeric comparison for Price to avoid formatting mismatches (e.g. "1500" vs "1500.00")
+        if (field === "Price") {
+            const pInitial = parseFloat(initial || 0);
+            const pCurrent = parseFloat(current || 0);
+            isChanged = Math.abs(pInitial - pCurrent) > 0.001;
+        }
+
         const wrapper = input.closest(".nc-editable-wrapper");
+        const indicator = document.getElementById(`indicator-${field}`);
 
         if (isChanged) {
             this.changedFields.add(field);
             if (wrapper) wrapper.classList.add("nc-changed");
+            if (indicator) indicator.style.display = "block";
         } else {
             this.changedFields.delete(field);
             if (wrapper) wrapper.classList.remove("nc-changed");
+            if (indicator) indicator.style.display = "none";
         }
 
-        this.validateField(input);
         this.checkChanges();
         this.saveToLocalStorage();
     }
@@ -235,17 +282,26 @@ class ProductEditor {
 
     checkChanges() {
         const count = this.changedFields.size;
-        const indicator = document.getElementById("changesIndicator");
+        const indicatorBadge = document.getElementById("changesIndicator");
         const saveBar = document.getElementById("editorSaveBar");
         const gutterSave = document.getElementById("saveEditorChangesGutter");
+        const gutterRevert = document.getElementById("clearEditorChangesGutter");
 
-        if (indicator) {
-            indicator.textContent = count;
-            indicator.style.display = count > 0 ? "flex" : "none";
+        if (indicatorBadge) {
+            indicatorBadge.textContent = count;
+            indicatorBadge.style.display = count > 0 ? "flex" : "none";
         }
 
         if (saveBar) saveBar.style.display = count > 0 ? "block" : "none";
-        if (gutterSave) gutterSave.disabled = count === 0;
+        
+        if (gutterSave) {
+            // Disabled but visible is often better for UX stability
+            gutterSave.classList.toggle("opacity-50", count === 0);
+            gutterSave.disabled = (count === 0);
+        }
+        if (gutterRevert) {
+            gutterRevert.style.display = count > 0 ? "flex" : "none";
+        }
     }
 
     autoSize(el) {
@@ -266,6 +322,8 @@ class ProductEditor {
             span.className = `badge-nc ${input.checked ? "bg-success" : "bg-secondary"} nc-editable-span`;
         } else if (input.name === "Price") {
             span.textContent = parseFloat(input.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+        } else if (input.name === "Stock") {
+            span.textContent = `${input.value || 0} available`;
         } else {
             span.textContent = input.value || (wrapper.dataset.field === "Description" ? "No description" : "None");
         }
@@ -276,14 +334,25 @@ class ProductEditor {
         const carouselEl = document.getElementById("productCarousel");
         if (!carouselEl) return;
 
-        this.bsCarousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+        this.bsCarousel = bootstrap.Carousel.getOrCreateInstance(carouselEl, { interval: false });
 
-        // Sync gallery highlights when carousel slides
-        carouselEl.addEventListener("slid.bs.carousel", (e) => {
+        // Sync gallery highlights IMMEDIATELY when carousel starts sliding (not after)
+        carouselEl.addEventListener("slide.bs.carousel", (e) => {
             const idx = e.to;
             this.currentImgIndex = idx;
             document.querySelectorAll(".nc-image-gallery .nc-gallery-item").forEach((item, i) => {
                 item.classList.toggle("active", i === idx);
+            });
+        });
+
+        // Also sync when clicking gallery items directly
+        document.querySelectorAll(".nc-image-gallery .nc-gallery-item").forEach((item, i) => {
+            item.addEventListener("click", () => {
+                if (this.container.classList.contains("nc-edit-mode")) return;
+                this.toImage(i); // Trigger the carousel to slide
+                document.querySelectorAll(".nc-image-gallery .nc-gallery-item").forEach((el, j) => {
+                    el.classList.toggle("active", j === i);
+                });
             });
         });
     }
@@ -419,12 +488,14 @@ class ProductEditor {
         const item = btn.closest(".nc-gallery-item");
         document.querySelectorAll(".btn-thumbnail").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-        
-        document.querySelectorAll(".nc-gallery-item").forEach(it => it.classList.remove("is-thumbnail"));
+
+        document.querySelectorAll(".nc-gallery-item").forEach((it) => it.classList.remove("is-thumbnail"));
         item.classList.add("is-thumbnail");
         document.getElementById("primaryImageInput").value = item.dataset.url;
         this.changedFields.add("PrimaryImage");
+        this.checkGalleryChanges();
         this.checkChanges();
+        this.saveToLocalStorage();
     }
 
     toggleRemoveImage(btn) {
@@ -452,16 +523,37 @@ class ProductEditor {
     }
 
     updateImageOrder() {
-        const urls = Array.from(document.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)")).map((it) => it.dataset.url);
+        const urls = Array.from(document.querySelectorAll(".nc-image-gallery .nc-gallery-item:not(.nc-to-delete)")).map((it) => it.dataset.url);
         document.getElementById("imageOrderInput").value = urls.join(",");
+        this.checkGalleryChanges();
+        this.saveToLocalStorage();
+    }
+
+    checkGalleryChanges() {
+        const oldOrder = (this.originalState.images.order || "").split(",").filter(x => x);
+        const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter(x => x);
+        const oldPrimary = this.originalState.images.primary;
+        const newPrimary = document.getElementById("primaryImageInput").value;
+
+        const orderChanged = JSON.stringify(oldOrder) !== JSON.stringify(newOrder);
+        const primaryChanged = oldPrimary !== newPrimary;
+
+        const galleryInd = document.getElementById("indicator-Gallery");
+        if (orderChanged || primaryChanged) {
+            this.changedFields.add("Images");
+            if (galleryInd) galleryInd.style.display = "block";
+        } else {
+            this.changedFields.delete("Images");
+            if (galleryInd) galleryInd.style.display = "none";
+        }
+        this.checkChanges();
     }
 
     refreshCarousel() {
         const track = document.getElementById("carouselTrack");
         if (!track) return;
 
-        this.images = Array.from(document.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)"))
-                           .map((it) => it.dataset.url);
+        this.images = Array.from(document.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)")).map((it) => it.dataset.url);
 
         track.innerHTML = "";
         if (this.images.length === 0) {
@@ -475,7 +567,7 @@ class ProductEditor {
                 track.appendChild(slide);
             });
         }
-        
+
         // Re-init Bootstrap instance if structure changed
         this.bsCarousel?.dispose();
         this.setupCarousel();
@@ -505,29 +597,15 @@ class ProductEditor {
     // --- State Management ---
     revertAll() {
         for (const field of this.changedFields) {
-            const input = this.form.querySelector(`[name="${field}"]`);
-            if (input) {
-                const original = this.originalState.fields[field];
-                if (input.type === "checkbox") input.checked = original === "true";
-                else input.value = original;
-
-                const wrapper = input.closest(".nc-editable-wrapper");
-                if (wrapper) {
-                    wrapper.classList.remove("nc-changed");
-                    this.updateSpan(wrapper);
-                }
-                if (window.ValidationEngine) window.ValidationEngine.setError(input, "");
-            }
+            this.revertField(field, false);
         }
-
-        // Revert images (reload is easiest for images)
-        if (this.changedFields.has("Images") || this.changedFields.has("PrimaryImage")) {
-            location.reload();
-        }
-
         this.changedFields.clear();
         this.checkChanges();
         localStorage.removeItem(this.storageKey);
+        
+        if (typeof window.showToast === "function") {
+            window.showToast("All changes cleared.", "info");
+        }
     }
 
     saveToLocalStorage() {
@@ -563,24 +641,62 @@ class ProductEditor {
             if (input) {
                 const wrapper = input.closest(".nc-editable-wrapper");
                 if (wrapper) wrapper.classList.add("nc-changed");
+                const indicator = document.getElementById(`indicator-${f}`);
+                if (indicator) indicator.style.display = "block";
             }
         });
+        this.syncGalleryWithInputs();
         this.checkChanges();
     }
 
-    // --- New Localized Popups ---
-    showLocalizedPopup(type, title, icon, onConfirm, confirmText, content, confirmClass = "btn-nc-primary") {
-        this.closeLocalizedPopups();
-        
-        const popupId = type === 'save' ? 'localizedSavePopup' : 'localizedClearPopup';
-        const popup = document.getElementById(popupId);
-        if (!popup) return;
+    syncGalleryWithInputs() {
+        const orderValue = document.getElementById("imageOrderInput").value;
+        const primaryValue = document.getElementById("primaryImageInput").value;
+        const deletedValue = document.getElementById("deletedImagesInput").value;
+        if (!orderValue) return;
 
-        popup.innerHTML = `
-            <div class="ut-popup-header">
-                <i class="fa ${icon}"></i>
-                <span>${title}</span>
-            </div>
+        const gallery = document.getElementById("imageGallery");
+        if (!gallery) return;
+
+        const order = orderValue.split(",").filter(x => x);
+        const deleted = JSON.parse(deletedValue || "[]");
+
+        // 1. Re-sort gallery items in DOM
+        const items = Array.from(gallery.querySelectorAll(".nc-gallery-item"));
+        items.sort((a, b) => {
+            const idxA = order.indexOf(a.dataset.url);
+            const idxB = order.indexOf(b.dataset.url);
+            if (idxA === -1 && idxB === -1) return 0;
+            if (idxA === -1) return 1;
+            if (idxB === -1) return -1;
+            return idxA - idxB;
+        });
+        items.forEach(item => gallery.appendChild(item));
+
+        // 2. Update classes (active/thumbnail/deleted)
+        gallery.querySelectorAll(".nc-gallery-item").forEach(item => {
+            const url = item.dataset.url;
+            
+            // Primary
+            const isPrimary = url === primaryValue;
+            item.classList.toggle("is-thumbnail", isPrimary);
+            const thumbBtn = item.querySelector(".btn-thumbnail");
+            if (thumbBtn) thumbBtn.classList.toggle("active", isPrimary);
+
+            // Deleted
+            const isDeleted = deleted.includes(url);
+            item.classList.toggle("nc-to-delete", isDeleted);
+            item.style.opacity = isDeleted ? "0.3" : "1";
+        });
+
+        this.refreshCarousel();
+        this.checkGalleryChanges();
+    }
+
+    // --- New Localized Popups ---
+    showLocalizedPopup(type, title, icon, onConfirm, confirmText, content, triggerEl, confirmClass = "btn-nc-primary", hideArrow = false) {
+
+        const customContent = `
             <div class="ut-diff-container">
                 ${content}
             </div>
@@ -590,35 +706,136 @@ class ProductEditor {
             </div>
         `;
 
-        popup.style.display = 'block';
+        window.showSidePopup(
+            triggerEl,
+            title,
+            async () => {
+                // Handle processing state if needed
+                const popup = document.querySelector(".ut-side-popup[style*='visibility: visible']");
+                const confirmBtn = popup?.querySelector(".ut-popup-btn-confirm");
+                if (confirmBtn) {
+                    confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Processing...';
+                    confirmBtn.disabled = true;
+                }
+                await onConfirm();
+                // window.closePopups() is called by showSidePopup after this
+            },
+            icon,
+            confirmText,
+            "var(--nc-primary)",
+            customContent,
+            confirmClass,
+            "nc-localized-popup",
+            hideArrow
+        );
 
-        popup.querySelector(".ut-popup-btn-cancel").onclick = () => this.closeLocalizedPopups();
-        const confirmBtn = popup.querySelector(".ut-popup-btn-confirm");
-        confirmBtn.onclick = async () => {
-            const originalText = confirmBtn.innerHTML;
-            confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Processing...';
-            confirmBtn.disabled = true;
-            await onConfirm();
-            // Note: reload usually happens on success, so no need to restore btn state here unless it's a soft confirm
-        };
+    }
+
+
+
+    revertGallery() {
+        this.changedFields.delete("Images");
+        this.changedFields.delete("PrimaryImage");
+        document.getElementById("primaryImageInput").value = this.originalState.images.primary;
+        document.getElementById("imageOrderInput").value = this.originalState.images.order;
+        document.getElementById("deletedImagesInput").value = this.originalState.images.deleted;
+        this.syncGalleryWithInputs();
+        this.saveToLocalStorage();
     }
 
     closeLocalizedPopups() {
-        this.container.querySelectorAll(".nc-localized-popup").forEach(p => p.style.display = 'none');
+        window.closePopups();
     }
+
+    handleRowRevert(btn, id, isGallery = false) {
+        if (isGallery) {
+            this.revertGallery();
+        } else {
+            this.revertField(id, true);
+        }
+
+        const row = btn.closest("tr");
+        const tbody = row?.parentNode;
+        if (row) row.remove();
+
+        // If no more changes in diff table, close popup
+        if (tbody && tbody.querySelectorAll("tr").length === 0) {
+            this.closeLocalizedPopups();
+        }
+    }
+
+
+
+
+
+    showRevertPopup(field, label, el) {
+        const input = this.form.querySelector(`[name="${field}"]`);
+        if (!input) return;
+
+        const originalVal = this.originalState.fields[field] || "(Empty)";
+        const currentVal = input.type === "checkbox" ? (input.checked ? "Featured" : "Not Featured") : input.value || "(Empty)";
+
+        let diffHtml = `
+            <table class="ut-diff-table">
+                <tr><th>Field</th><th>Original</th><th>Current</th></tr>
+                <tr>
+                    <td class="ut-diff-field-cell">${label}</td>
+                    <td class="ut-diff-new">${originalVal}</td>
+                    <td class="ut-diff-old">${currentVal}</td>
+                </tr>
+            </table>
+        `;
+
+        this.showLocalizedPopup(
+            "clear",
+            `Revert ${label}?`,
+            "fa-undo",
+            async () => {
+                this.revertField(field);
+            },
+            "Revert Field",
+            diffHtml,
+            el,
+            "btn-danger"
+        );
+
+    }
+
+    revertField(field, refresh = true) {
+        const input = this.form.querySelector(`[name="${field}"]`);
+        if (!input) return;
+
+        const initial = this.originalState.fields[field];
+        if (input.type === "checkbox") {
+            input.checked = initial === "true" || initial === true;
+        } else {
+            input.value = initial || "";
+        }
+
+        this.handleInputChange(input);
+        const wrapper = input.closest(".nc-editable-wrapper");
+        if (wrapper) this.updateSpan(wrapper);
+        
+        if (refresh) {
+            this.checkChanges();
+            this.saveToLocalStorage();
+        }
+    }
+
 
     renderDiffTable(isRevert = false) {
         const diff = this.calculateDiff(isRevert);
         if (diff.length === 0) return "<p class='text-center py-3 opacity-50'>No changes detected.</p>";
 
         let html = '<div class="ut-diff-table-wrapper"><table class="ut-diff-table">';
-        html += '<thead><tr><th>Property</th><th>Original</th><th>Current</th></tr></thead>';
-        html += '<tbody>';
+        html += `<thead><tr><th>Property</th><th>Original</th><th>Current</th>${isRevert ? "<th></th>" : ""}</tr></thead>`;
+        html += "<tbody>";
 
-        diff.forEach(d => {
-            if (d.type === 'gallery') {
+        diff.forEach((d) => {
+
+            if (d.type === "gallery") {
                 html += `<tr><td>${d.field}</td><td colspan="2">`;
-                
+
                 // Show Gallery Changes specifically
                 const allUrls = Array.from(new Set([...d.oldOrder, ...d.newOrder]));
                 allUrls.forEach((url, idx) => {
@@ -633,49 +850,55 @@ class ProductEditor {
 
                     if (isRemoved || isAdded || isMoved || primaryChanged) {
                         html += `
-                            <div class="ut-gallery-diff-item ${isRemoved ? 'opacity-30' : ''}">
+                            <div class="ut-gallery-diff-item ${isRemoved ? "opacity-30" : ""}">
                                 <img src="${url}" class="ut-gallery-diff-img" />
                                 <div class="ut-gallery-diff-info">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="ut-gallery-diff-pos">
-                                            ${isAdded ? 'New Image' : (isRemoved ? 'Removed' : `<i class="fa fa-arrows-alt-h mx-1"></i> ${oldIdx + 1} → ${newIdx + 1}`)}
+                                            ${isAdded ? "New Image" : isRemoved ? "Removed" : `<i class="fa fa-arrows-alt-h mx-1"></i> ${oldIdx + 1} → ${newIdx + 1}`}
                                         </span>
-                                        ${isPrimary ? '<span class="ut-gallery-diff-tag">Thumbnail</span>' : ''}
+                                        ${isPrimary ? '<span class="ut-gallery-diff-tag">Thumbnail</span>' : ""}
                                     </div>
-                                    <div class="opacity-50" style="font-size: 0.6rem; word-break: break-all;">${url.split('/').pop()}</div>
+                                    <div class="opacity-50" style="font-size: 0.6rem; word-break: break-all;">${url.split("/").pop()}</div>
                                 </div>
                             </div>
                         `;
                     }
                 });
 
-                html += '</td></tr>';
+                html += "</td>";
+                html += isRevert ? `<td><button type="button" class="ut-revert-cell-btn" title="Revert Gallery" onclick="editor.handleRowRevert(this, 'Images', true)"><i class="fa fa-undo"></i></button></td>` : "";
+                html += "</tr>";
+
+
             } else {
                 html += `
                     <tr>
-                        <td>${d.field}</td>
+                        <td class="ut-diff-field-cell">${d.field}</td>
                         <td class="ut-diff-old">${d.old}</td>
                         <td class="ut-diff-new">${d.new}</td>
+                        ${isRevert ? `<td><button type="button" class="ut-revert-cell-btn" title="Revert" onclick="editor.handleRowRevert(this, '${d.id}', false)"><i class="fa fa-undo"></i></button></td>` : ""}
                     </tr>
+
                 `;
             }
         });
 
-        html += '</tbody></table></div>';
+        html += "</tbody></table></div>";
         return html;
     }
 
     calculateDiff(isRevert = false) {
         const diff = [];
         const labels = {
-            'Name': 'Product Name',
-            'Price': 'Price',
-            'Description': 'Description',
-            'BrandId': 'Brand',
-            'CategoryId': 'Category',
-            'IsBanner': 'Featured Status',
-            'BannerDescription': 'Banner Text',
-            'BannerImageUrl': 'Banner Image URL'
+            Name: "Product Name",
+            Price: "Price",
+            Description: "Description",
+            BrandId: "Brand",
+            CategoryId: "Category",
+            IsBanner: "Featured Status",
+            BannerDescription: "Banner Text",
+            BannerImageUrl: "Banner Image URL",
         };
 
         this.changedFields.forEach((field) => {
@@ -686,23 +909,24 @@ class ProductEditor {
                 const label = labels[field] || field;
                 let originalVal = this.originalState.fields[field] || "(None)";
                 let currentVal = input.type === "checkbox" ? (input.checked ? "True" : "False") : input.value || "(Empty)";
-                
+
                 if (field === "Price") {
                     originalVal = "₱" + parseFloat(originalVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
                     currentVal = "₱" + parseFloat(currentVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
                 }
 
                 diff.push({
+                    id: field,
                     field: label,
                     old: isRevert ? currentVal : originalVal,
-                    new: isRevert ? originalVal : currentVal
+                    new: isRevert ? originalVal : currentVal,
                 });
             }
         });
 
         if (this.changedFields.has("Images") || this.changedFields.has("PrimaryImage")) {
-            const oldOrder = (this.originalState.images.order || "").split(',').filter(x => x);
-            const newOrder = (document.getElementById("imageOrderInput").value || "").split(',').filter(x => x);
+            const oldOrder = (this.originalState.images.order || "").split(",").filter((x) => x);
+            const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter((x) => x);
             const oldPrimary = this.originalState.images.primary;
             const newPrimary = document.getElementById("primaryImageInput").value;
 
@@ -712,35 +936,40 @@ class ProductEditor {
                 oldOrder: isRevert ? newOrder : oldOrder,
                 newOrder: isRevert ? oldOrder : newOrder,
                 oldPrimary: isRevert ? newPrimary : oldPrimary,
-                newPrimary: isRevert ? oldPrimary : newPrimary
+                newPrimary: isRevert ? oldPrimary : newPrimary,
             });
         }
 
         return diff;
     }
 
-    clearChanges() {
+    clearChanges(triggerEl) {
         if (this.changedFields.size === 0) {
             window.showToast("No changes to clear.", "info");
             return;
         }
 
+
         const content = this.renderDiffTable(true);
         this.showLocalizedPopup(
-            'clear',
-            'Revert All Changes?',
-            'fa-undo',
+            "clear",
+            "Revert All Changes?",
+            "fa-undo",
             async () => {
                 localStorage.removeItem(this.storageKey);
                 location.reload();
             },
-            'Revert All',
+            "Revert All",
             content,
-            'btn-danger'
+            triggerEl,
+            "btn-danger",
+            true
         );
+
     }
 
-    async saveChanges() {
+    async saveChanges(triggerEl) {
+
         if (!this.validateForm()) return;
 
         if (this.changedFields.size === 0) {
@@ -750,9 +979,9 @@ class ProductEditor {
 
         const content = this.renderDiffTable(false);
         this.showLocalizedPopup(
-            'save',
-            'Confirm Product Updates',
-            'fa-save',
+            "save",
+            "Confirm Product Updates",
+            "fa-save",
             async () => {
                 try {
                     const formData = new FormData(this.form);
@@ -777,10 +1006,13 @@ class ProductEditor {
                     window.showToast("An error occurred during save.", "error");
                 }
             },
-            'Apply Changes',
+            "Apply Changes",
             content,
-            'btn-nc-primary'
+            triggerEl,
+            "btn-nc-primary",
+            true
         );
+
     }
 }
 

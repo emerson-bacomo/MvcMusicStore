@@ -6,7 +6,44 @@
 }
 
 <div class="nc-detail-container" id="productDetailContainer" data-product-id="@Model.Id">
-    <form id="inPlaceEditForm" enctype="multipart/form-data">
+    <!-- Admin Action Toolbar (Sibling) -->
+    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("ProductStaff"))
+    {
+        <div class="nc-gutter-actions">
+            <!-- DISPLAY MODE: Delete then Edit -->
+            <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
+                <i class="fa fa-trash"></i>
+            </button>
+            <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
+                <i class="fa fa-pen"></i>
+            </button>
+            
+            <!-- EDIT MODE: Revert, Save, then Exit -->
+            <div class="nc-editable-actions flex-row gap-3">
+                <div class="nc-action-wrapper position-relative">
+                    <button type="button" id="clearEditorChangesGutter" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #ffb74d;" title="Clear Changes">
+                        <i class="fa fa-undo"></i>
+                    </button>
+                </div>
+
+
+                <div class="nc-action-wrapper position-relative">
+                    <button type="button" id="saveEditorChangesGutter" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white; overflow: visible;" title="Save Changes">
+                        <i class="fa fa-save"></i>
+                        <div id="changesIndicator" class="nc-changes-badge" style="display: none;" title="Unsaved Changes">0</div>
+                    </button>
+                </div>
+
+
+                <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit" title="Exit Cancel">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+        </div>
+    }
+
+    <form id="inPlaceEditForm" action="@Url.Action("UpdateProduct", "Products")" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
         <input type="hidden" name="Id" value="@Model.Id" />
         <input type="hidden" name="primaryImage" id="primaryImageInput" value="@(Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url)" />
         <input type="hidden" name="imageOrder" id="imageOrderInput" value="@string.Join(",", (Model.ProductImages ?? new List<MvcMusic.Models.ProductImage>()).OrderBy(p => p.SortOrder).Select(p => p.Url))" />
@@ -39,14 +76,8 @@
                             }
                         </div>
                         
-                        <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge nc-read-only-hide" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
-                        
-                        <div class="nc-editable" style="z-index: 1050; position: absolute; top: 1.5rem; left: 1.5rem; width: auto;">
-                            <select name="CategoryId" class="nc-pd-select nc-pd-category-select" onchange="editor.trackFieldChange('CategoryId', this.value)">
-                                @foreach(var c in categories) {
-                                    <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
-                                }
-                            </select>
+                        <div class="nc-main-image-placeholder h-100 w-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.03);">
+                            <i class="fa fa-music fa-4x opacity-20"></i>
                         </div>
 
                         @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
@@ -60,7 +91,27 @@
                         }
                     </div>
 
+                    <!-- Category Pills - Moved here to be absolute children of the main container -->
+                    <div class="nc-read-only-hide nc-unified-category-anchor">
+                        <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
+                    </div>
+                    <div class="nc-editable nc-unified-category-anchor">
+                        <div class="position-relative d-inline-block">
+                            <div id="indicator-CategoryId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('CategoryId', 'Category', this)"></div>
+                            <div class="nc-pd-category-select-wrapper">
+                                <select name="CategoryId" class="nc-pd-category-select" onchange="editor.trackFieldChange('CategoryId', this.value)" data-initial-value="@Model.CategoryId">
+                                    @foreach(var c in categories) {
+                                        <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
+                                    }
+                                </select>
+                                <i class="fa fa-chevron-down nc-pd-category-chevron"></i>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="nc-editable w-100 h-100 d-flex flex-column justify-content-center position-absolute" style="background: #0f141e; inset: 0; z-index: 30; padding: 5rem 2rem 2rem 2rem; gap: 1rem;">
+
+
                         <div class="nc-upload-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
                             <i class="fa fa-upload"></i>
                             <span>Drag & Drop or Click to Upload</span>
@@ -101,88 +152,55 @@
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
                 {
                     <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
-                        <div class="nc-meta-stat">
+                        <div class="nc-meta-stat position-relative">
+                            <!-- Stock Indicator (beside the whole card) -->
+                            <div id="indicator-Stock" class="nc-changed-indicator nc-indicator-stat-card" style="display: none;" onclick="editor.showRevertPopup('Stock', 'Stock Amount', this)"></div>
                             <div class="nc-meta-stat-icon"><i class="fa fa-box"></i></div>
-                            <div class="nc-meta-stat-content">
+                            <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Stock Status</span>
-                                <div class="nc-editable-wrapper" style="margin-bottom: 0;" data-field="Stock">
+                                <div class="nc-editable-wrapper nc-stock-wrapper" style="margin-bottom: 0;" data-field="Stock">
                                     <div class="nc-read-only">
-                                        <span class="nc-meta-stat-value nc-editable-span nc-pd-sync-span-plain" style="color: @(Model.Stock > 10 ? "#81c784" : Model.Stock > 0 ? "#ffb74d" : "#e57373");">
-                                            @Model.Stock units available
+                                        <span class="nc-meta-stat-value nc-editable-span nc-pd-sync-span-plain nc-stock-display nc-stat-field" style="color: @(Model.Stock > 10 ? "#81c784" : Model.Stock > 0 ? "#ffb74d" : "#e57373");">
+                                            @Model.Stock available
                                         </span>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-pd-select" style="width: 100%; padding: 0.15rem 0.5rem;" oninput="editor.trackFieldChange('Stock', this.value)" />
+                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-pd-stock-input nc-stat-field" oninput="editor.trackFieldChange('Stock', this.value)" data-initial-value="@Model.Stock" />
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="nc-meta-stat">
                             <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
-                            <div class="nc-meta-stat-content">
+                            <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Product Rating</span>
-                                <span class="nc-meta-stat-value">
+                                <span class="nc-meta-stat-value nc-meta-stat-input-pad" style="display:block;">
                                     @(Model.SoldAmount > 0 ? Model.Rating.ToString("0.0") : "0.0") <span class="nc-review-count">(@Model.RatingsCount)</span>
                                 </span>
                             </div>
                         </div>
                         <div class="nc-meta-stat">
                             <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
-                            <div class="nc-meta-stat-content">
+                            <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Sales Performance</span>
-                                <span class="nc-meta-stat-value">@Model.SoldAmount units sold</span>
+                                <span class="nc-meta-stat-value nc-meta-stat-input-pad" style="display:block;">@Model.SoldAmount units sold</span>
                             </div>
                         </div>
                     </div>
                 }
             </div>
 
-            <!-- Gutter Admin Actions -->
-            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
-            {
-                <div class="nc-gutter-actions">
-                    <!-- Read-only Mode Button -->
-                    <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
-                        <i class="fa fa-pen"></i>
-                    </button>
-                    
-                    <!-- Edit Mode Buttons -->
-                    <div class="nc-editable-actions flex-column gap-3">
-                        <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit" title="Exit Cancel">
-                            <i class="fa fa-times"></i>
-                        </button>
-
-                        <div class="nc-action-wrapper position-relative">
-                            <div id="changesIndicator" class="nc-changes-badge" style="display: none;" title="Unsaved Changes">0</div>
-                            <button type="button" id="saveEditorChangesGutter" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white;" title="Save Changes">
-                                <i class="fa fa-save"></i>
-                            </button>
-                            <div id="localizedSavePopup" class="ut-diff-modal nc-localized-popup" style="display:none; right: calc(100% + 15px); top: 0;"></div>
-                        </div>
-
-                        <div class="nc-action-wrapper position-relative">
-                            <button type="button" id="clearEditorChangesGutter" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #ffb74d;" title="Clear Changes">
-                                <i class="fa fa-undo"></i>
-                            </button>
-                            <div id="localizedClearPopup" class="ut-diff-modal nc-localized-popup" style="display:none; right: calc(100% + 15px); top: 0;"></div>
-                        </div>
-                    </div>
-
-                    <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this)" title="Delete Product">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            }
-
             <!-- Info Section -->
-            <div>
+            <div class="nc-detail-info">
                 <div>
                     <div class="nc-editable-wrapper" data-field="BrandId">
                         <div class="nc-read-only">
-                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section" class="nc-detail-brand nc-editable-span nc-pd-sync-span-plain d-inline-block" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
+                            <a href="@Url.Action("Index", "Home", new { brand = Model.Brand?.Name })#catalog-section"
+                               class="nc-detail-brand nc-brand-display nc-editable-span nc-pd-sync-span-plain d-inline-block" style="text-decoration:none;">@(Model.Brand?.Name ?? "No Brand")</a>
                         </div>
-                        <div class="nc-input-edit">
-                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select nc-pd-brand-select">
+                        <div class="nc-input-edit position-relative">
+                            <div id="indicator-BrandId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('BrandId', 'Brand', this)"></div>
+                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select nc-pd-brand-select" onchange="editor.trackFieldChange('BrandId', this.value)" data-initial-value="@Model.BrandId">
                                 @foreach(var b in brands) {
                                     <option value="@b.Id" selected="@(b.Id == Model.BrandId ? "selected" : null)">@b.Name</option>
                                 }
@@ -190,13 +208,15 @@
                         </div>
                     </div>
 
-                    <div class="nc-editable-wrapper" style="margin-bottom: 2rem;" data-field="Name">
+                    <div class="nc-editable-wrapper nc-stack-grid" style="margin-bottom: 2rem;" data-field="Name">
                         <div class="nc-read-only">
-                            <h1 class="nc-detail-name nc-editable-span nc-pd-sync-span" style="margin:0;">@Model.Name</h1>
+                            <h1 class="nc-detail-name nc-editable-span nc-pd-sync-span" style="margin:0; padding: 0.5rem 0.75rem 0.5rem 1rem; border: 1px solid transparent;">@Model.Name</h1>
                         </div>
-                        <div class="nc-input-edit">
+                        <div class="nc-input-edit position-relative">
+                            <div id="indicator-Name" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Name', 'Product Name', this)"></div>
                             <div class="nc-pd-floating-group nc-static-placeholder">
                                 <textarea name="Name" id="edit-name" class="nc-pd-floating-control nc-detail-name-edit" rows="1" placeholder=" "
+                                          oninput="editor.trackFieldChange('Name', this.value)" data-initial-value="@Model.Name"
                                           data-label="Product Name" data-val-required="Product Name is required." data-val-length-min="3" data-val-length-max="50">@Model.Name</textarea>
                                 <label for="edit-name" class="nc-pd-floating-label"><span class="nc-label-text">Product Name</span></label>
                             </div>
@@ -204,37 +224,36 @@
                     </div>
 
                     <div class="nc-editable-wrapper" data-field="Price">
-                        <div class="position-relative flex-grow-1">
+                        <div class="position-relative flex-grow-1 nc-price-row">
                             <div class="nc-read-only position-relative">
                                 <div style="display: flex; align-items: center; width: 100%;">
-                                    <span class="nc-currency-sign" style="position: absolute; left: 1rem; z-index: 5; margin: 0; padding: 0;">₱</span>
-                                    <span class="nc-detail-price nc-editable-span nc-pd-sync-span-plain" style="padding-left: 2.75rem; width: 100%;">@Model.Price.ToString("N2")</span>
+                                    <span class="nc-currency-sign nc-currency-ro">₱</span>
+                                    <span class="nc-detail-price nc-editable-span nc-pd-sync-span-plain nc-price-display">@Model.Price.ToString("N2")</span>
                                 </div>
                             </div>
                             <div class="nc-input-edit position-relative">
+                                <div id="indicator-Price" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Price', 'Price', this)"></div>
                                 <div style="display: flex; align-items: center; width: 100%;">
-                                    <span class="nc-currency-sign" style="position: absolute; left: 1rem; z-index: 5; margin: 0; padding: 0;">₱</span>
-                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" style="padding-left: 2.75rem; width: 100%;" />
+                                    <span class="nc-currency-sign nc-currency-edit">₱</span>
+                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" oninput="editor.trackFieldChange('Price', this.value)" data-initial-value="@Model.Price" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 3rem;"></div> <!-- Price gap to description -->
+                <div class="nc-price-spacer"></div> <!-- Price gap to description -->
 
                 <div class="mt-4">
                     <h3 class="nc-section-title">About this product</h3>
-                    <div class="nc-editable-wrapper" data-field="Description">
+                    <div class="nc-editable-wrapper nc-stack-grid" data-field="Description">
                         <div class="nc-read-only">
-                            <p class="nc-description nc-editable-span nc-pd-sync-span" style="margin:0;">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
+                            <p class="nc-description nc-editable-span nc-pd-sync-span" style="margin:0; border: 1px solid transparent;">@(string.IsNullOrEmpty(Model.Description) ? "No description provided for this product." : Model.Description)</p>
                         </div>
-                        <div class="nc-input-edit">
-                            <div class="nc-pd-floating-group nc-static-placeholder">
-                                <textarea name="Description" id="edit-description" class="nc-pd-floating-control nc-detail-name-edit" rows="3" placeholder=" "
-                                          data-label="Description" data-val-length-max="1000">@Model.Description</textarea>
-                                <label for="edit-description" class="nc-pd-floating-label"><span class="nc-label-text">Description</span></label>
-                            </div>
+                        <div class="nc-input-edit position-relative">
+                            <div id="indicator-Description" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Description', 'Description', this)"></div>
+                            <textarea name="Description" id="edit-description" class="nc-description-edit" rows="1"
+                                      oninput="editor.autoSize(this); editor.trackFieldChange('Description', this.value)" data-initial-value="@Model.Description">@Model.Description</textarea>
                         </div>
                     </div>
                 </div>
@@ -243,34 +262,39 @@
                 {
                     <div class="mt-4">
                         <h3 class="nc-section-title">Banner Data</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; background: rgba(255,255,255,0.02); padding: 2rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; flex-direction: column; gap: 1.25rem; background: rgba(255,255,255,0.02); padding: 1.5rem 2rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.05);">
                             <div>
                                 <span class="nc-spec-label">Banner Status</span>
                                 <div class="nc-editable-wrapper" data-field="IsBanner">
                                     <div class="nc-read-only">
                                         <span class="badge-nc @(Model.IsBanner ? "bg-success" : "bg-secondary") nc-editable-span" style="color: white !important;">@(Model.IsBanner ? "Featured" : "Not Featured")</span>
                                     </div>
-                                    <div class="nc-input-edit">
-                                        <label class="d-flex align-items-center" style="gap: 0.75rem; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 0.75rem; width: max-content;">
-                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") style="width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer;" />
+                                    <div class="nc-input-edit position-relative">
+                                        <div id="indicator-IsBanner" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('IsBanner', 'Featured Status', this)"></div>
+                                        <label class="d-flex align-items-center nc-checkbox-label" style="gap: 0.75rem; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 0.75rem; width: max-content;">
+                                            <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") style="width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer;" data-initial-value="@(Model.IsBanner ? "true" : "false")" onchange="editor.trackFieldChange('IsBanner', this.checked)" />
                                             <span style="margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">Active as Banner</span>
                                         </label>
                                     </div>
                                 </div>
                             </div>
-                            <div style="grid-column: span 2;">
+                            <div>
                                 <span class="nc-spec-label">Banner Text</span>
-                                <div class="nc-editable-wrapper" data-field="BannerDescription">
+                                <div class="nc-editable-wrapper nc-stack-grid" data-field="BannerDescription">
                                     <div class="nc-read-only">
-                                        <p class="nc-spec-value nc-editable-span nc-pd-sync-span" style="margin:0;">@(Model.BannerDescription ?? "None")</p>
+                                        <p class="nc-spec-value nc-banner-text-display nc-editable-span nc-pd-sync-span" style="margin:0; padding: 0.75rem 1rem; border: 1px solid transparent; line-height: 1.7; font-size: 1rem;">@(Model.BannerDescription ?? "None")</p>
                                     </div>
-                                    <div class="nc-input-edit">
-                                        <textarea name="BannerDescription" id="edit-banner-desc" class="nc-description-edit" rows="2" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; color: #fff; width: 100%; font-family: inherit;">@Model.BannerDescription</textarea>
+                                    <div class="nc-input-edit position-relative">
+                                        <div id="indicator-BannerDescription" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('BannerDescription', 'Banner Description', this)"></div>
+                                        <textarea name="BannerDescription" id="edit-banner-desc" class="nc-description-edit" rows="2"
+                                                  oninput="editor.autoSize(this); editor.trackFieldChange('BannerDescription', this.value)" data-initial-value="@Model.BannerDescription">@Model.BannerDescription</textarea>
                                     </div>
                                 </div>
+v>
                             </div>
-                            <div style="grid-column: span 2;">
+                            <div class="position-relative">
                                 <span class="nc-spec-label">Banner Image</span>
+                                <div id="indicator-BannerImageUrl" class="nc-changed-indicator nc-indicator-banner-img" style="display: none;" onclick="editor.showRevertPopup('BannerImageUrl', 'Banner Image', this)"></div>
                                 <div class="nc-read-only-hide mb-2">
                                     @if(!string.IsNullOrEmpty(Model.BannerImageUrl)) {
                                         <div>
@@ -296,7 +320,7 @@
                                         <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" />
                                     </div>
                                     <div class="nc-url-input-group mt-2">
-                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-pd-select" placeholder="Banner URL..." />
+                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-pd-select py-2 px-3" placeholder="Banner URL..." />
                                         <label for="bannerUrlInput" class="nc-pd-floating-label" style="display:none;">Banner Image URL</label>
                                     </div>
                                 </div>
@@ -341,7 +365,7 @@
 <style>
     /* ── Details Container & Card ──────────────────────────────── */
     .nc-detail-container {
-        padding: 4rem 0; /* Reduced top padding, relying more on card margins */
+        padding: 2rem 0; /* Reduced top padding, relying more on card margins */
         animation: fadeIn 0.6s ease-out;
         position: relative;
         max-width: 1400px;
@@ -363,15 +387,17 @@
         transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* Gutter Admin Actions */
+    /* Gutter Admin Actions — Horizontal Sibling Toolbar */
     .nc-gutter-actions {
-        position: absolute;
-        left: calc(100% + 1.5rem);
-        top: 2rem;
+        position: relative;
+        margin: 0 auto 1.5rem auto;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
         gap: 1.25rem;
         z-index: 100;
+        max-width: 1400px;
     }
 
     .nc-gutter-btn {
@@ -394,8 +420,11 @@
     .nc-gutter-btn.btn-clear:hover, .nc-gutter-btn.nc-btn-cancel-edit:hover { transform: translateY(-4px); }
 
     .nc-changes-badge {
-        width: 52px;
-        height: 52px;
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 22px;
+        height: 22px;
         background: #ffb74d;
         color: #000;
         border-radius: 50%;
@@ -403,41 +432,15 @@
         align-items: center;
         justify-content: center;
         font-weight: 800;
-        font-size: 1.2rem;
-        border: 4px solid var(--nc-bg-card);
-        margin-bottom: -0.5rem;
+        font-size: 0.75rem;
+        border: 2px solid #1e232d;
+        z-index: 10;
         animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     @@keyframes popIn {
         from { transform: scale(0); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
-    }
-
-    @@media (max-width: 1550px) {
-        .nc-gutter-actions {
-            left: auto; right: 1.5rem;
-            top: -4.5rem;
-            flex-direction: row;
-        }
-    }
-
-    @@media (max-width: 992px) {
-        .nc-detail-card {
-            grid-template-columns: 1fr;
-            gap: 4rem;
-            padding: 2.5rem;
-            margin: 0 1rem;
-        }
-        .nc-gutter-actions {
-            position: relative;
-            top: 0; right: 0;
-            margin-bottom: 2.5rem;
-            justify-content: center;
-            flex-direction: row;
-        }
-        .nc-gutter-btn.btn-edit, .nc-gutter-btn.nc-btn-cancel-edit { order: 2; }
-        .nc-gutter-btn.btn-delete { order: 1; }
     }
 
     /* ── Typography & Zero-Shift Stacking ─────────────────────── */
@@ -451,12 +454,15 @@
     .nc-stack-grid {
         display: grid;
         grid-template-areas: "stack";
-        align-items: center;
+        align-items: stretch;
+        justify-items: stretch;
         position: relative;
     }
     .nc-stack-grid > * {
         grid-area: stack;
-        transition: opacity 0.4s ease, transform 0.4s ease;
+        width: 100%;
+        height: 100%;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
     }
 
     /* Global Visibility for fixed Actions */
@@ -466,9 +472,18 @@
     
     .nc-edit-mode .nc-editable { opacity: 1; visibility: visible; pointer-events: all; }
     .nc-edit-mode .nc-editable-block { display: block; opacity: 1; visibility: visible; pointer-events: all; }
-    .nc-edit-mode .nc-editable-actions { display: flex; opacity: 1; pointer-events: all; }
+    .nc-edit-mode .nc-editable-actions { display: flex; opacity: 1; pointer-events: all; flex-direction: row; }
     
     .nc-edit-mode .nc-read-only-hide { opacity: 0; visibility: hidden; pointer-events: none; display: none !important; }
+
+    .nc-checkbox-label {
+        user-select: none !important;
+        cursor: pointer;
+    }
+
+    .nc-stack-grid .nc-pd-floating-group {
+        margin-top: 0 !important; /* Forces the Name field to not arbitrarily expand the grid downward */
+    }
 
     /* ── Click-To-Edit Dynamic Styling ──────────────────────── */
     /* State: Read Only */
@@ -477,14 +492,29 @@
         opacity: 0;
         transition: opacity 0.3s ease;
     }
+    .nc-editable-wrapper.nc-stack-grid .nc-input-edit {
+        display: block; /* Overrides display:none, relies on grid stacking and visibility */
+        visibility: hidden;
+        pointer-events: none;
+    }
     
     /* State: Being Edited */
-    .nc-edit-mode .nc-editable-wrapper .nc-read-only {
+    .nc-edit-mode .nc-editable-wrapper:not(.nc-stack-grid) .nc-read-only {
         display: none !important;
+    }
+    .nc-edit-mode .nc-editable-wrapper.nc-stack-grid .nc-read-only {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
     .nc-edit-mode .nc-editable-wrapper .nc-input-edit {
         display: block;
         opacity: 1;
+    }
+    .nc-edit-mode .nc-editable-wrapper.nc-stack-grid .nc-input-edit {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: all;
     }
 
     /* Change indicators (left-boundary accent) */
@@ -494,18 +524,6 @@
         margin-bottom: 1.25rem;
     }
     
-    .nc-editable-wrapper.nc-changed::before {
-        content: '';
-        position: absolute;
-        left: -1rem;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: #ffb74d;
-        border-radius: 2px;
-        animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
     /* ── Localized Popups (Ported from UpdatableTable) ────────── */
     .nc-localized-popup {
         position: absolute;
@@ -619,16 +637,29 @@
         padding: 0.3rem 0.5rem;
         margin: -0.3rem -0.5rem;
         transition: background 0.2s, box-shadow 0.2s;
+        /* Global line-height so span and input heights always match */
+        line-height: 1.4;
     }
     
     .nc-detail-name.nc-editable-span, .nc-spec-value.nc-editable-span {
-        padding: 0.5rem; margin: -0.5rem;
+        padding: 0.5rem; margin: 0;
+        border: 1px solid transparent;
     }
     .nc-description.nc-editable-span {
-        padding: 0.7rem 1rem; margin: -0.7rem -1rem;
+        padding: 0.75rem 1rem; margin: 0;
     }
-    .nc-detail-brand.nc-editable-span {
-        padding: 0.2rem 0.5rem; margin: -0.2rem -0.5rem;
+    .nc-detail-brand.nc-editable-span,
+    .nc-brand-display {
+        /* Exact same box model as select so no shift (transparent border reserves the space) */
+        display: inline-flex !important;
+        align-items: center !important;
+        padding: 0.6rem 2.5rem 0.6rem 0.75rem !important;
+        margin: 0 !important;
+        border: 1.5px solid transparent !important;
+        border-radius: 10px !important;
+        line-height: 1.4;
+        text-decoration: none !important;
+        min-height: 2.8rem;
     }
 
     .nc-edit-mode .nc-editable-span {
@@ -642,7 +673,7 @@
     .nc-detail-name, .nc-detail-name-edit {
         font-size: var(--nc-font-name);
         font-weight: 900;
-        line-height: 1.2; /* Consistent line-height */
+        line-height: 1.2;
         margin: 0;
         padding: 0;
         border: none;
@@ -651,21 +682,77 @@
         width: 100%;
         font-family: inherit;
         display: block;
-        min-height: 1.2em; /* Ensure same height even if empty */
+        min-height: 1.2em;
     }
 
     .nc-detail-name-edit {
-        background: rgba(255,255,255,0.08); /* Slightly lighter */
+        background: rgba(255,255,255,0.08);
         border: 1px solid rgba(255,255,255,0.15);
         border-radius: 0.75rem;
-        padding: 0.5rem;
-        margin: -0.5rem;
+        padding: 0.5rem 0.75rem 0.5rem 1rem;
         resize: none;
         overflow: hidden;
-        min-height: 1.1em;
+        min-height: 1.2em;
         transition: all 0.3s;
+        line-height: 1.2;
     }
     .nc-detail-name-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255,255,255,0.12); }
+
+
+    /* ── Stock editable wrapper: CSS grid stacking + visibility toggle = zero layout shift ── */
+    /* Both children always occupy space; only visibility changes, never display.             */
+    .nc-stock-wrapper {
+        display: grid !important;
+        grid-template-areas: "stack";
+        align-items: center;
+        min-height: 2rem; /* reserve height even when both are invisible */
+    }
+    .nc-stock-wrapper .nc-read-only,
+    .nc-stock-wrapper .nc-input-edit {
+        grid-area: stack;
+        /* Override the global display:none with visibility so height is always reserved */
+        display: block !important;
+        visibility: visible;
+        pointer-events: auto;
+        opacity: 1;
+        transition: opacity 0.2s, visibility 0.2s;
+    }
+    /* Read-only mode: hide input, show span */
+    .nc-stock-wrapper .nc-input-edit {
+        visibility: hidden;
+        pointer-events: none;
+        opacity: 0;
+    }
+    /* Edit mode: show input, hide span */
+    .nc-edit-mode .nc-stock-wrapper .nc-read-only {
+        visibility: hidden !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+    }
+    .nc-edit-mode .nc-stock-wrapper .nc-input-edit {
+        visibility: visible;
+        pointer-events: auto;
+        opacity: 1;
+    }
+
+    /* The shared field class sizes both span and input identically */
+    .nc-stat-field {
+        width: 100%;
+        padding: 0.3rem 0.6rem;
+        border-radius: 0.6rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.4;
+        box-sizing: border-box;
+        display: block;
+    }
+
+    /* Uniform padding on every stat bubble value row (applied to non-stock stat values) */
+    .nc-meta-stat-input-pad {
+        padding: 0.3rem 0.1rem;
+        border-radius: 0.4rem;
+        display: block;
+    }
 
     .nc-detail-price, .nc-price-input {
         font-size: var(--nc-font-price);
@@ -676,17 +763,71 @@
         border: none;
         background: none;
         font-family: inherit;
-        display: flex; /* Changed to flex for alignment */
+        display: flex;
         align-items: center;
-        line-height: 1.2;
+        line-height: 1.2 !important;
+        vertical-align: middle !important;
+    }
+
+    /* Price row: fixed height so About section never shifts */
+    .nc-price-row {
+        min-height: 4rem;
+        display: grid !important;
+        grid-template-areas: "stack" !important;
+        align-items: center !important;
+    }
+    .nc-price-row > .nc-read-only,
+    .nc-price-row > .nc-input-edit {
+        grid-area: stack !important;
+        width: 100% !important;
+    }
+    .nc-edit-mode .nc-price-row > .nc-read-only {
+        display: block !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
+    /* Read-only price display */
+    .nc-price-display {
+        /* left-align with description span: 1rem padding-left */
+        padding: 0.2rem 0.75rem 0.2rem 2.75rem !important;
+        width: 100%;
+        display: block;
+        border: 1px solid transparent !important;
+        border-radius: 1rem;
+    }
+
+    /* Currency sign — read-only */
+    .nc-currency-ro {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--nc-primary);
+        opacity: 0.9;
+        position: absolute;
+        left: 1rem;
+        z-index: 5;
+        line-height: 1;
+    }
+
+    /* Currency sign — edit state: vertically centred with input */
+    .nc-currency-edit {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--nc-primary);
+        opacity: 0.9;
+        position: absolute;
+        left: 1rem;
+        z-index: 5;
+        line-height: 1;
+        /* Vertical centering handled by flex parent */
     }
 
     .nc-price-input {
         background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.1) !important;
         border-radius: 0.6rem;
-        padding: 0.2rem 0.75rem;
-        margin: -0.2rem -0.25rem;
+        /* Top/left padding matches display span so text sits at same position */
+        padding: 0.2rem 0.75rem 0.2rem 2.75rem !important;
         width: 100%;
         transition: border-color 0.3s;
     }
@@ -698,14 +839,16 @@
         width: 100%;
     }
     
+    /* Deprecated generic sign – kept for safety but prefer nc-currency-ro/edit */
     .nc-currency-sign {
         font-size: 1.8rem;
         font-weight: 800;
         color: var(--nc-primary);
         opacity: 0.9;
-        margin-right: 0.5rem;
-        padding-top: 0.2rem;
     }
+
+    /* Fixed-height spacer between price and About section — never shifts */
+    .nc-price-spacer { height: 3rem; }
 
     .nc-detail-brand {
         font-size: var(--nc-font-brand);
@@ -719,6 +862,7 @@
         border: none;
         background: none;
         font-family: inherit;
+        line-height: 1.4;
     }
 
 
@@ -780,25 +924,36 @@
     .nc-img-nav.prev { left: 1.5rem; }
     .nc-img-nav.next { right: 1.5rem; }
 
-    .nc-image-badge, .nc-input-badge {
-        position: absolute;
-        top: 1.5rem; left: 1.5rem;
-        background: var(--nc-primary);
-        color: #fff;
-        padding: 0.6rem 1.4rem;
-        border-radius: 2rem;
-        font-size: 0.8rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        box-shadow: 0 15px 30px rgba(123, 171, 221, 0.4);
-        z-index: 20;
-        pointer-events: all;
-        transition: transform 0.3s;
+    /* Category badge — both read-only link and edit select share same pill styling */
+    .nc-image-badge, .nc-pd-category-select {
+        z-index: 20 !important;
+        background: var(--nc-primary) !important;
+        color: #fff !important;
+        padding: 0.5rem 1.4rem !important;
+        border-radius: 2rem !important;
+        font-size: 0.75rem !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        pointer-events: all !important;
+        transition: transform 0.3s !important;
+        /* Make select look like the badge */
+        border: none !important;
+        box-shadow: 0 4px 8px rgba(123, 171, 221, 0.4) !important;
+        line-height: 1.4 !important;
     }
-    .nc-image-badge:hover { transform: translateY(-2px); }
-    .nc-input-badge { border: 2px solid rgba(255,255,255,0.5); cursor: pointer; z-index: 31; box-shadow: 0 5px 15px rgba(0,0,0, 0.2); }
-    .nc-input-badge:focus { outline: none; border-color: #fff; }
+    .nc-image-badge { text-decoration: none; display: inline-block; }
+    .nc-image-badge:hover, .nc-pd-category-select:hover { transform: translateY(-2px); }
+    /* Select arrow positioned right inside pill */
+    .nc-pd-category-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 0.9rem center !important;
+        background-size: 12px !important;
+        padding-right: 2.25rem !important;
+        width: auto !important;
+        cursor: pointer;
+    }
     
     .nc-upload-zone {
         flex: 1;
@@ -1110,14 +1265,6 @@
         z-index: 1000 !important;
     }
     
-    .nc-description-edit, #edit-description {
-        font-size: 1.1rem !important; /* Match read-only display */
-        line-height: 1.7 !important;
-        padding-top: var(--nc-pd-pad-y-top) !important;
-        padding-bottom: var(--nc-pd-pad-y) !important;
-    }
-
-
     .nc-section-title {
         font-size: 1.1rem;
         font-weight: 800;
@@ -1128,18 +1275,61 @@
         opacity: 0.9;
     }
 
+    /* Description display paragraph */
+    .nc-description {
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.7;
+        color: #fff;
+        /* Padding matches nc-description-edit so layout doesn't shift */
+        padding: 0.75rem 1rem;
+        margin: 0;
+        border-radius: 0.75rem;
+    }
+
+    /* Description textarea: same font metrics as the display span */
     .nc-description-edit {
         background: rgba(255,255,255,0.05);
         border: 1px solid rgba(255,255,255,0.1);
         border-radius: 1rem;
-        padding: 1.25rem;
+        padding: 0.75rem 1rem;
         color: #fff;
         width: 100%;
         font-family: inherit;
-        line-height: 1.6;
-        transition: all 0.3s;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.7;
+        transition: border-color 0.3s, background 0.3s;
+        resize: none;        /* auto-resize via JS; manual resize causes scrollbar */
+        overflow: hidden;    /* hide scrollbar while JS hasn't fired yet */
+        min-height: 3rem;
     }
     .nc-description-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255,255,255,0.08); }
+
+    /* Banner text: read-only must NOT be bold */
+    .nc-banner-text-display {
+        font-weight: 400 !important;
+        font-size: 0.95rem;
+    }
+
+    /* Stock input: inherits nc-stat-field sizing; just adds the visible input chrome */
+    .nc-pd-stock-input {
+        appearance: none;
+        -webkit-appearance: none;
+        background: rgba(255,255,255,0.06);
+        border: 1.5px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.6rem;
+        color: #fff;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.3s, background 0.3s;
+        align-self: center; /* centred inside the grid cell */
+    }
+    .nc-pd-stock-input:focus { border-color: var(--nc-primary); background: rgba(255,255,255,0.1); outline: none; }
+
+    /* Stock display span: stays inline inside its grid cell */
+    .nc-stock-display { display: block; }
 
     @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @@keyframes slideUp { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
@@ -1190,21 +1380,18 @@
         margin: 0;
     }
 
+    /* nc-pd-category-select: additional overrides on top of the unified badge base above */
     .nc-pd-category-select {
-        padding: 0.6rem 2.75rem 0.6rem 1.25rem !important;
-        background: #1a1f2c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237babdd' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 1rem center !important;
+        /* Padding already set in the badge block; reinforce pill geometry */
+        padding-right: 2.25rem !important; /* Only override right padding for chevron */
+        background: var(--nc-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 1rem center !important;
         background-size: 14px !important;
-        backdrop-filter: blur(10px) !important;
         border-radius: 2rem !important;
-        border: 1px solid rgba(123, 171, 221, 0.3) !important;
-        color: var(--nc-primary) !important;
-        font-weight: 800 !important;
-        font-size: 0.85rem !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
         width: auto !important;
+        line-height: 1.4 !important;
     }
 
+    /* Brand select: same box model as display span so no shift */
     .nc-pd-brand-select {
         font-size: var(--nc-font-brand) !important;
         color: var(--nc-primary) !important;
@@ -1213,28 +1400,40 @@
         letter-spacing: 0.15em !important;
         background: #1a1f2c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237babdd' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 1rem center !important;
         background-size: 14px !important;
-        padding: 0.4rem 2.5rem 0.4rem 0.75rem !important;
-        margin-left: -0.75rem !important;
+        padding: 0.6rem 2.5rem 0.6rem 0.75rem !important;
         border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 10px !important;
         width: auto !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        outline: none !important;
+        cursor: pointer !important;
+        line-height: 1.4 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        min-height: 2.8rem !important;
     }
 
     .nc-detail-brand.nc-editable-span {
-        padding: 0.4rem 2.5rem 0.4rem 0.75rem !important;
-        margin-left: -0.75rem !important;
-        border: 1.5px solid transparent !important; /* Size match */
+        /* Exact same box model as select so no shift (transparent border reserves the space) */
+        padding: 0.6rem 2.5rem 0.6rem 0.75rem !important;
+        margin-left: 0 !important;
+        border: 1.5px solid transparent !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        min-height: 2.8rem !important;
     }
 
     .nc-price-input {
         font-size: 2.5rem !important;
         font-weight: 800 !important;
         color: var(--nc-primary) !important;
-        height: 100% !important;
-        line-height: normal !important;
+        line-height: 1.2 !important;
         border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 1rem !important;
-        padding: 0 1rem !important;
+        /* Left padding must push text rightward past the ₱ sign (same as display span) */
+        padding: 0.15rem 0.75rem 0.15rem 2.75rem !important;
+        background: rgba(255,255,255,0.06) !important;
     }
 
     .nc-pd-select option {

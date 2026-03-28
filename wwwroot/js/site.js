@@ -9,9 +9,12 @@ window.showSidePopup = function (
     customContent = "",
     btnExtraClass = "",
     extraClass = "",
+    hideArrow = false,
 ) {
+
+    const isAlreadyOpen = element?.classList.contains("ut-popup-active-trigger");
     window.closePopups();
-    if (!element) return;
+    if (!element || isAlreadyOpen) return;
 
     // Elevate trigger button above overlay via portal (handled in showSidePopup)
     element.classList.add("ut-popup-active-trigger");
@@ -69,8 +72,9 @@ window.showSidePopup = function (
             `
             }
         </div>
-        <div class="ut-popup-arrow"></div>
+        ${hideArrow ? "" : '<div class="ut-popup-arrow"></div>'}
     `;
+
 
     // Add unique identifier if provided via extraClass for re-render targeting
     if (extraClass && extraClass.includes("clear")) popup.setAttribute("data-popup-type", "clear");
@@ -141,12 +145,14 @@ window.closePopups = function () {
     document.querySelectorAll(".ut-popup-active-trigger").forEach((el) => el.classList.remove("ut-popup-active-trigger"));
     document.querySelectorAll(".ut-has-popup").forEach((el) => el.classList.remove("ut-has-popup"));
 
-    // Cleanup Visual Portal
-    document.getElementById("utPortalTrigger")?.remove();
-
     const overlay = document.getElementById("ncGlobalOverlay");
     if (overlay) overlay.classList.remove("show");
+
+    // Cleanup Visual Portal
+    document.getElementById("utPortalTrigger")?.remove();
+    document.getElementById("ncModalPortalTrigger")?.remove();
 };
+
 
 // Global delete confirmation
 window.confirmDelete = function (id, url, onDeleted, element = null) {
@@ -247,19 +253,19 @@ window.ncHighlight = function (text, query) {
 };
 
 // Global Search Highlighting Utility (DOM-based - Preserves Icons)
-window.ncHighlightElement = function(element, query) {
+window.ncHighlightElement = function (element, query) {
     if (!query || !element) return;
-    
+
     // Normalize query
     const term = query.trim().toLowerCase();
     if (!term) return;
 
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
     const nodes = [];
-    while(walker.nextNode()) nodes.push(walker.currentNode);
+    while (walker.nextNode()) nodes.push(walker.currentNode);
 
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    
+
     // Handle numeric matching: allow "1500" to match "1,500"
     // Also handle partial numbers "15" -> "1,5"
     let numberRegexPattern = escaped;
@@ -267,10 +273,10 @@ window.ncHighlightElement = function(element, query) {
         const withCommas = term.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
         numberRegexPattern = `(${escaped}|${withCommas.replace(/,/g, ",?")})`;
     }
-    
+
     const regex = new RegExp(numberRegexPattern, "gi");
 
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
         const text = node.nodeValue;
         if (regex.test(text)) {
             const span = document.createElement("span");

@@ -318,7 +318,9 @@ export default class UpdatableTable {
                 if (filterPopup) filterPopup.style.display = "none";
                 this.container.querySelectorAll(".ut-diff-modal").forEach((m) => (m.style.display = "none"));
                 overlay.classList.remove("show");
-                this.container.querySelectorAll(".ut-popup-active-trigger").forEach((b) => b.classList.remove("ut-popup-active-trigger"));
+                this.container
+                    .querySelectorAll(".ut-popup-active-trigger")
+                    .forEach((b) => b.classList.remove("ut-popup-active-trigger"));
                 return;
             }
 
@@ -355,7 +357,9 @@ export default class UpdatableTable {
             if (!anyPopupOpen && overlay) {
                 overlay.classList.remove("show");
                 this.container.classList.remove("ut-has-popup");
-                this.container.querySelectorAll(".ut-popup-active-trigger").forEach((b) => b.classList.remove("ut-popup-active-trigger"));
+                this.container
+                    .querySelectorAll(".ut-popup-active-trigger")
+                    .forEach((b) => b.classList.remove("ut-popup-active-trigger"));
             }
 
             // Revert popup click outside
@@ -475,7 +479,7 @@ export default class UpdatableTable {
         } else {
             url.searchParams.delete("status");
         }
-        
+
         if (this.sortConfig.key && this.sortConfig.direction !== "none") {
             url.searchParams.set("sort", this.sortConfig.key);
             url.searchParams.set("dir", this.sortConfig.direction);
@@ -572,7 +576,9 @@ export default class UpdatableTable {
             if (this.request.fetchFn) {
                 response = await this.request.fetchFn({ ...this.request, includeIds: localChangeIds });
             } else if (urlAttr) {
-                const res = await fetch(finalUrl, {
+                const cacheBuster = `_=${Date.now()}`;
+                const finalUrlWithBuster = finalUrl + (finalUrl.includes("?") ? "&" : "?") + cacheBuster;
+                const res = await fetch(finalUrlWithBuster, {
                     method: this.request.type || "GET",
                     headers: { "Content-Type": "application/json" },
                 });
@@ -617,7 +623,7 @@ export default class UpdatableTable {
             this.updateControls();
 
             // Auto-hide record status filter section if no recordStatus column
-            const hasRecordStatus = this.data.columns.some(c => c.id === 'recordStatus');
+            const hasRecordStatus = this.data.columns.some((c) => c.id === "recordStatus");
             const statusSection = this.container.querySelector(".ut-status-filters")?.closest(".ut-filter-section");
             const statusSep = this.container.querySelector(".ut-status-separator");
             if (statusSection) statusSection.style.display = hasRecordStatus ? "" : "none";
@@ -636,7 +642,7 @@ export default class UpdatableTable {
         // 1. Exclude "Extra" rows immediately (they are only for diffing/sync)
         let processed = allRowsArray.filter((r) => !r._isExtra);
 
-        const hasRecordStatus = this.data.columns.some(c => c.id === 'recordStatus');
+        const hasRecordStatus = this.data.columns.some((c) => c.id === "recordStatus");
         if (hasRecordStatus) {
             // Update counts (before status filters) based on non-extra rows
             this.activeCount = processed.filter((r) => r.recordStatus !== "Deleted").length;
@@ -813,7 +819,10 @@ export default class UpdatableTable {
 
                 if (stickyClass) td.classList.add(stickyClass);
                 if (cellClass) {
-                    cellClass.split(" ").filter(c => c.trim()).forEach(cls => td.classList.add(cls));
+                    cellClass
+                        .split(" ")
+                        .filter((c) => c.trim())
+                        .forEach((cls) => td.classList.add(cls));
                 }
                 if (cellStyle) td.style.cssText += cellStyle;
 
@@ -1769,14 +1778,14 @@ export default class UpdatableTable {
     formatValue(val, colId = null, useHighlight = false) {
         if (val === null || val === undefined) return "";
         let str = "";
-        
+
         // UTC to Local Conversion for Date/Time fields
-        const isDateColumn = colId && (
-            colId.toLowerCase().includes("date") || 
-            colId.toLowerCase().includes("time") || 
-            colId.toLowerCase().includes("timestamp") ||
-            this.fieldDefinitions[colId]?.type === "date"
-        );
+        const isDateColumn =
+            colId &&
+            (colId.toLowerCase().includes("date") ||
+                colId.toLowerCase().includes("time") ||
+                colId.toLowerCase().includes("timestamp") ||
+                this.fieldDefinitions[colId]?.type === "date");
 
         if (isDateColumn && val) {
             try {
@@ -1785,12 +1794,12 @@ export default class UpdatableTable {
                     // Check if the original string was UTC (ends with Z or has no offset but intended as UTC)
                     // ASP.NET JSON usually serializes as ISO 8601 UTC
                     str = date.toLocaleString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
                     });
                 } else {
                     str = String(val);
@@ -1825,9 +1834,8 @@ export default class UpdatableTable {
     }
 
     confirmRestore(rowId, url, element) {
-        if (element) element.classList.add("ut-popup-active-trigger");
-        this.container.classList.add("ut-has-popup");
         window.showSidePopup(
+
             element,
             "Restore record?",
             () => {
@@ -1855,14 +1863,13 @@ export default class UpdatableTable {
             "Restore",
             "var(--nc-success)",
             "",
-            "btn-success"
+            "btn-success",
         );
     }
 
     confirmDelete(rowId, url, element) {
-        if (element) element.classList.add("ut-popup-active-trigger");
-        this.container.classList.add("ut-has-popup");
         window.showSidePopup(
+
             element,
             "Delete record?",
             () => {
@@ -1890,7 +1897,7 @@ export default class UpdatableTable {
             "Delete",
             "var(--nc-error)",
             "",
-            "btn-danger"
+            "btn-danger",
         );
     }
 

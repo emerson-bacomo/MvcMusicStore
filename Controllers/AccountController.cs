@@ -188,7 +188,7 @@ namespace MvcMusic.Controllers
         // POST: /account/logout
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout(string? returnUrl = null)
+        public async Task<IActionResult> Logout()
         {
             var user = await _userManager.GetUserAsync(User);
             if (user != null)
@@ -199,10 +199,7 @@ namespace MvcMusic.Controllers
 
             await _signInManager.SignOutAsync();
 
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return Redirect(returnUrl);
-
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Hero", "Landing");
         }
 
         // GET: /account/is-email-available
@@ -233,21 +230,28 @@ namespace MvcMusic.Controllers
         {
             if (roles == null)
             {
-                if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || 
-                    User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || 
-                    User.IsInRole("SalesStaff") || User.IsInRole("CustomerStaff"))
-                {
+                if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                     return RedirectToAction("Index", "AdminDashboard");
-                }
+                
+                if (User.IsInRole("StockStaff") || User.IsInRole("ProductStaff"))
+                    return RedirectToAction("Index", "Products");
+                
+                if (User.IsInRole("CustomerStaff"))
+                    return RedirectToAction("Index", "Customers");
+
                 return RedirectToAction("Index", "Home");
             }
 
-            if (roles.Contains("SuperAdmin") || roles.Contains("Admin") || 
-                roles.Any(r => r.EndsWith("Staff")))
-            {
+            if (roles.Contains("SuperAdmin") || roles.Contains("Admin") || roles.Contains("SalesStaff"))
                 return RedirectToAction("Index", "AdminDashboard");
-            }
+
+            if (roles.Contains("StockStaff") || roles.Contains("ProductStaff"))
+                return RedirectToAction("Index", "Products");
+
+            if (roles.Contains("CustomerStaff"))
+                return RedirectToAction("Index", "Customers");
+
             return RedirectToAction("Index", "Home");
         }
     }
-}
+}   

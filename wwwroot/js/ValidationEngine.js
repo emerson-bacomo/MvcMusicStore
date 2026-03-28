@@ -14,9 +14,13 @@ window.ValidationEngine = {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) { // Element
-                        if (node.classList.contains('nc-floating-control') || node.classList.contains('nc-pd-floating-control')) this.initControl(node);
-                        node.querySelectorAll('.nc-floating-control, .nc-pd-floating-control').forEach(el => this.initControl(el));
+                    if (node.nodeType === 1) {
+                        // Element
+                        if (node.classList.contains("nc-floating-control") || node.classList.contains("nc-pd-floating-control"))
+                            this.initControl(node);
+                        node.querySelectorAll(".nc-floating-control, .nc-pd-floating-control").forEach((el) =>
+                            this.initControl(el),
+                        );
                     }
                 });
             });
@@ -25,8 +29,8 @@ window.ValidationEngine = {
     },
 
     initializeAll() {
-        document.querySelectorAll('input, select, textarea').forEach(el => {
-            if (el.classList.contains('nc-floating-control') || el.classList.contains('nc-pd-floating-control')) {
+        document.querySelectorAll("input, select, textarea").forEach((el) => {
+            if (el.classList.contains("nc-floating-control") || el.classList.contains("nc-pd-floating-control")) {
                 this.initControl(el);
             }
         });
@@ -37,22 +41,22 @@ window.ValidationEngine = {
         el._ncInitialized = true;
 
         // Ensure placeholder is set for :placeholder-shown CSS selector
-        if (!el.getAttribute('placeholder')) el.setAttribute('placeholder', ' ');
+        if (!el.getAttribute("placeholder")) el.setAttribute("placeholder", " ");
 
         // Input event for real-time validation
-        el.addEventListener('input', () => {
-            if (el.type === 'email' && el.value.trim().length > 0) {
+        el.addEventListener("input", () => {
+            if (el.type === "email" && el.value.trim().length > 0) {
                 this.debouncedEmailCheck(el);
             } else {
                 this.validate(el);
             }
-            if (el.tagName.toLowerCase() === 'textarea') this.autoResize(el);
+            if (el.tagName.toLowerCase() === "textarea") this.autoResize(el);
         });
 
         // Password toggle initialization
-        if (el.type === 'password') {
+        if (el.type === "password") {
             this.initPasswordToggle(el);
-            if (el.classList.contains('nc-password-strength')) {
+            if (el.classList.contains("nc-password-strength")) {
                 this.initPasswordRequirements(el);
             }
         }
@@ -63,50 +67,63 @@ window.ValidationEngine = {
         const errors = [];
 
         // 1. Required Check
-        if (el.hasAttribute('required') && value === "") {
-            errors.push(el.getAttribute('data-val-required') || "This field is required.");
+        if (el.hasAttribute("required") && value === "") {
+            errors.push(el.getAttribute("data-val-required") || "This field is required.");
         }
 
         // 2. Email Format Check
-        if (value !== "" && (el.type === 'email' || el.getAttribute('data-type') === 'email')) {
+        if (
+            value !== "" &&
+            (el.type === "email" || el.getAttribute("data-type") === "email" || el.hasAttribute("data-val-email"))
+        ) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(value)) {
-                errors.push("Please enter a valid email address.");
+                errors.push(el.getAttribute("data-val-email") || "Please enter a valid email address.");
             }
         }
 
         // 3. Min Length Check
-        const minLength = el.getAttribute('data-val-length-min') || el.getAttribute('minlength');
+        const minLength = el.getAttribute("data-val-length-min") || el.getAttribute("minlength");
         if (value !== "" && minLength && value.length < parseInt(minLength)) {
             errors.push(`Must be at least ${minLength} characters.`);
         }
 
         // 4. Max Length Check
-        const maxLength = el.getAttribute('data-val-length-max') || el.getAttribute('maxlength');
+        const maxLength = el.getAttribute("data-val-length-max") || el.getAttribute("maxlength");
         if (value !== "" && maxLength && value.length > parseInt(maxLength)) {
             errors.push(`Cannot exceed ${maxLength} characters.`);
         }
 
         // 5. Compare Check (Confirm Password)
-        if (el.hasAttribute('data-compare')) {
-            const targetId = el.getAttribute('data-compare');
+        if (el.hasAttribute("data-compare")) {
+            const targetId = el.getAttribute("data-compare");
             const targetEl = document.querySelector(targetId);
             if (targetEl && value !== targetEl.value.trim()) {
-                errors.push(el.getAttribute('data-val-equalto') || "Does not match.");
+                errors.push(el.getAttribute("data-val-equalto") || "Does not match.");
             }
         }
 
         // 6. Password Strength Check
-        if ((el.getAttribute('data-type') === 'password-strength' || el.classList.contains('nc-password-strength')) && value !== "") {
-            if (!/[a-z]/.test(value)) errors.push("Lowercase character required.");
-            if (!/[A-Z]/.test(value)) errors.push("Uppercase character required.");
-            if (!/[0-9]/.test(value)) errors.push("Numeric character required.");
-            if (!/[^a-zA-Z0-9]/.test(value)) errors.push("Special character required.");
+        if (
+            (el.getAttribute("data-type") === "password-strength" || el.classList.contains("nc-password-strength")) &&
+            value !== ""
+        ) {
+            const reqMin = el.getAttribute("data-val-password-min");
+            const reqUpper = el.getAttribute("data-val-password-uppercase") === "true";
+            const reqLower = el.getAttribute("data-val-password-lowercase") === "true";
+            const reqDigit = el.getAttribute("data-val-password-digit") === "true";
+            const reqSpecial = el.getAttribute("data-val-password-special") === "true";
+
+            if (reqMin && value.length < parseInt(reqMin)) errors.push(`At least ${reqMin} characters required.`);
+            if (reqLower && !/[a-z]/.test(value)) errors.push("One lowercase letter required.");
+            if (reqUpper && !/[A-Z]/.test(value)) errors.push("One uppercase letter required.");
+            if (reqDigit && !/[0-9]/.test(value)) errors.push("One numeric digit required.");
+            if (reqSpecial && !/[^a-zA-Z0-9]/.test(value)) errors.push("One special character required.");
         }
 
         let finalError = "";
         if (errors.length > 1) {
-            finalError = errors.map(e => "• " + e.replace(/^•\s*/, "")).join("\n");
+            finalError = errors.map((e) => "• " + e.replace(/^•\s*/, "")).join("\n");
         } else if (errors.length === 1) {
             finalError = errors[0];
         }
@@ -117,22 +134,22 @@ window.ValidationEngine = {
 
     setError(el, message) {
         // Support both floating labels and standard labels
-        const label = el.parentElement.querySelector('.nc-floating-label, .nc-pd-floating-label, .nc-label');
+        const label = el.parentElement.querySelector(".nc-floating-label, .nc-pd-floating-label, .nc-label");
         if (!label) return;
 
-        let errorInline = label.querySelector('.nc-error-inline');
-        let errorPopup = label.querySelector('.nc-error-popup');
+        let errorInline = label.querySelector(".nc-error-inline");
+        let errorPopup = label.querySelector(".nc-error-popup");
 
         if (message) {
-            el.classList.add('is-invalid');
+            el.classList.add("is-invalid");
             if (!errorInline) {
-                errorInline = document.createElement('span');
-                errorInline.className = 'nc-error-inline';
+                errorInline = document.createElement("span");
+                errorInline.className = "nc-error-inline";
                 label.appendChild(errorInline);
             }
             if (!errorPopup) {
-                errorPopup = document.createElement('div');
-                errorPopup.className = 'nc-error-popup';
+                errorPopup = document.createElement("div");
+                errorPopup.className = "nc-error-popup";
                 label.appendChild(errorPopup);
             }
 
@@ -141,17 +158,16 @@ window.ValidationEngine = {
             const msg = message.toLowerCase();
             if (msg.includes("•")) concise = "invalid";
             else if (msg.includes("taken")) concise = "already taken";
-            else if (msg.includes("required")) concise = "required";
-            else if (msg.includes("at least")) concise = "too short";
-            else if (msg.includes("cannot exceed")) concise = "too long";
-            else if (msg.includes("number")) concise = "invalid";
+            else if (msg.includes("field is required") || (msg === "required") || (msg.includes("required") && !msg.includes("character") && !msg.includes("digit") && !msg.includes("letter"))) concise = "required";
+            else if (msg.includes("at least") || msg.includes("too short")) concise = "too short";
+            else if (msg.includes("cannot exceed") || msg.includes("too long")) concise = "too long";
             else if (msg.includes("match")) concise = "mismatch";
-            else if (msg.includes("character required")) concise = "invalid";
+            else if (msg.includes("character") || msg.includes("digit") || msg.includes("letter")) concise = "too weak";
 
             errorInline.textContent = ` (${concise})`; // Enclose in parentheses
             errorPopup.textContent = message;
         } else {
-            el.classList.remove('is-invalid');
+            el.classList.remove("is-invalid");
             if (errorInline) errorInline.remove();
             if (errorPopup) errorPopup.remove();
         }
@@ -178,8 +194,8 @@ window.ValidationEngine = {
             if (!engine.validate(el)) return;
 
             const emailAtStart = el.value.trim();
-            console.log(el.getAttribute('data-ajax-url'));
-            const ajaxUrl = el.getAttribute('data-ajax-url') || '/account/is-email-available';
+            console.log(el.getAttribute("data-ajax-url"));
+            const ajaxUrl = el.getAttribute("data-ajax-url") || "/account/is-email-available";
 
             try {
                 const response = await fetch(`${ajaxUrl}?email=${encodeURIComponent(emailAtStart)}`);
@@ -203,25 +219,25 @@ window.ValidationEngine = {
     },
 
     autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = (el.scrollHeight) + 'px';
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
     },
 
     initPasswordToggle(el) {
         const wrapper = el.parentElement;
-        if (!wrapper.classList.contains('nc-password-wrapper')) return;
+        if (!wrapper.classList.contains("nc-password-wrapper")) return;
 
-        if (wrapper.querySelector('.nc-password-toggle')) return;
+        if (wrapper.querySelector(".nc-password-toggle")) return;
 
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'nc-password-toggle';
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "nc-password-toggle";
         toggle.innerHTML = '<i class="fa fa-eye"></i>';
         toggle.title = "Show Password";
 
-        toggle.addEventListener('click', () => {
-            const isPassword = el.type === 'password';
-            el.type = isPassword ? 'text' : 'password';
+        toggle.addEventListener("click", () => {
+            const isPassword = el.type === "password";
+            el.type = isPassword ? "text" : "password";
             toggle.innerHTML = isPassword ? '<i class="fa fa-eye-slash"></i>' : '<i class="fa fa-eye"></i>';
             toggle.title = isPassword ? "Hide Password" : "Show Password";
         });
@@ -234,24 +250,42 @@ window.ValidationEngine = {
         if (!wrapper) return;
 
         // Create popup if it doesn't exist
-        let popup = wrapper.querySelector('.nc-password-requirements-popup');
+        let popup = wrapper.querySelector(".nc-password-requirements-popup");
         if (!popup) {
-            popup = document.createElement('div');
-            popup.className = 'nc-password-requirements-popup';
-            popup.innerHTML = `
-                <div class="nc-password-requirement-item" data-req="length">
-                    <i class="fa fa-circle-o"></i> <span>At least 6 characters</span>
-                </div>
-                <div class="nc-password-requirement-item" data-req="uppercase">
-                    <i class="fa fa-circle-o"></i> <span>One uppercase letter (A-Z)</span>
-                </div>
-                <div class="nc-password-requirement-item" data-req="lowercase">
-                    <i class="fa fa-circle-o"></i> <span>One lowercase letter (a-z)</span>
-                </div>
-                <div class="nc-password-requirement-item" data-req="digit">
-                    <i class="fa fa-circle-o"></i> <span>One numeric digit (0-9)</span>
-                </div>
-            `;
+            popup = document.createElement("div");
+            popup.className = "nc-password-requirements-popup";
+
+            const reqMin = el.getAttribute("data-val-password-min") || "6";
+            const reqUpper = el.getAttribute("data-val-password-uppercase") === "true";
+            const reqLower = el.getAttribute("data-val-password-lowercase") === "true";
+            const reqDigit = el.getAttribute("data-val-password-digit") === "true";
+            const reqSpecial = el.getAttribute("data-val-password-special") === "true";
+
+            let html = `<div class="nc-password-requirement-item" data-req="length">
+                            <i class="fa fa-circle-o"></i> <span>At least ${reqMin} characters</span>
+                        </div>`;
+
+            if (reqUpper)
+                html += `<div class="nc-password-requirement-item" data-req="uppercase">
+                                        <i class="fa fa-circle-o"></i> <span>One uppercase letter (A-Z)</span>
+                                    </div>`;
+
+            if (reqLower)
+                html += `<div class="nc-password-requirement-item" data-req="lowercase">
+                                        <i class="fa fa-circle-o"></i> <span>One lowercase letter (a-z)</span>
+                                    </div>`;
+
+            if (reqDigit)
+                html += `<div class="nc-password-requirement-item" data-req="digit">
+                                        <i class="fa fa-circle-o"></i> <span>One numeric digit (0-9)</span>
+                                    </div>`;
+
+            if (reqSpecial)
+                html += `<div class="nc-password-requirement-item" data-req="special">
+                                        <i class="fa fa-circle-o"></i> <span>One special character (!@#$%^&*)</span>
+                                    </div>`;
+
+            popup.innerHTML = html;
             wrapper.appendChild(popup);
         }
 
@@ -259,53 +293,48 @@ window.ValidationEngine = {
             length: popup.querySelector('[data-req="length"]'),
             uppercase: popup.querySelector('[data-req="uppercase"]'),
             lowercase: popup.querySelector('[data-req="lowercase"]'),
-            digit: popup.querySelector('[data-req="digit"]')
+            digit: popup.querySelector('[data-req="digit"]'),
+            special: popup.querySelector('[data-req="special"]'),
         };
 
         const updateRequirements = () => {
             const val = el.value;
+            const reqMin = parseInt(el.getAttribute("data-val-password-min") || "6");
 
             // Length check
-            const isLengthOk = val.length >= 6;
-            this._toggleReq(items.length, isLengthOk);
+            this._toggleReq(items.length, val.length >= reqMin);
 
-            // Uppercase check
-            const isUpperOk = /[A-Z]/.test(val);
-            this._toggleReq(items.uppercase, isUpperOk);
-
-            // Lowercase check
-            const isLowerOk = /[a-z]/.test(val);
-            this._toggleReq(items.lowercase, isLowerOk);
-
-            // Digit check
-            const isDigitOk = /[0-9]/.test(val);
-            this._toggleReq(items.digit, isDigitOk);
+            // Conditional requirements
+            if (items.uppercase) this._toggleReq(items.uppercase, /[A-Z]/.test(val));
+            if (items.lowercase) this._toggleReq(items.lowercase, /[a-z]/.test(val));
+            if (items.digit) this._toggleReq(items.digit, /[0-9]/.test(val));
+            if (items.special) this._toggleReq(items.special, /[^a-zA-Z0-9]/.test(val));
         };
 
-        el.addEventListener('focus', () => {
+        el.addEventListener("focus", () => {
             updateRequirements();
-            popup.classList.add('show');
+            popup.classList.add("show");
         });
 
-        el.addEventListener('blur', () => {
-            popup.classList.remove('show');
+        el.addEventListener("blur", () => {
+            popup.classList.remove("show");
         });
 
-        el.addEventListener('input', updateRequirements);
+        el.addEventListener("input", updateRequirements);
     },
 
     _toggleReq(item, isOk) {
         if (!item) return;
-        const icon = item.querySelector('i');
+        const icon = item.querySelector("i");
         if (isOk) {
-            item.classList.add('success');
-            icon.className = 'fa fa-check-circle';
+            item.classList.add("success");
+            icon.className = "fa fa-check-circle";
         } else {
-            item.classList.remove('success');
-            icon.className = 'fa fa-circle-o';
+            item.classList.remove("success");
+            icon.className = "fa fa-circle-o";
         }
-    }
+    },
 };
 
 // Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', () => window.ValidationEngine.init());
+document.addEventListener("DOMContentLoaded", () => window.ValidationEngine.init());

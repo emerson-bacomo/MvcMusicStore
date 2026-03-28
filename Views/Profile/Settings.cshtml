@@ -1,4 +1,7 @@
 @model MvcMusic.ViewModels.SettingsViewModel
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Options
+@inject IOptions<IdentityOptions> IdentityOptions
 
 @{
     ViewData["Title"] = "Account Settings";
@@ -64,12 +67,20 @@
                         </div>
 
                         <div class="nc-floating-group nc-password-wrapper">
-                            <input asp-for="NewPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " data-label="New Password" autocomplete="new-password" />
+                            <input asp-for="NewPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " 
+                                   data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
+                                   data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
+                                   data-val-password-lowercase="@IdentityOptions.Value.Password.RequireLowercase.ToString().ToLower()"
+                                   data-val-password-digit="@IdentityOptions.Value.Password.RequireDigit.ToString().ToLower()"
+                                   data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()"
+                                   data-label="New Password" autocomplete="new-password" />
                             <label class="nc-floating-label" asp-for="NewPassword">New Password</label>
                         </div>
 
                         <div class="nc-floating-group nc-password-wrapper">
-                            <input asp-for="ConfirmPassword" class="nc-floating-control" type="password" placeholder=" " data-label="Confirm Password" autocomplete="new-password" />
+                            <input asp-for="ConfirmPassword" class="nc-floating-control" type="password" placeholder=" " 
+                                   data-compare="#NewPassword" data-val-equalto="Passwords do not match."
+                                   data-label="Confirm Password" autocomplete="new-password" />
                             <label class="nc-floating-label" asp-for="ConfirmPassword">Confirm Password</label>
                         </div>
                     </div>
@@ -87,45 +98,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const newPass = document.getElementById('NewPassword');
-            const confirmPass = document.getElementById('ConfirmPassword');
-            const currentPass = document.getElementById('CurrentPassword');
-            const btnSave = document.getElementById('btnSaveSettings');
-
-            function validatePasswords() {
-                const val = newPass.value;
-                const confirmVal = confirmPass.value;
-                
-                if (val.length > 0) {
-                    currentPass.setAttribute('required', 'required');
-                    confirmPass.setAttribute('required', 'required');
-                    
-                    if (val.length < 6) {
-                        window.ValidationEngine.setError(newPass, "New password must be at least 6 characters.");
-                    } else {
-                        window.ValidationEngine.setError(newPass, "");
-                    }
-
-                    if (val !== confirmVal) {
-                        window.ValidationEngine.setError(confirmPass, "Passwords do not match.");
-                        btnSave.disabled = true;
-                    } else {
-                        window.ValidationEngine.setError(confirmPass, "");
-                        btnSave.disabled = val.length < 6;
-                    }
-                } else {
-                    currentPass.removeAttribute('required');
-                    confirmPass.removeAttribute('required');
-                    window.ValidationEngine.setError(newPass, "");
-                    window.ValidationEngine.setError(confirmPass, "");
-                    btnSave.disabled = false;
-                }
-            }
-
-            newPass.addEventListener('input', validatePasswords);
-            confirmPass.addEventListener('input', validatePasswords);
-        });
-    </script>
+    @* Validation is handled by ValidationEngine.js *@
 }

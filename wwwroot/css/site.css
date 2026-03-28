@@ -58,6 +58,14 @@ body {
     overflow-x: hidden;
 }
 
+html {
+    scrollbar-gutter: stable;
+}
+
+.nc-checkbox-label {
+    user-select: none !important;
+}
+
 /* ── Typography ─────────────────────────────────────────────────── */
 h1,
 h2,
@@ -310,6 +318,10 @@ nav .nav-link.active {
     color: var(--nc-text-secondary);
 }
 
+.nc-password-wrapper, .nc-floating-group, .nc-floating-input {
+    position: relative;
+}
+
 /* Alerts & Validation */
 .nc-alert {
     padding: 1rem 1.25rem;
@@ -361,7 +373,7 @@ nav .nav-link.active {
 /* ── Password Requirements Popup ──────────────────────────────── */
 .nc-password-requirements-popup {
     position: absolute;
-    top: calc(100% + 8px);
+    bottom: calc(100% + 12px);
     left: 0;
     width: 100%;
     background: var(--nc-bg-card);
@@ -371,10 +383,10 @@ nav .nav-link.active {
     border-radius: var(--nc-radius-sm);
     padding: 1.25rem;
     z-index: 1010;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -15px 35px rgba(0, 0, 0, 0.5); /* Shadow adjusted for top position */
     display: none;
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
 }
@@ -720,6 +732,54 @@ input[type=number] {
     opacity: 1;
     visibility: visible;
 }
+
+/* ── Custom 1715px Breakpoint ─────────────────────────────────── */
+.navbar-expand-custom {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.navbar-expand-custom .navbar-collapse {
+    display: none !important;
+    flex-basis: auto;
+}
+
+.navbar-expand-custom .navbar-toggler,
+.nc-mobile-menu-toggle {
+    display: flex !important;
+}
+
+.me-custom-5 { margin-right: 0 !important; }
+.mb-custom-0 { margin-bottom: 2rem !important; }
+.d-custom-none { display: flex !important; }
+
+/* Mobile Detail Grid: Hide right column */
+@media (max-width: 992px) {
+    .nc-detail-info {
+        display: none !important;
+    }
+    .nc-detail-card {
+        grid-template-columns: 1fr !important;
+        padding: 2.5rem !important;
+        gap: 2rem !important;
+    }
+}
+
+@media (min-width: 1715px) {
+    .navbar-expand-custom .navbar-collapse {
+        display: flex !important;
+    }
+    .navbar-expand-custom .navbar-toggler,
+    .nc-mobile-menu-toggle.d-custom-none {
+        display: none !important;
+    }
+    .navbar-expand-custom .navbar-nav {
+        flex-direction: row;
+    }
+    .me-custom-5 { margin-right: 3rem !important; }
+    .mb-custom-0 { margin-bottom: 0 !important; }
+}
+
 
 /* ── Tables migrated to UpdatableTable ────────────────────────────── */
 
@@ -1084,3 +1144,185 @@ input[type="password"] {
     -webkit-appearance: none;
     -moz-appearance: none;
 }
+
+/* ── Change Tracking UI (Restored Logic) ─────────────────────────── */
+.nc-changed-indicator {
+    position: absolute;
+    left: -12px; /* Floating look */
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    background: #ffb74d;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expanded hit area for indicator */
+.nc-changed-indicator::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    left: -10px;
+    right: -10px;
+}
+
+
+.nc-unified-category-anchor {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 40;
+    white-space: nowrap;
+}
+
+
+.nc-pd-category-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nc-pd-category-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.5rem 2.5rem 0.5rem 1.25rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.nc-pd-category-chevron {
+    position: absolute;
+    right: 1rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+}
+
+
+.nc-changed-indicator:hover {
+    width: 6px;
+    background: #ffa726;
+    box-shadow: 0 0 10px rgba(255, 183, 77, 0.4);
+}
+
+#indicator-CategoryId {
+    top: 5px;
+    bottom: 5px;
+}
+
+.ut-revert-cell-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.ut-revert-cell-btn:hover {
+    background: rgba(255, 183, 77, 0.15);
+    border-color: #ffb74d;
+    color: #ffb74d;
+    transform: scale(1.05);
+}
+
+.ut-revert-cell-btn i {
+    font-size: 0.75rem;
+}
+
+
+
+
+.nc-indicator-gallery {
+    left: -12px;
+}
+
+.nc-indicator-stat-card {
+    left: -2px;
+    top: 15px !important;
+    bottom: 15px !important;
+    height: auto !important;
+    width: 3px !important;
+}
+
+.nc-indicator-banner-img {
+    left: -12px;
+    width: 3px !important;
+}
+
+.nc-changes-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--nc-primary);
+    color: white;
+    font-size: 8px;
+    font-weight: 800;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--nc-bg-card);
+    z-index: 100;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+
+/* Layout Consistency Fixes */
+.nc-detail-card {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important; /* Ensure 50/50 split remains stable */
+    gap: 4rem;
+    padding: 3rem;
+    background: var(--nc-bg-card);
+    border-radius: 3rem;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Prevent Price/Description Jumping */
+.nc-editable-span {
+    min-height: 1.2em;
+    display: inline-block;
+    transition: none !important; /* Remove transitions during mode switch to prevent "growing" feel */
+    line-height: inherit;
+}
+
+.nc-description {
+    line-height: 1.5 !important;
+    padding: 0.75rem 0;
+    margin: 0;
+}
+
+.nc-description-edit {
+    line-height: 1.5 !important;
+    padding: 0.75rem 1rem !important;
+    min-height: calc(1.5em + 1.5rem) !important; /* line-height + padding */
+    height: auto;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+}

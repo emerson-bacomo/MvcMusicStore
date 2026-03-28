@@ -1,4 +1,7 @@
     @model MvcMusic.ViewModels.RegisterViewModel
+    @using Microsoft.AspNetCore.Identity
+    @using Microsoft.Extensions.Options
+    @inject IOptions<IdentityOptions> IdentityOptions
 
 @{
     ViewData["Title"] = "Register";
@@ -29,7 +32,12 @@
     </div>
 
     <nc-floating-input label="Password" icon="fa fa-lock" class="nc-password-wrapper">
-        <input asp-for="Password" class="nc-floating-control nc-password-strength" type="password" placeholder=" " autocomplete="new-password" id="Password" />
+        <input asp-for="Password" class="nc-floating-control nc-password-strength" type="password" placeholder=" " autocomplete="new-password" id="Password" 
+               data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
+               data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
+               data-val-password-lowercase="@IdentityOptions.Value.Password.RequireLowercase.ToString().ToLower()"
+               data-val-password-digit="@IdentityOptions.Value.Password.RequireDigit.ToString().ToLower()"
+               data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()" />
     </nc-floating-input>
 
     <nc-floating-input label="Confirm Password" icon="fa fa-shield" class="nc-password-wrapper">

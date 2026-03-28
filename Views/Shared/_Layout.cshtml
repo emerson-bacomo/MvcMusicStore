@@ -72,7 +72,7 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg" 
+    <nav class="navbar navbar-expand-custom" 
          style="position: fixed; 
                 top: 0; 
                 left: 0; 
@@ -87,7 +87,7 @@
                 padding: 0 2rem; 
                 transition: var(--transition);">
         <div class="container-fluid px-4 mx-auto">
-            <a class="navbar-brand m-0 me-lg-5" asp-controller="Landing" asp-action="Hero" 
+            <a class="navbar-brand m-0 me-custom-5" asp-controller="Landing" asp-action="Hero" 
                style="font-family: 'Orbitron', sans-serif; 
                       font-size: 1.5rem; 
                       font-weight: 900; 
@@ -99,7 +99,7 @@
                 &#9835; NightCord
             </a>
             
-            <button class="nc-mobile-menu-toggle d-lg-none" type="button" id="ncMobileMenuToggle" aria-label="Open Menu"
+            <button class="nc-mobile-menu-toggle d-custom-none" type="button" id="ncMobileMenuToggle" aria-label="Open Menu"
                     style="border: 1px solid var(--nc-border); 
                            background: var(--nc-bg-card); 
                            color: var(--nc-primary); 
@@ -114,7 +114,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto mb-2 mb-custom-0">
                     <li class="nav-item">
                         <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
                             <i class="fa fa-home me-1"></i> Home
@@ -279,7 +279,7 @@
                                                    margin: 0.5rem 0; 
                                                    opacity: 1;"></li>
                                     <li>
-                                        <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@returnUrl" method="post" class="m-0">
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
                                             @Html.AntiForgeryToken()
                                             <button type="submit" class="dropdown-item text-danger d-flex align-items-center w-100 border-0 background-none"
                                                     style="color: var(--nc-error) !important; 
@@ -423,7 +423,7 @@
                     <a class="nc-mobile-nav-link" asp-controller="Profile" asp-action="Index">
                         <i class="fa fa-user-circle"></i> Profile
                     </a>
-                    <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@returnUrl" method="post" class="mt-2">
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="mt-2">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn-nc-outline w-100 text-danger border-danger" style="font-size: 0.85rem; padding: 0.85rem;">
                             <i class="fa fa-right-from-bracket me-2"></i> Sign Out
