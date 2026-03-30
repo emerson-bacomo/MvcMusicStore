@@ -164,9 +164,8 @@ nc-floating-input.nc-has-content:not(.nc-is-focused) .nc-floating-label,
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    cursor: help;
-    pointer-events: auto;
-    /* Enable hover for tooltip */
+    cursor: default;
+    pointer-events: none;
     transition: background 0.2s;
     flex-shrink: 0;
 }
@@ -188,8 +187,8 @@ nc-floating-input.nc-has-content:not(.nc-is-focused) .nc-floating-label,
     padding: 0.75rem 1rem;
     border-radius: 8px;
     font-size: 0.85rem;
-    width: 400px;
-    max-width: 90vw;
+    width: max-content;
+    min-width: 400px;
     pointer-events: none;
     white-space: pre-wrap;
     /* For multi-line errors */
@@ -201,7 +200,7 @@ nc-floating-input.nc-has-content:not(.nc-is-focused) .nc-floating-label,
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 100, 100, 0.2);
-    z-index: 1020;
+    z-index: 2000;
 }
 
 /* Arrow for tooltip */
@@ -217,7 +216,10 @@ nc-floating-input.nc-has-content:not(.nc-is-focused) .nc-floating-label,
 }
 
 /* Whole label is the popup trigger */
-.nc-floating-label:hover .nc-error-popup {
+.nc-floating-label:hover .nc-error-popup,
+.nc-pd-floating-label:hover .nc-error-popup,
+.nc-show-all-errors .nc-error-popup,
+.nc-error-popup.show {
     opacity: 1;
     transform: translateY(0);
 }

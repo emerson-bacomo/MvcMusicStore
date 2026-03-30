@@ -7,26 +7,41 @@
 <div class="nc-page">
     <div class="nc-container">
         <div class="nc-page-header">
-            <div>
-                <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-file-invoice me-1"></i> Order Details</div>
-                <h1 class="nc-page-title">Order #@Model.Id</h1>
-                <p class="nc-text-muted mt-1" style="font-size:0.88rem;">Placed on @Model.OrderDate.ToString("MMMM d, yyyy h:mm tt")</p>
+            <div class="container d-flex flex-wrap justify-content-between align-items-end gap-3">
+                <div>
+                    <div class="nc-text-muted mb-2" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">
+                        <i class="fa fa-file-invoice me-2"></i> Order Overview
+                    </div>
+                    <h1 class="order-id-display mb-1">#@Model.Id</h1>
+                    <p class="nc-text-muted mb-0" style="font-size:0.9rem;">
+                        Placed on <span class="text-white">@Model.OrderDate.ToString("MMMM d, yyyy")</span> at <span class="text-white">@Model.OrderDate.ToString("h:mm tt")</span>
+                    </p>
+                </div>
+                <div class="text-end">
+                    <div class="nc-text-muted mb-2 text-uppercase" style="font-size:0.7rem; letter-spacing:1px;">Current Status</div>
+                    <span class="cust-badge @(Model.Status switch { "Delivered" => "active", "OnDelivery" => "delivery", "Pending" => "pending", "Cancelled" => "cancelled", _ => "" })">
+                        <i class="fa @(Model.Status switch { "Delivered" => "fa-check-circle", "OnDelivery" => "fa-truck", "Pending" => "fa-clock", "Cancelled" => "fa-times-circle", _ => "fa-info-circle" })"></i>
+                        @(Model.Status == "OnDelivery" ? "On Delivery" : Model.Status)
+                    </span>
+                </div>
             </div>
         </div>
 
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="nc-card mb-4">
-                    <div class="nc-card-body">
-                        <h3 class="nc-form-section-title">Order Items</h3>
+                    <div class="nc-card-body p-4">
+                        <h3 class="nc-form-section-title">
+                            <i class="fa fa-shopping-basket"></i> Order Items
+                        </h3>
                         <div class="nc-table-responsive">
-                            <table class="nc-table">
-                                <thead>
+                            <table class="nc-table align-middle">
+                                <thead style="border-bottom: 2px solid var(--nc-border);">
                                     <tr>
-                                        <th><i class="fa fa-box me-1"></i> Product</th>
-                                        <th class="text-center" style="width:1%;white-space:nowrap">Quantity</th>
-                                        <th class="text-end" style="width:1%;white-space:nowrap">Unit Price</th>
-                                        <th class="text-end" style="width:1%;white-space:nowrap">Total</th>
+                                        <th class="ps-0 pb-3" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--nc-text-muted);">Product Detail</th>
+                                        <th class="text-center pb-3" style="width:1%; white-space:nowrap; font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--nc-text-muted);">Quantity</th>
+                                        <th class="text-end pb-3" style="width:1%; white-space:nowrap; font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--nc-text-muted);">Unit Price</th>
+                                        <th class="text-end pe-0 pb-3" style="width:1%; white-space:nowrap; font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--nc-text-muted);">Subtotal</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -35,14 +50,13 @@
                                         var primaryImage = item.Product?.ProductImages?.FirstOrDefault(img => img.IsPrimary)?.Url 
                                                          ?? item.Product?.ProductImages?.FirstOrDefault()?.Url;
                                         
-                                        // Use snapshots if available, fallback to current product info
                                         var displayName = item.ProductName ?? item.Product?.Name ?? "Deleted Product";
                                         var displayPrice = item.Price > 0 ? item.Price : (decimal)(item.Product?.Price ?? 0);
                                         
-                                        <tr class="order-item-row" onclick="location.href='@Url.Action("Details", "Products", new { id = item.ProductId })'" style="cursor:pointer;">
-                                            <td>
+                                        <tr class="order-item-row" onclick="location.href='@Url.Action("Details", "Products", new { id = item.ProductId })'" style="cursor:pointer; border-bottom: 1px solid var(--nc-border);">
+                                            <td class="ps-0 py-4">
                                                 <div class="d-flex align-items-center gap-3">
-                                                    <div class="product-icon-box">
+                                                    <div class="product-icon-box flex-shrink-0">
                                                         @if (!string.IsNullOrEmpty(primaryImage))
                                                         {
                                                             <img src="@primaryImage" alt="@displayName" class="w-100 h-100 rounded" style="object-fit:cover;">
@@ -53,72 +67,85 @@
                                                         }
                                                     </div>
                                                     <div>
-                                                        <div class="fw-semibold">@displayName</div>
+                                                        <div class="fw-bold text-white mb-1">@displayName</div>
                                                         <div class="nc-text-muted" style="font-size:0.75rem;">
-                                                            @if (item.Product != null) { <span>@item.Product.Brand | @item.Product.Category</span> }
-                                                            else { <span class="text-danger">Product data no longer available</span> }
+                                                            @if (item.Product != null) { 
+                                                                <span class="badge bg-dark border border-secondary px-2 py-1 mb-1" style="font-size:0.6rem;">@item.Product.Brand</span>
+                                                                <span class="ms-1">@item.Product.Category</span> 
+                                                            } else { 
+                                                                <span class="text-danger italic">Snapshot info only</span> 
+                                                            }
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="text-center fw-semibold" style="width:1%;white-space:nowrap">@item.Quantity</td>
-                                            <td class="text-end" style="width:1%;white-space:nowrap">₱@displayPrice.ToString("N2")</td>
-                                            <td class="text-end fw-bold" style="width:1%;white-space:nowrap;color:var(--nc-primary);">₱@((displayPrice * item.Quantity).ToString("N2"))</td>
+                                            <td class="text-center py-4">
+                                                <span class="badge bg-dark border border-secondary px-3 py-2 fw-bold" style="font-size:0.9rem;">× @item.Quantity</span>
+                                            </td>
+                                            <td class="text-end py-4 text-nowrap" style="font-size:0.95rem; font-weight:500;">₱@displayPrice.ToString("N2")</td>
+                                            <td class="text-end pe-0 py-4 text-nowrap">
+                                                <span class="fw-bold" style="font-size:1.05rem; color:var(--nc-primary);">₱@((displayPrice * item.Quantity).ToString("N2"))</span>
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="3" class="text-end fw-semibold pt-4">Grand Total:</td>
-                                        <td class="text-end fw-bolder pt-4" style="font-size:1.25rem; color:var(--nc-primary);">₱@Model.TotalAmount.ToString("N2")</td>
-                                    </tr>
-                                </tfoot>
                             </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end mt-4">
+                            <div class="total-pill">
+                                <span class="nc-text-muted text-uppercase mb-1" style="font-size:0.7rem; font-weight:700; letter-spacing:1px;">Grand Total</span>
+                                <span class="fw-black text-white" style="font-size:1.75rem; font-family:'Orbitron', sans-serif;">₱@Model.TotalAmount.ToString("N2")</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="nc-card mb-4">
-                    <div class="nc-card-body">
-                        <h3 class="nc-form-section-title">Customer Details</h3>
-                        @if (!string.IsNullOrEmpty(Model.Username))
-                        {
-                            <div class="info-group mb-3">
-                                <label class="nc-label">Username (Snapshot)</label>
-                                <div class="fw-semibold">@Model.Username</div>
+                <div class="nc-card mb-4 position-relative">
+                    <div class="nc-card-body p-4">
+                        <i class="fa fa-user-circle info-card-icon"></i>
+                        <h3 class="nc-form-section-title">Customer</h3>
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width:48px; height:48px; font-size:1.2rem; background: linear-gradient(135deg, var(--nc-primary), #fff) !important;">
+                                @(string.IsNullOrEmpty(Model.UserFullName) ? (ViewBag.CustomerName as string)?[0] : Model.UserFullName[0])
                             </div>
-                            <div class="info-group mb-3">
-                                <label class="nc-label">Full Name (Snapshot)</label>
-                                <div class="nc-text-secondary">@Model.UserFullName</div>
+                            <div>
+                                <div class="fw-bold text-white">@(Model.UserFullName ?? ViewBag.CustomerName)</div>
+                                <div class="nc-text-muted" style="font-size:0.8rem;">@@@(Model.Username ?? "customer")</div>
                             </div>
-                        }
-                        else
-                        {
-                            <div class="info-group mb-3">
-                                <label class="nc-label">Name</label>
-                                <div class="fw-semibold">@ViewBag.CustomerName</div>
-                            </div>
-                        }
-                        <div class="info-group mb-3">
-                            <label class="nc-label">Email</label>
-                            <div class="nc-text-secondary">@ViewBag.CustomerEmail</div>
                         </div>
 
-                        <h3 class="nc-form-section-title mt-4">Shipping Info</h3>
-                        <div class="info-group mb-3">
-                            <label class="nc-label">Receiver Name</label>
-                            <div class="fw-semibold">@(Model.ReceiverName ?? ViewBag.CustomerName)</div>
-                        </div>
-                        <div class="info-group mb-3">
-                            <label class="nc-label">Delivery Address</label>
-                            <div class="nc-text-secondary" style="font-size: 0.85rem;">@(Model.Address ?? "No address provided")</div>
-                        </div>
                         <div class="info-group">
-                            <label class="nc-label">Status</label>
-                            <span class="cust-badge @(Model.Status switch { "Delivered" => "active", "OnDelivery" => "delivery", "Pending" => "pending", "Cancelled" => "cancelled", _ => "" })">
-                                @(Model.Status == "OnDelivery" ? "On Delivery" : Model.Status)
-                            </span>
+                            <label class="nc-label">Email Address</label>
+                            <div class="text-white d-flex align-items-center gap-2">
+                                <i class="fa fa-envelope opacity-50"></i>
+                                @ViewBag.CustomerEmail
+                            </div>
+                            <a href="mailto:@ViewBag.CustomerEmail" class="btn btn-link p-0 mt-1" style="font-size:0.75rem;">Send Message</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nc-card mb-4 position-relative">
+                    <div class="nc-card-body p-4">
+                        <i class="fa fa-truck info-card-icon"></i>
+                        <h3 class="nc-form-section-title">Shipping</h3>
+                        
+                        <div class="info-group mb-4">
+                            <label class="nc-label">Recipient</label>
+                            <div class="fw-semibold text-white">
+                                <i class="fa fa-user me-2 opacity-50"></i>
+                                @(Model.ReceiverName ?? Model.UserFullName ?? ViewBag.CustomerName)
+                            </div>
+                        </div>
+
+                        <div class="info-group">
+                            <label class="nc-label">Delivery Address</label>
+                            <div class="nc-text-secondary" style="line-height:1.6;">
+                                <i class="fa fa-map-marker-alt me-2 opacity-50"></i>
+                                @(Model.Address ?? "No shipping address provided")
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -126,19 +153,19 @@
                 @if ((User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("SalesStaff")) && Model.Status != "Delivered" && Model.Status != "Cancelled")
                 {
                     <div class="nc-card">
-                        <div class="nc-card-body">
-                            <h3 class="nc-form-section-title">Actions</h3>
+                        <div class="nc-card-body p-4">
+                            <h3 class="nc-form-section-title">Manage Order</h3>
                             <div class="d-flex flex-column gap-2">
                                 <form asp-action="MarkDelivered" asp-route-id="@Model.Id" method="post" class="w-100">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-nc-primary w-100">
-                                        <i class="fa fa-check-circle me-1"></i> Mark as Delivered
+                                    <button type="submit" class="btn-nc-primary w-100 py-3 rounded-3 shadow-sm border-0">
+                                        <i class="fa fa-check-circle me-2"></i> Confirm Delivery
                                     </button>
                                 </form>
                                 <form asp-action="CancelOrder" asp-route-id="@Model.Id" method="post" class="w-100" onsubmit="return confirm('Are you sure you want to cancel this order?')">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-nc-outline w-100" style="color:var(--nc-error); border-color:var(--nc-error); padding: 0.85rem;">
-                                        <i class="fa fa-times-circle me-1"></i> Cancel Order
+                                    <button type="submit" class="btn btn-outline-danger w-100 py-3 rounded-3 border-1" style="border-style: dashed;">
+                                        <i class="fa fa-times-circle me-2"></i> Cancel Order
                                     </button>
                                 </form>
                             </div>
@@ -152,64 +179,154 @@
 
 @section Styles {
     <style>
+        .nc-page-header {
+            background: rgba(var(--nc-primary-rgb), 0.03);
+            border-bottom: 1px solid var(--nc-border);
+            padding: 2.5rem 0;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nc-page-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--nc-primary), transparent);
+            opacity: 0.3;
+        }
+
+        .order-id-display {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, var(--nc-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        .order-item-row {
+            transition: var(--transition);
+        }
+
         .order-item-row:hover {
-            background: rgba(123, 171, 221, 0.08) !important;
+            background: rgba(var(--nc-primary-rgb), 0.05) !important;
+            transform: scale(1.002) translateX(4px);
         }
 
         .product-icon-box {
-            width: 44px;
-            height: 44px;
-            background: rgba(123, 171, 221, 0.1);
-            border-radius: 8px;
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--nc-primary);
-            border: 1px solid var(--nc-border);
+            border: 1.5px solid var(--nc-border);
             overflow: hidden;
+            transition: var(--transition);
         }
 
-        .cust-badge {
-            font-size: 0.73rem;
-            padding: 0.2rem 0.7rem;
-            border-radius: 100px;
-            font-weight: 700;
-            display: inline-block;
-            text-transform: uppercase;
+        .order-item-row:hover .product-icon-box {
+            border-color: var(--nc-primary);
+            box-shadow: 0 0 15px rgba(var(--nc-primary-rgb), 0.2);
         }
+
+        /* Enhanced Badges */
+        .cust-badge {
+            font-size: 0.7rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+
+        .cust-badge i { font-size: 0.8rem; }
 
         .cust-badge.active {
-            background: rgba(129, 199, 132, 0.1);
+            background: rgba(129, 199, 132, 0.08);
             color: #81c784;
-            border: 1px solid rgba(129, 199, 132, 0.2);
+            border-color: rgba(129, 199, 132, 0.2);
+            box-shadow: 0 0 15px rgba(129, 199, 132, 0.1);
         }
 
         .cust-badge.delivery {
-            background: rgba(123, 171, 221, 0.1);
+            background: rgba(123, 171, 221, 0.08);
             color: #7babdd;
-            border: 1px solid rgba(123, 171, 221, 0.2);
+            border-color: rgba(123, 171, 221, 0.2);
+            box-shadow: 0 0 15px rgba(123, 171, 221, 0.1);
         }
 
         .cust-badge.pending {
-            background: rgba(255, 183, 77, 0.1);
+            background: rgba(255, 183, 77, 0.08);
             color: #ffb74d;
-            border: 1px solid rgba(255, 183, 77, 0.2);
+            border-color: rgba(255, 183, 77, 0.2);
+            box-shadow: 0 0 15px rgba(255, 183, 77, 0.1);
         }
 
         .cust-badge.cancelled {
-            background: rgba(244, 67, 54, 0.1);
+            background: rgba(244, 67, 54, 0.08);
             color: #f44336;
-            border: 1px solid rgba(244, 67, 54, 0.2);
+            border-color: rgba(244, 67, 54, 0.2);
+            box-shadow: 0 0 15px rgba(244, 67, 54, 0.1);
         }
 
         .nc-form-section-title {
-            font-size: 0.8rem;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--nc-border);
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
             color: var(--nc-primary);
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .nc-form-section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--nc-border), transparent);
+        }
+
+        .info-group .nc-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--nc-text-muted);
+            margin-bottom: 0.35rem;
+            display: block;
+        }
+
+        .total-pill {
+            background: rgba(var(--nc-primary-rgb), 0.1);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 1.5px solid rgba(var(--nc-primary-rgb), 0.2);
+            display: inline-flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .info-card-icon {
+            font-size: 1.25rem;
+            color: var(--nc-primary);
+            opacity: 0.5;
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
         }
     </style>
 }

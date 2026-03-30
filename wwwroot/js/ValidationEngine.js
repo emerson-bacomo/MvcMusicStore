@@ -133,6 +133,12 @@ window.ValidationEngine = {
     },
 
     setError(el, message) {
+        if (message) {
+            el.classList.add("is-invalid");
+        } else {
+            el.classList.remove("is-invalid");
+        }
+
         // Support both floating labels and standard labels
         const label = el.parentElement.querySelector(".nc-floating-label, .nc-pd-floating-label, .nc-label");
         if (!label) return;
@@ -141,7 +147,6 @@ window.ValidationEngine = {
         let errorPopup = label.querySelector(".nc-error-popup");
 
         if (message) {
-            el.classList.add("is-invalid");
             if (!errorInline) {
                 errorInline = document.createElement("span");
                 errorInline.className = "nc-error-inline";

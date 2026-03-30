@@ -137,7 +137,7 @@
                             let links = `<a href="/Products/Details/${rowData.id}" class="nc-action-link" title="View"><i class="fa fa-eye"></i></a>`;
                             
                             if (isAdmin || isProductStaff) {
-                                links += `<a href="/Products/Edit/${rowData.id}" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>`;
+                                links += `<a href="/Products/Details/${rowData.id}#edit" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>`;
                             }
 
                             if (isAdmin) {

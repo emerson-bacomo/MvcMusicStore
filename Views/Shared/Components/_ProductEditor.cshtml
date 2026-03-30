@@ -3,48 +3,64 @@
     var categories = ViewBag.Categories as List<MvcMusic.Models.Category> ?? new List<MvcMusic.Models.Category>();
     var brands = ViewBag.Brands as List<MvcMusic.Models.Brand> ?? new List<MvcMusic.Models.Brand>();
     var primaryUrl = Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url;
+    var isCreate = ViewData["IsCreate"] as bool? ?? false;
 }
 
-<div class="nc-detail-container" id="productDetailContainer" data-product-id="@Model.Id">
+<div class="nc-detail-container @(isCreate ? "nc-edit-mode" : "")" id="productDetailContainer" data-product-id="@(isCreate ? "0" : Model.Id)" data-is-create="@isCreate.ToString().ToLower()">
     <!-- Admin Action Toolbar (Sibling) -->
     @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("ProductStaff"))
     {
         <div class="nc-gutter-actions">
-            <!-- DISPLAY MODE: Delete then Edit -->
-            <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
-                <i class="fa fa-trash"></i>
-            </button>
-            <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
-                <i class="fa fa-pen"></i>
-            </button>
-            
-            <!-- EDIT MODE: Revert, Save, then Exit -->
-            <div class="nc-editable-actions flex-row gap-3">
-                <div class="nc-action-wrapper position-relative">
-                    <button type="button" id="clearEditorChangesGutter" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #ffb74d;" title="Clear Changes">
-                        <i class="fa fa-undo"></i>
+            @if (isCreate)
+            {
+                <div class="flex-row gap-3" style="display: flex;">
+                    <a href="javascript:history.back()" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #fff; width: auto; padding: 0 1.5rem; text-decoration: none;" title="Cancel">
+                        <i class="fa fa-times me-2"></i> Cancel
+                    </a>
+                    <button type="button" onclick="if(window.editor) window.editor.forceSubmitCreate(); else document.getElementById('inPlaceEditForm').submit();" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white; width: auto; padding: 0 1.5rem;" title="Save Product">
+                        <i class="fa fa-save me-2"></i> Create Product
                     </button>
                 </div>
-
-
-                <div class="nc-action-wrapper position-relative">
-                    <button type="button" id="saveEditorChangesGutter" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white; overflow: visible;" title="Save Changes">
-                        <i class="fa fa-save"></i>
-                        <div id="changesIndicator" class="nc-changes-badge" style="display: none;" title="Unsaved Changes">0</div>
-                    </button>
-                </div>
-
-
-                <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit" title="Exit Cancel">
-                    <i class="fa fa-times"></i>
+            }
+            else
+            {
+                <!-- DISPLAY MODE: Delete then Edit -->
+                <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
+                    <i class="fa fa-trash"></i>
                 </button>
-            </div>
+                <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
+                    <i class="fa fa-pen"></i>
+                </button>
+                
+                <!-- EDIT MODE: Revert, Save, then Exit -->
+                <div class="nc-editable-actions flex-row gap-3">
+                    <div class="nc-action-wrapper position-relative">
+                        <button type="button" id="clearEditorChangesGutter" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #ffb74d;" title="Clear Changes">
+                            <i class="fa fa-undo"></i>
+                        </button>
+                    </div>
+
+                    <div class="nc-action-wrapper position-relative">
+                        <button type="button" id="saveEditorChangesGutter" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white; overflow: visible;" title="Save Changes">
+                            <i class="fa fa-save"></i>
+                            <div id="changesIndicator" class="nc-changes-badge" style="display: none;" title="Unsaved Changes">0</div>
+                        </button>
+                    </div>
+
+                    <button type="button" id="exitEditMode" class="nc-gutter-btn nc-btn-cancel-edit" title="Exit Cancel">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            }
         </div>
     }
 
-    <form id="inPlaceEditForm" action="@Url.Action("UpdateProduct", "Products")" method="post" enctype="multipart/form-data">
+    <form id="inPlaceEditForm" action="@(isCreate ? Url.Action("Create", "Products") : Url.Action("UpdateProduct", "Products"))" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
-        <input type="hidden" name="Id" value="@Model.Id" />
+        @if (!isCreate)
+        {
+            <input type="hidden" name="Id" value="@Model.Id" />
+        }
         <input type="hidden" name="primaryImage" id="primaryImageInput" value="@(Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url)" />
         <input type="hidden" name="imageOrder" id="imageOrderInput" value="@string.Join(",", (Model.ProductImages ?? new List<MvcMusic.Models.ProductImage>()).OrderBy(p => p.SortOrder).Select(p => p.Url))" />
         <input type="hidden" name="deletedImages" id="deletedImagesInput" value="[]" />
@@ -52,7 +68,7 @@
         <div class="nc-detail-card">
             <!-- Visual Section -->
             <div class="d-flex flex-column gap-2">
-                <div class="w-100 position-relative overflow-hidden" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
+                <div class="w-100 position-relative overflow-hidden nc-visual-stack" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
                     <div id="productCarousel" class="carousel slide h-100 nc-main-image-wrapper">
                         <div class="carousel-inner h-100" id="carouselTrack">
                             @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
@@ -91,7 +107,7 @@
                         }
                     </div>
 
-                    <!-- Category Pills - Moved here to be absolute children of the main container -->
+                    <!-- Category Pills -->
                     <div class="nc-read-only-hide nc-unified-category-anchor">
                         <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
                     </div>
@@ -99,19 +115,20 @@
                         <div class="position-relative d-inline-block">
                             <div id="indicator-CategoryId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('CategoryId', 'Category', this)"></div>
                             <div class="nc-pd-category-select-wrapper">
-                                <select name="CategoryId" class="nc-pd-category-select" onchange="editor.trackFieldChange('CategoryId', this.value)" data-initial-value="@Model.CategoryId">
+                                <select name="CategoryId" class="nc-pd-category-select" onchange="editor.trackFieldChange('CategoryId', this.value)" data-initial-value="@Model.CategoryId" required data-val-required="Product Category is required.">
+                                    <option value="" selected="@(Model.CategoryId == null ? "selected" : null)" style="display:none;">Select Category...</option>
                                     @foreach(var c in categories) {
                                         <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
                                     }
                                 </select>
+                                <label class="nc-pd-floating-label" style="opacity:0; pointer-events:none; width:0; height:0; margin:0; padding:0; overflow:visible; position:absolute; z-index:9999;"></label>
                                 <i class="fa fa-chevron-down nc-pd-category-chevron"></i>
                             </div>
                         </div>
                     </div>
 
-                    <div class="nc-editable w-100 h-100 d-flex flex-column justify-content-center position-absolute" style="background: #0f141e; inset: 0; z-index: 30; padding: 5rem 2rem 2rem 2rem; gap: 1rem;">
-
-
+                    <!-- Upload Zone & Overlay -->
+                    <div class="nc-editable nc-visual-edit-overlay w-100 d-flex flex-column justify-content-center" style="position: absolute; inset: 5rem 0 0 0; padding: 0 2rem 2rem 2rem; gap: 1rem;">
                         <div class="nc-upload-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
                             <i class="fa fa-upload"></i>
                             <span>Drag & Drop or Click to Upload</span>
@@ -165,12 +182,12 @@
                                         </span>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-pd-stock-input nc-stat-field" oninput="editor.trackFieldChange('Stock', this.value)" data-initial-value="@Model.Stock" />
+                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-pd-stock-input nc-stat-field" oninput="editor.trackFieldChange('Stock', this.value)" data-initial-value="@Model.Stock" required data-val-required="Stock is required." min="0" />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="nc-meta-stat">
+                        <div class="nc-meta-stat nc-read-only-invisible">
                             <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
                             <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Product Rating</span>
@@ -179,7 +196,7 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="nc-meta-stat">
+                        <div class="nc-meta-stat nc-read-only-invisible">
                             <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
                             <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Sales Performance</span>
@@ -200,11 +217,13 @@
                         </div>
                         <div class="nc-input-edit position-relative">
                             <div id="indicator-BrandId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('BrandId', 'Brand', this)"></div>
-                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select nc-pd-brand-select" onchange="editor.trackFieldChange('BrandId', this.value)" data-initial-value="@Model.BrandId">
+                            <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select nc-pd-brand-select" onchange="editor.trackFieldChange('BrandId', this.value)" data-initial-value="@Model.BrandId" required data-val-required="Brand is required.">
+                                <option value="" selected="@(Model.BrandId == null ? "selected" : null)" style="display:none;">Select Brand...</option>
                                 @foreach(var b in brands) {
                                     <option value="@b.Id" selected="@(b.Id == Model.BrandId ? "selected" : null)">@b.Name</option>
                                 }
                             </select>
+                            <label class="nc-pd-floating-label" style="opacity:0; pointer-events:none; width:0; height:0; margin:0; padding:0; overflow:visible; position:absolute; z-index:9999;"></label>
                         </div>
                     </div>
 
@@ -216,7 +235,7 @@
                             <div id="indicator-Name" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Name', 'Product Name', this)"></div>
                             <div class="nc-pd-floating-group nc-static-placeholder">
                                 <textarea name="Name" id="edit-name" class="nc-pd-floating-control nc-detail-name-edit" rows="1" placeholder=" "
-                                          oninput="editor.trackFieldChange('Name', this.value)" data-initial-value="@Model.Name"
+                                          oninput="editor.trackFieldChange('Name', this.value)" data-initial-value="@Model.Name" required
                                           data-label="Product Name" data-val-required="Product Name is required." data-val-length-min="3" data-val-length-max="50">@Model.Name</textarea>
                                 <label for="edit-name" class="nc-pd-floating-label"><span class="nc-label-text">Product Name</span></label>
                             </div>
@@ -235,7 +254,7 @@
                                 <div id="indicator-Price" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Price', 'Price', this)"></div>
                                 <div style="display: flex; align-items: center; width: 100%;">
                                     <span class="nc-currency-sign nc-currency-edit">₱</span>
-                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" oninput="editor.trackFieldChange('Price', this.value)" data-initial-value="@Model.Price" />
+                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" oninput="editor.trackFieldChange('Price', this.value)" data-initial-value="@Model.Price" required data-val-required="Price is required." min="0.01" />
                                 </div>
                             </div>
                         </div>
@@ -290,7 +309,6 @@
                                                   oninput="editor.autoSize(this); editor.trackFieldChange('BannerDescription', this.value)" data-initial-value="@Model.BannerDescription">@Model.BannerDescription</textarea>
                                     </div>
                                 </div>
-v>
                             </div>
                             <div class="position-relative">
                                 <span class="nc-spec-label">Banner Image</span>
@@ -320,7 +338,7 @@ v>
                                         <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" />
                                     </div>
                                     <div class="nc-url-input-group mt-2">
-                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-pd-select py-2 px-3" placeholder="Banner URL..." />
+                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-input" placeholder="Banner URL..." />
                                         <label for="bannerUrlInput" class="nc-pd-floating-label" style="display:none;">Banner Image URL</label>
                                     </div>
                                 </div>
@@ -363,13 +381,88 @@ v>
 
 
 <style>
-    /* ── Details Container & Card ──────────────────────────────── */
+    /* Ensure the options use dark mode to avoid gray/white text issues on Windows native dropdowns */
+    .nc-pd-select, .nc-pd-category-select {
+        color-scheme: dark;
+        color: #fff !important;
+    }
+    .nc-pd-select:invalid, .nc-pd-category-select:invalid {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    .nc-pd-select option, .nc-pd-category-select option {
+        background: #1a1f2c;
+        color: #fff !important;
+    }
+    .nc-pd-select option:disabled, .nc-pd-category-select option:disabled,
+    .nc-pd-select option[value=""], .nc-pd-category-select option[value=""] {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    .nc-upload-zone.is-invalid {
+        border-color: var(--nc-error) !important;
+        background: rgba(var(--nc-error-rgb), 0.05);
+        color: var(--nc-error);
+    }
+    
+    .nc-upload-zone.is-invalid i {
+        color: var(--nc-error);
+    }
+    
+    #img-drop-err {
+        pointer-events: none !important;
+    }
+
+    .nc-input {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        color: #fff !important;
+        padding: 0.7rem 1.25rem !important;
+        font-size: 0.95rem !important;
+        width: 100% !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        outline: none !important;
+    }
+
+    .nc-input:focus {
+        border-color: var(--nc-primary) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 0 0 4px rgba(123, 171, 221, 0.15) !important;
+    }
+
     .nc-detail-container {
-        padding: 2rem 0; /* Reduced top padding, relying more on card margins */
+        padding: 2rem 0;
         animation: fadeIn 0.6s ease-out;
         position: relative;
         max-width: 1400px;
-        margin: 2rem auto; /* Added margin for better centering */
+        margin: 2rem auto;
+    }
+
+    /* ── Visual Stack (Unified parent for Carousel, Pills, Upload) ── */
+    .nc-visual-stack {
+        transition: background 0.4s ease;
+    }
+    .nc-edit-mode .nc-visual-stack {
+        background: #0f141e !important;
+        overflow: visible !important;
+    }
+    .nc-edit-mode .nc-main-image-wrapper,
+    .nc-edit-mode .nc-main-image-placeholder {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .nc-visual-edit-overlay {
+        z-index: 20;
+        transition: opacity 0.4s ease;
+        pointer-events: none; /* Allow clicking through to the category badge/select below it */
+    }
+
+    .nc-visual-edit-overlay .nc-upload-zone,
+    .nc-visual-edit-overlay .nc-url-input-group,
+    .nc-visual-edit-overlay .nc-error-popup {
+        pointer-events: all; /* Re-enable for the actual interaction areas */
     }
 
     .nc-detail-card {
@@ -438,6 +531,12 @@ v>
         animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
+    /* ── Info Section Base Stacking ────────────────────────────────────────── */
+    .nc-detail-info {
+        position: relative;
+        z-index: 100;
+    }
+
     @@keyframes popIn {
         from { transform: scale(0); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
@@ -461,7 +560,8 @@ v>
     .nc-stack-grid > * {
         grid-area: stack;
         width: 100%;
-        height: 100%;
+        height: auto;
+        align-self: start;
         transition: opacity 0.4s ease, visibility 0.4s ease;
     }
 
@@ -475,6 +575,7 @@ v>
     .nc-edit-mode .nc-editable-actions { display: flex; opacity: 1; pointer-events: all; flex-direction: row; }
     
     .nc-edit-mode .nc-read-only-hide { opacity: 0; visibility: hidden; pointer-events: none; display: none !important; }
+    .nc-edit-mode .nc-read-only-invisible { opacity: 0; visibility: hidden; pointer-events: none; }
 
     .nc-checkbox-label {
         user-select: none !important;
@@ -483,6 +584,12 @@ v>
 
     .nc-stack-grid .nc-pd-floating-group {
         margin-top: 0 !important; /* Forces the Name field to not arbitrarily expand the grid downward */
+    }
+
+    /* Prevent wide text blowouts */
+    .nc-editable-span, .nc-pd-floating-control, .nc-pd-stock-input {
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
 
     /* ── Click-To-Edit Dynamic Styling ──────────────────────── */
@@ -925,8 +1032,14 @@ v>
     .nc-img-nav.next { right: 1.5rem; }
 
     /* Category badge — both read-only link and edit select share same pill styling */
+    .nc-unified-category-anchor {
+        position: absolute;
+        top: 1.5rem;
+        left: 1.5rem;
+        z-index: 10; /* Lower than overlay (20) so the overlay's error popups show on top */
+    }
+
     .nc-image-badge, .nc-pd-category-select {
-        z-index: 20 !important;
         background: var(--nc-primary) !important;
         color: #fff !important;
         padding: 0.5rem 1.4rem !important;

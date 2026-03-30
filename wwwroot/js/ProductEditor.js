@@ -4,10 +4,13 @@ class ProductEditor {
         if (!this.container) return;
 
         this.productId = this.container.dataset.productId;
+        this.isCreate = this.container.dataset.isCreate === "true";
         this.form = document.getElementById("inPlaceEditForm");
         this.storageKey = `product-edit-${this.productId}`;
 
-        this.originalState = this.captureState();
+        this.originalState = this.isCreate
+            ? { fields: {}, images: { primary: "", order: "", deleted: "", bannerUrl: "" } }
+            : this.captureState();
         this.changedFields = new Set();
         this.isInfiniteScrolling = false;
         this.currentImgIndex = 0;
@@ -20,19 +23,23 @@ class ProductEditor {
         this.setupEventListeners();
         this.setupCarousel();
         this.setupDragDrop();
-        this.loadFromLocalStorage();
+        if (!this.isCreate) {
+            this.loadFromLocalStorage();
+        }
         this.checkChanges();
 
         // URL State Sync
-        if (window.location.hash === "#edit") {
-            this.setEditMode(true);
-        }
-        window.addEventListener("hashchange", () => {
-            const shouldEdit = window.location.hash === "#edit";
-            if (shouldEdit !== this.container.classList.contains("nc-edit-mode")) {
-                this.setEditMode(shouldEdit);
+        if (!this.isCreate) {
+            if (window.location.hash === "#edit") {
+                this.setEditMode(true);
             }
-        });
+            window.addEventListener("hashchange", () => {
+                const shouldEdit = window.location.hash === "#edit";
+                if (shouldEdit !== this.container.classList.contains("nc-edit-mode")) {
+                    this.setEditMode(shouldEdit);
+                }
+            });
+        }
 
         // Initial auto-resize for textareas
         this.form.querySelectorAll("textarea").forEach((ta) => this.autoSize(ta));
@@ -82,7 +89,6 @@ class ProductEditor {
         });
         document.getElementById("clearEditorChanges")?.addEventListener("click", (e) => this.clearChanges(e.currentTarget));
 
-
         // Click outside to close popups
         document.addEventListener("click", (e) => {
             if (e.target.id === "ncGlobalOverlay") {
@@ -90,11 +96,14 @@ class ProductEditor {
                 return;
             }
 
-            if (!e.target.closest(".nc-localized-popup") && !e.target.closest(".nc-gutter-btn") && !e.target.closest(".nc-changed-indicator")) {
+            if (
+                !e.target.closest(".nc-localized-popup") &&
+                !e.target.closest(".nc-gutter-btn") &&
+                !e.target.closest(".nc-changed-indicator")
+            ) {
                 this.closeLocalizedPopups();
             }
         });
-
 
         // Image Handling
         document.getElementById("newImageUrlInput")?.addEventListener("keypress", (e) => {
@@ -153,24 +162,37 @@ class ProductEditor {
         const field = input.name;
         if (!field) return;
 
-        if (input.tagName === "TEXTAREA") this.autoSize(input);
+        if (input.tagName === "TEXTAREA") {
+            this.autoSize(input);
+            // In a CSS grid stack, the invisible span dictates the height floor.
+            // By updating it immediately, the parent grid shrinks when text is deleted.
+            const wrapper = input.closest(".nc-editable-wrapper");
+            if (wrapper) this.updateSpan(wrapper);
+        }
 
         const val = input.type === "checkbox" ? (input.checked ? "true" : "false") : input.value;
         this.trackFieldChange(field, val);
-        
+
         this.validateField(input);
         this.saveToLocalStorage();
     }
 
     trackFieldChange(field, value) {
         if (!field) return;
-        
+
         const input = this.form.querySelector(`[name="${field}"]`);
         if (!input) return;
 
         const initial = input.dataset.initialValue;
-        let current = value !== undefined ? String(value) : (input.type === "checkbox" ? (input.checked ? "true" : "false") : String(input.value));
-        
+        let current =
+            value !== undefined
+                ? String(value)
+                : input.type === "checkbox"
+                  ? input.checked
+                      ? "true"
+                      : "false"
+                  : String(input.value);
+
         let isChanged = current !== String(initial);
 
         // Normalize numeric comparison for Price to avoid formatting mismatches (e.g. "1500" vs "1500.00")
@@ -249,21 +271,188 @@ class ProductEditor {
         const activeImages = this.container.querySelectorAll(".nc-gallery-item:not(.nc-to-delete)");
         if (activeImages.length === 0) {
             window.showToast("At least one product image is required.", "error");
+
+            const dropZone = document.getElementById("dropZone");
+            const urlInput = document.getElementById("newImageUrlInput");
+
+            if (dropZone) {
+                dropZone.classList.add("is-invalid");
+
+                // Cancel any pending reset timers
+                if (dropZone._invalidTimer) clearTimeout(dropZone._invalidTimer);
+
+                let err = document.getElementById("img-drop-err");
+                if (!err) {
+                    err = document.createElement("div");
+                    err.id = "img-drop-err";
+                    err.className = "nc-error-popup";
+                    err.textContent = "At least one product image is required.";
+                    err.style.bottom = "calc(100% + 12px)";
+                    err.style.left = "50%";
+                    err.style.transform = "translateX(-50%)";
+                    err.style.pointerEvents = "none";
+                    dropZone.style.position = "relative";
+                    dropZone.appendChild(err);
+                }
+
+                // Always reset display before adding show (fixes re-show after hide)
+                err.style.display = "block";
+                // Force reflow so transition triggers even when re-showed
+                err.offsetHeight;
+                err.classList.add("show");
+
+                dropZone._invalidTimer = setTimeout(() => {
+                    dropZone.classList.remove("is-invalid");
+                    err.classList.remove("show");
+                    // Wait for CSS transition to finish before hiding
+                    setTimeout(() => {
+                        err.style.display = "none";
+                    }, 300);
+                }, 3000);
+            }
+
+            if (urlInput) {
+                const urlGroup = urlInput.closest(".nc-url-input-group");
+                const urlBtn = urlGroup?.querySelector("button");
+
+                // Cancel any pending reset
+                if (urlInput._invalidTimer) clearTimeout(urlInput._invalidTimer);
+
+                urlInput.style.setProperty("border", "2px solid #ef5350", "important");
+                urlInput.style.setProperty("box-shadow", "0 0 10px rgba(239, 83, 80, 0.3)", "important");
+
+                if (urlBtn) {
+                    urlBtn.style.setProperty("background", "#ef5350", "important");
+                    urlBtn.style.setProperty("box-shadow", "0 4px 12px rgba(239, 83, 80, 0.5)", "important");
+                }
+
+                urlInput._invalidTimer = setTimeout(() => {
+                    urlInput.style.removeProperty("border");
+                    urlInput.style.removeProperty("box-shadow");
+                    if (urlBtn) {
+                        urlBtn.style.removeProperty("background");
+                        urlBtn.style.removeProperty("box-shadow");
+                    }
+                }, 3000);
+            }
+
             isValid = false;
         }
 
         // 2. Check Banner requirements
         const isBanner = this.form.querySelector('[name="IsBanner"]').checked;
         if (isBanner) {
-            const bannerDesc = this.form.querySelector('[name="BannerDescription"]').value.trim();
-            const bannerUrl = this.form.querySelector('[name="BannerImageUrl"]').value.trim();
-            if (!bannerDesc || !bannerUrl) {
-                window.showToast("Banner featured products require a description and image.", "error");
+            const bannerDesc = this.form.querySelector('[name="BannerDescription"]');
+            const bannerUrl = document.getElementById("bannerUrlInput");
+            
+            if (bannerDesc && !bannerDesc.value.trim()) {
+                window.showToast("Banner description is required.", "error");
+                if (bannerDesc._invalidTimer) clearTimeout(bannerDesc._invalidTimer);
+                bannerDesc.style.setProperty("border", "1.5px solid #ef5350", "important");
+                bannerDesc.style.setProperty("box-shadow", "0 0 10px rgba(239, 83, 80, 0.3)", "important");
+                bannerDesc._invalidTimer = setTimeout(() => {
+                    bannerDesc.style.removeProperty("border");
+                    bannerDesc.style.removeProperty("box-shadow");
+                }, 3000);
+                isValid = false;
+            }
+
+            if (bannerUrl && !bannerUrl.value.trim()) {
+                window.showToast("Banner image URL is required.", "error");
+                if (bannerUrl._invalidTimer) clearTimeout(bannerUrl._invalidTimer);
+                bannerUrl.style.setProperty("border", "1.5px solid #ef5350", "important");
+                bannerUrl.style.setProperty("box-shadow", "0 0 10px rgba(239, 83, 80, 0.3)", "important");
+                bannerUrl._invalidTimer = setTimeout(() => {
+                    bannerUrl.style.removeProperty("border");
+                    bannerUrl.style.removeProperty("box-shadow");
+                }, 3000);
                 isValid = false;
             }
         }
 
-        // 3. Trigger all field validations
+        // 3. Check Category
+        const categorySelect = this.form.querySelector('[name="CategoryId"]');
+        if (categorySelect && !categorySelect.value) {
+            window.showToast("Please select a product category.", "error");
+            if (categorySelect._invalidTimer) clearTimeout(categorySelect._invalidTimer);
+            categorySelect.style.setProperty("box-shadow", "0 0 0 2px #ef5350, 0 0 10px rgba(239, 83, 80, 0.4)", "important");
+
+            // nc-visual-stack is overflow:visible in edit mode, so use normal relative anchor
+            const catAnchor = categorySelect.closest(".position-relative");
+            if (catAnchor) {
+                let catErr = document.getElementById("cat-select-err");
+                if (!catErr) {
+                    catErr = document.createElement("div");
+                    catErr.id = "cat-select-err";
+                    catErr.className = "nc-error-popup";
+                    catErr.textContent = "Please select a category.";
+                    catErr.style.bottom = "calc(100% + 10px)";
+                    catErr.style.left = "0";
+                    catErr.style.pointerEvents = "none";
+                    catErr.style.minWidth = "220px";
+                    catAnchor.appendChild(catErr);
+                }
+                catErr.style.display = "block";
+                catErr.offsetHeight;
+                catErr.classList.add("show");
+            }
+
+            categorySelect._invalidTimer = setTimeout(() => {
+                categorySelect.style.removeProperty("box-shadow");
+                const catErr = document.getElementById("cat-select-err");
+                if (catErr) {
+                    catErr.classList.remove("show");
+                    setTimeout(() => {
+                        catErr.style.display = "none";
+                    }, 300);
+                }
+            }, 3000);
+            isValid = false;
+        }
+
+        // 4. Check Brand
+        const brandSelect = this.form.querySelector('[name="BrandId"]');
+        if (brandSelect && !brandSelect.value) {
+            window.showToast("Please select a product brand.", "error");
+            if (brandSelect._invalidTimer) clearTimeout(brandSelect._invalidTimer);
+            brandSelect.style.setProperty("border", "1.5px solid #ef5350", "important");
+            brandSelect.style.setProperty("box-shadow", "0 0 10px rgba(239, 83, 80, 0.3)", "important");
+
+            // Brand is in nc-detail-info (no overflow:hidden), use relative anchor
+            const brandAnchor = brandSelect.closest(".position-relative");
+            if (brandAnchor) {
+                let brandErr = document.getElementById("brand-select-err");
+                if (!brandErr) {
+                    brandErr = document.createElement("div");
+                    brandErr.id = "brand-select-err";
+                    brandErr.className = "nc-error-popup";
+                    brandErr.textContent = "Please select a brand.";
+                    brandErr.style.bottom = "calc(100% + 10px)";
+                    brandErr.style.left = "0";
+                    brandErr.style.pointerEvents = "none";
+                    brandErr.style.minWidth = "220px";
+                    brandAnchor.appendChild(brandErr);
+                }
+                brandErr.style.display = "block";
+                brandErr.offsetHeight;
+                brandErr.classList.add("show");
+            }
+
+            brandSelect._invalidTimer = setTimeout(() => {
+                brandSelect.style.removeProperty("border");
+                brandSelect.style.removeProperty("box-shadow");
+                const brandErr = document.getElementById("brand-select-err");
+                if (brandErr) {
+                    brandErr.classList.remove("show");
+                    setTimeout(() => {
+                        brandErr.style.display = "none";
+                    }, 300);
+                }
+            }, 3000);
+            isValid = false;
+        }
+
+        // 5. Trigger all field validations
         this.form.querySelectorAll("input, select, textarea").forEach((input) => {
             this.validateField(input);
             if (input.classList.contains("is-invalid")) {
@@ -272,15 +461,20 @@ class ProductEditor {
                 const wrapper = input.closest(".nc-pd-floating-group");
                 if (wrapper) {
                     wrapper.classList.add("nc-show-all-errors");
-                    setTimeout(() => wrapper.classList.remove("nc-show-all-errors"), 2000);
+                    setTimeout(() => wrapper.classList.remove("nc-show-all-errors"), 3000);
                 }
             }
         });
+
+        if (!isValid) {
+            window.showToast("Please fix the validation errors before saving.", "error");
+        }
 
         return isValid;
     }
 
     checkChanges() {
+        if (this.isCreate) return;
         const count = this.changedFields.size;
         const indicatorBadge = document.getElementById("changesIndicator");
         const saveBar = document.getElementById("editorSaveBar");
@@ -293,11 +487,11 @@ class ProductEditor {
         }
 
         if (saveBar) saveBar.style.display = count > 0 ? "block" : "none";
-        
+
         if (gutterSave) {
             // Disabled but visible is often better for UX stability
             gutterSave.classList.toggle("opacity-50", count === 0);
-            gutterSave.disabled = (count === 0);
+            gutterSave.disabled = count === 0;
         }
         if (gutterRevert) {
             gutterRevert.style.display = count > 0 ? "flex" : "none";
@@ -479,7 +673,12 @@ class ProductEditor {
     addImageUrl() {
         const input = document.getElementById("newImageUrlInput");
         const url = input.value.trim();
-        if (!url) return;
+        if (!url) {
+            window.showToast("Please enter a valid image URL.", "error");
+            input.classList.add("is-invalid");
+            setTimeout(() => input.classList.remove("is-invalid"), 3000);
+            return;
+        }
         this.appendTempImage(url);
         input.value = "";
     }
@@ -523,15 +722,17 @@ class ProductEditor {
     }
 
     updateImageOrder() {
-        const urls = Array.from(document.querySelectorAll(".nc-image-gallery .nc-gallery-item:not(.nc-to-delete)")).map((it) => it.dataset.url);
+        const urls = Array.from(document.querySelectorAll(".nc-image-gallery .nc-gallery-item:not(.nc-to-delete)")).map(
+            (it) => it.dataset.url,
+        );
         document.getElementById("imageOrderInput").value = urls.join(",");
         this.checkGalleryChanges();
         this.saveToLocalStorage();
     }
 
     checkGalleryChanges() {
-        const oldOrder = (this.originalState.images.order || "").split(",").filter(x => x);
-        const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter(x => x);
+        const oldOrder = (this.originalState.images.order || "").split(",").filter((x) => x);
+        const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter((x) => x);
         const oldPrimary = this.originalState.images.primary;
         const newPrimary = document.getElementById("primaryImageInput").value;
 
@@ -602,13 +803,14 @@ class ProductEditor {
         this.changedFields.clear();
         this.checkChanges();
         localStorage.removeItem(this.storageKey);
-        
+
         if (typeof window.showToast === "function") {
             window.showToast("All changes cleared.", "info");
         }
     }
 
     saveToLocalStorage() {
+        if (this.isCreate) return;
         const state = {
             fields: {},
             changed: Array.from(this.changedFields),
@@ -658,7 +860,7 @@ class ProductEditor {
         const gallery = document.getElementById("imageGallery");
         if (!gallery) return;
 
-        const order = orderValue.split(",").filter(x => x);
+        const order = orderValue.split(",").filter((x) => x);
         const deleted = JSON.parse(deletedValue || "[]");
 
         // 1. Re-sort gallery items in DOM
@@ -671,12 +873,12 @@ class ProductEditor {
             if (idxB === -1) return -1;
             return idxA - idxB;
         });
-        items.forEach(item => gallery.appendChild(item));
+        items.forEach((item) => gallery.appendChild(item));
 
         // 2. Update classes (active/thumbnail/deleted)
-        gallery.querySelectorAll(".nc-gallery-item").forEach(item => {
+        gallery.querySelectorAll(".nc-gallery-item").forEach((item) => {
             const url = item.dataset.url;
-            
+
             // Primary
             const isPrimary = url === primaryValue;
             item.classList.toggle("is-thumbnail", isPrimary);
@@ -694,8 +896,17 @@ class ProductEditor {
     }
 
     // --- New Localized Popups ---
-    showLocalizedPopup(type, title, icon, onConfirm, confirmText, content, triggerEl, confirmClass = "btn-nc-primary", hideArrow = false) {
-
+    showLocalizedPopup(
+        type,
+        title,
+        icon,
+        onConfirm,
+        confirmText,
+        content,
+        triggerEl,
+        confirmClass = "btn-nc-primary",
+        hideArrow = false,
+    ) {
         const customContent = `
             <div class="ut-diff-container">
                 ${content}
@@ -726,12 +937,9 @@ class ProductEditor {
             customContent,
             confirmClass,
             "nc-localized-popup",
-            hideArrow
+            hideArrow,
         );
-
     }
-
-
 
     revertGallery() {
         this.changedFields.delete("Images");
@@ -764,9 +972,20 @@ class ProductEditor {
         }
     }
 
+    forceSubmitCreate() {
+        if (!this.validateForm()) return;
 
+        // Ensure image order is synced before submit
+        this.updateImageOrder();
 
+        const btn = document.getElementById("forceSaveEditorButton");
+        if (btn) {
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Creating...';
+            btn.disabled = true;
+        }
 
+        this.form.submit();
+    }
 
     showRevertPopup(field, label, el) {
         const input = this.form.querySelector(`[name="${field}"]`);
@@ -796,9 +1015,8 @@ class ProductEditor {
             "Revert Field",
             diffHtml,
             el,
-            "btn-danger"
+            "btn-danger",
         );
-
     }
 
     revertField(field, refresh = true) {
@@ -815,13 +1033,12 @@ class ProductEditor {
         this.handleInputChange(input);
         const wrapper = input.closest(".nc-editable-wrapper");
         if (wrapper) this.updateSpan(wrapper);
-        
+
         if (refresh) {
             this.checkChanges();
             this.saveToLocalStorage();
         }
     }
-
 
     renderDiffTable(isRevert = false) {
         const diff = this.calculateDiff(isRevert);
@@ -832,7 +1049,6 @@ class ProductEditor {
         html += "<tbody>";
 
         diff.forEach((d) => {
-
             if (d.type === "gallery") {
                 html += `<tr><td>${d.field}</td><td colspan="2">`;
 
@@ -867,10 +1083,10 @@ class ProductEditor {
                 });
 
                 html += "</td>";
-                html += isRevert ? `<td><button type="button" class="ut-revert-cell-btn" title="Revert Gallery" onclick="editor.handleRowRevert(this, 'Images', true)"><i class="fa fa-undo"></i></button></td>` : "";
+                html += isRevert
+                    ? `<td><button type="button" class="ut-revert-cell-btn" title="Revert Gallery" onclick="editor.handleRowRevert(this, 'Images', true)"><i class="fa fa-undo"></i></button></td>`
+                    : "";
                 html += "</tr>";
-
-
             } else {
                 html += `
                     <tr>
@@ -949,7 +1165,6 @@ class ProductEditor {
             return;
         }
 
-
         const content = this.renderDiffTable(true);
         this.showLocalizedPopup(
             "clear",
@@ -963,13 +1178,11 @@ class ProductEditor {
             content,
             triggerEl,
             "btn-danger",
-            true
+            true,
         );
-
     }
 
     async saveChanges(triggerEl) {
-
         if (!this.validateForm()) return;
 
         if (this.changedFields.size === 0) {
@@ -1010,9 +1223,8 @@ class ProductEditor {
             content,
             triggerEl,
             "btn-nc-primary",
-            true
+            true,
         );
-
     }
 }
 
