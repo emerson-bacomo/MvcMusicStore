@@ -22,5 +22,6 @@ namespace MvcMusic.Models
         public virtual ApplicationUser? Customer { get; set; }
 
         public virtual ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
+        public bool IsDeleted { get; set; } = false;
     }
 }

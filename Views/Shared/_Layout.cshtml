@@ -173,7 +173,7 @@
                             </li>
                         }
 
-                        @if (isAdminOrSuper || User.IsInRole("CustomerStaff"))
+                        @if (isAdminOrSuper || User.IsInRole("CustomerStaff") || User.IsInRole("SalesStaff"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
@@ -388,7 +388,7 @@
                         </li>
                     }
 
-                    @if (isAdminOrSuper || User.IsInRole("CustomerStaff"))
+                    @if (isAdminOrSuper || User.IsInRole("CustomerStaff") || User.IsInRole("SalesStaff"))
                     {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Support" ? "active" : "")" asp-controller="Support" asp-action="Index">
