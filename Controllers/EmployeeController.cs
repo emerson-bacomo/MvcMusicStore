@@ -353,7 +353,7 @@ namespace MvcMusic.Controllers
                 id = e.user.Id,
                 isBanned = e.user.IsBanned,
                 profilePicture = e.user.ProfilePicture,
-                firstName = string.IsNullOrEmpty(e.user.FirstName) ? "User" : e.user.FirstName,
+                firstName = string.IsNullOrEmpty(e.user.FirstName) ? "Employee" : e.user.FirstName,
                 recordStatus = e.user.RecordStatus.ToString()
             });
 

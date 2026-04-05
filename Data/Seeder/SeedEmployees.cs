@@ -27,7 +27,7 @@ namespace MvcMusic.Data
                     EmailConfirmed = true,
                     DateCreated = DateTime.UtcNow
                 };
-                if ((await userManager.CreateAsync(superAdmin, "SuperAdmin@123")).Succeeded)
+                if ((await userManager.CreateAsync(superAdmin, "Password123")).Succeeded)
                 {
                     logger.LogInformation("Created SuperAdmin user: {Email}", superAdminEmail);
                     await userManager.AddToRoleAsync(superAdmin, "SuperAdmin");
@@ -51,7 +51,7 @@ namespace MvcMusic.Data
                     EmailConfirmed = true,
                     DateCreated = DateTime.UtcNow
                 };
-                if ((await userManager.CreateAsync(user, "Admin@123")).Succeeded)
+                if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     logger.LogInformation("Created Admin user: {Email}", adminEmail);
                     await userManager.AddToRoleAsync(user, "Admin");
@@ -66,7 +66,7 @@ namespace MvcMusic.Data
             if (await userManager.FindByEmailAsync(stockEmail) == null)
             {
                 var user = new ApplicationUser { UserName = $"{year}-T0001", Email = stockEmail, FirstName = "Tina", LastName = "Stone", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
-                if ((await userManager.CreateAsync(user, "StockStaff@123")).Succeeded)
+                if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "StockStaff");
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"StockStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
@@ -78,7 +78,7 @@ namespace MvcMusic.Data
             if (await userManager.FindByEmailAsync(productEmail) == null)
             {
                 var user = new ApplicationUser { UserName = $"{year}-P0001", Email = productEmail, FirstName = "Paula", LastName = "Cruz", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
-                if ((await userManager.CreateAsync(user, "ProductStaff@123")).Succeeded)
+                if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "ProductStaff");
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"ProductStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
@@ -90,7 +90,7 @@ namespace MvcMusic.Data
             if (await userManager.FindByEmailAsync(salesEmail) == null)
             {
                 var user = new ApplicationUser { UserName = $"{year}-L0001", Email = salesEmail, FirstName = "Leon", LastName = "Drake", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
-                if ((await userManager.CreateAsync(user, "SalesStaff@123")).Succeeded)
+                if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "SalesStaff");
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"SalesStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
@@ -102,7 +102,7 @@ namespace MvcMusic.Data
             if (await userManager.FindByEmailAsync(customerEmail) == null)
             {
                 var user = new ApplicationUser { UserName = $"{year}-C0001", Email = customerEmail, FirstName = "Clara", LastName = "Vance", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
-                if ((await userManager.CreateAsync(user, "CustomerStaff@123")).Succeeded)
+                if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "CustomerStaff");
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"CustomerStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);

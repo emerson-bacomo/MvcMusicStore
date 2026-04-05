@@ -89,7 +89,7 @@
 
         <!-- Filter Bar -->
         <form id="homeFilterForm" method="get" asp-action="Index">
-            <div class="d-flex align-items-stretch flex-wrap gap-3 mb-4">
+            <div class="d-flex align-items-stretch flex-wrap gap-3 my-4">
                 <div class="position-relative flex-grow-1" style="min-width: 250px;">
                     <i class="fa fa-search position-absolute top-50 translate-middle-y" 
                        style="
@@ -194,6 +194,7 @@
                         display: grid; 
                         grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); 
                         gap: 1.5rem;
+                        margin-bottom: 1.5rem;
                     ">
                     @foreach (var product in Model)
                     {

@@ -67,7 +67,7 @@ namespace MvcMusic.Controllers
             }
 
             // 2. Update Username (Customer only)
-            if (User.IsInRole("User") && user.UserName != model.Username && !string.IsNullOrEmpty(model.Username))
+            if (User.IsInRole("Customer") && user.UserName != model.Username && !string.IsNullOrEmpty(model.Username))
             {
                 var existing = await _userManager.FindByNameAsync(model.Username);
                 if (existing != null && existing.Id != user.Id)

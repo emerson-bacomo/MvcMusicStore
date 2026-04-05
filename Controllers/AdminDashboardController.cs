@@ -34,7 +34,7 @@ namespace MvcMusic.Controllers
             vm.TotalProducts = await _context.Product.CountAsync();
 
             // Count Users by Role efficiently
-            var userRoleId = await _context.Roles.Where(r => r.Name == "User").Select(r => r.Id).FirstOrDefaultAsync();
+            var userRoleId = await _context.Roles.Where(r => r.Name == "Customer").Select(r => r.Id).FirstOrDefaultAsync();
             vm.TotalCustomers = await _context.UserRoles.CountAsync(ur => ur.RoleId == userRoleId);
 
             var employeeRoleIds = await _context.Roles

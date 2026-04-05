@@ -169,8 +169,8 @@ namespace MvcMusic.Controllers
             var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, "User");
-                await _logger.LogAsync(ActivityAction.Register, "Registered a new account.", user.Id, user.UserName, "User", user.FullName);
+                await _userManager.AddToRoleAsync(user, "Customer");
+                await _logger.LogAsync(ActivityAction.Register, "Registered a new account.", user.Id, user.UserName, "Customer", user.FullName);
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))

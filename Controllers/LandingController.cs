@@ -17,10 +17,15 @@ namespace MvcMusic.Controllers
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
-                {
+                if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                     return RedirectToAction("Index", "AdminDashboard");
-                }
+                
+                if (User.IsInRole("StockStaff") || User.IsInRole("ProductStaff"))
+                    return RedirectToAction("Index", "Products");
+                
+                if (User.IsInRole("CustomerStaff"))
+                    return RedirectToAction("Index", "Customers");
+                    
                 return RedirectToAction("Index", "Home");
             }
             return RedirectToAction("Hero");

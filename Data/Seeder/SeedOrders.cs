@@ -76,7 +76,7 @@ namespace MvcMusic.Data
                 var customer = customers.FirstOrDefault(c => c.Id == order.CustomerId);
                 if (logCount < 20 && customer != null) // Log first 20 orders as activity
                 {
-                    await activityLogger.LogAsync(ActivityAction.PlaceOrder, $"Placed order <a href='/orders/detail/{order.Id}' class='order-link'>#{order.Id}</a> for {order.TotalAmount:C2}.", customer.Id, customer.UserName, "User", customer.FullName);
+                    await activityLogger.LogAsync(ActivityAction.PlaceOrder, $"Placed order <a href='/orders/detail/{order.Id}' class='order-link'>#{order.Id}</a> for {order.TotalAmount:C2}.", customer.Id, customer.UserName, "Customer", customer.FullName);
                     logCount++;
                 }
 

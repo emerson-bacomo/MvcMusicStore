@@ -18,6 +18,7 @@ namespace MvcMusic.Models
         public string Content { get; set; } = string.Empty;
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public bool IsRead { get; set; } = false;
 
         [ForeignKey("RoomId")]
         public virtual ChatRoom? Room { get; set; }

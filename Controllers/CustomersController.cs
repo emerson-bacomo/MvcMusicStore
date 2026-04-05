@@ -33,7 +33,7 @@ namespace MvcMusic.Controllers
         // GET: /customers
         public async Task<IActionResult> Index()
         {
-            var customers = await _userManager.GetUsersInRoleAsync("User");
+            var customers = await _userManager.GetUsersInRoleAsync("Customer");
             return View(customers.OrderByDescending(c => c.DateCreated).ToList());
         }
 
@@ -123,7 +123,7 @@ namespace MvcMusic.Controllers
 
         private async Task<object> FetchCustomersTableData(string? includeIds = null)
         {
-            var customers = await _userManager.GetUsersInRoleAsync("User");
+            var customers = await _userManager.GetUsersInRoleAsync("Customer");
             var sorted = customers.OrderByDescending(c => c.DateCreated).ToList();
 
             if (!string.IsNullOrEmpty(includeIds))
@@ -134,7 +134,7 @@ namespace MvcMusic.Controllers
                     if (!sorted.Any(u => u.Id == id))
                     {
                         var extraUser = await _userManager.FindByIdAsync(id);
-                        if (extraUser != null && await _userManager.IsInRoleAsync(extraUser, "User"))
+                        if (extraUser != null && await _userManager.IsInRoleAsync(extraUser, "Customer"))
                         {
                             sorted.Add(extraUser);
                         }

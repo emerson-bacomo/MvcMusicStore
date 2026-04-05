@@ -6,9 +6,10 @@
     // Centralized Role Checks to avoid CS0136 scoping errors
     var isAdmin = User.IsInRole("Admin");
     var isSuper = User.IsInRole("SuperAdmin");
-    var isStaff = User.IsInRole("Staff") || User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || User.IsInRole("SalesStaff") || User.IsInRole("CustomerStaff");
+    var isStaff = User.IsInRole("StockStaff") || User.IsInRole("ProductStaff") || User.IsInRole("SalesStaff") || User.IsInRole("CustomerStaff");
     var isEmployee = isAdmin || isSuper || isStaff;
     var isAdminOrSuper = isAdmin || isSuper;
+    var hideFooter = ViewData["HideFooter"] != null && (bool)ViewData["HideFooter"];
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -215,7 +216,7 @@
                                 displayName = $"{currentUser.FirstName} {currentUser.LastName}";
                             }
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false"
                                    style="color: var(--nc-text-primary); 
                                           font-weight: 600; 
                                           font-size: 0.85rem; 
@@ -445,6 +446,8 @@
 
     @RenderBody()
 
+    @if (!hideFooter)
+    {
     <footer style="background: #080a0f; 
                    border-top: 1px solid var(--nc-border); 
                    padding: 5rem 0 2rem 0;">
@@ -499,6 +502,7 @@
             </div>
         </div>
     </footer>
+    }
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -551,6 +555,7 @@
     </script>
     <script src="~/js/state-preservation.js" asp-append-version="true"></script>
     <script src="~/js/components/NcFloatingInput.js" asp-append-version="true"></script>
+    <script src="~/js/components/NcSelect.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

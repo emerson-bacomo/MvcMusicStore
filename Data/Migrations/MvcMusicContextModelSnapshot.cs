@@ -348,6 +348,9 @@ namespace MvcMusic.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
                     b.Property<int>("RoomId")
                         .HasColumnType("int");
 
@@ -381,6 +384,9 @@ namespace MvcMusic.Migrations
                     b.Property<string>("CustomerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");

@@ -21,9 +21,15 @@ namespace MvcMusic.Hubs
 
         public async Task JoinSupportGroup()
         {
-            if (Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin") || Context.User.IsInRole("Staff"))
+            await Groups.AddToGroupAsync(Context.ConnectionId, "SupportStaff");
+        }
+
+        public async Task JoinPersonalGroup()
+        {
+            var userId = Context.UserIdentifier;
+            if (!string.IsNullOrEmpty(userId))
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, "SupportStaff");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId}");
             }
         }
 
@@ -59,17 +65,29 @@ namespace MvcMusic.Hubs
                 senderName = sender?.FullName ?? sender?.UserName,
                 content = message.Content,
                 timestamp = message.Timestamp,
-                isStaff = Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin") || Context.User.IsInRole("Staff")
+                isStaff = Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin") || Context.User.IsInRole("CustomerStaff") || Context.User.IsInRole("SalesStaff"),
+                isRead = message.IsRead
             });
 
             // Also notify support staff to update their inbox
-            await Clients.Group("SupportStaff").SendAsync("UpdateInbox", new {
+            var room = await _context.ChatRoom.FindAsync(roomId);
+            var inboxPayload = new {
                 roomId = message.RoomId,
                 content = message.Content,
                 timestamp = message.Timestamp,
                 customerName = sender?.FullName ?? sender?.UserName,
-                subject = (await _context.ChatRoom.FindAsync(roomId))?.Subject
-            });
+                customerId = room?.CustomerId,
+                subject = room?.Subject,
+                isRead = message.IsRead
+            };
+
+            await Clients.Group("SupportStaff").SendAsync("UpdateInbox", inboxPayload);
+
+            // Notify the specific customer if they are not the sender
+            if (room != null && senderId != room.CustomerId)
+            {
+                await Clients.Group($"User_{room.CustomerId}").SendAsync("UpdateInbox", inboxPayload);
+            }
         }
 
         public async Task SendTypingStatus(int roomId, bool isTyping)
@@ -78,7 +96,7 @@ namespace MvcMusic.Hubs
             if (string.IsNullOrEmpty(senderId)) return;
 
             var user = await _context.Users.FindAsync(senderId);
-            var isStaff = Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin") || Context.User.IsInRole("Staff");
+            var isStaff = Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin") || Context.User.IsInRole("CustomerStaff") || Context.User.IsInRole("SalesStaff");
             var senderName = isStaff ? "Customer Support" : (user?.FullName ?? user?.UserName ?? "Someone");
 
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveTypingStatus", new
@@ -88,6 +106,21 @@ namespace MvcMusic.Hubs
                 senderName = senderName,
                 isTyping = isTyping
             });
+        }
+
+        public async Task MarkAsSeen(int roomId)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("MessageSeen", new { roomId });
+            // Also notify support if it's the customer who saw it, or vice versa
+            if (Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin") || Context.User.IsInRole("CustomerStaff") || Context.User.IsInRole("SalesStaff"))
+            {
+                // Seen by staff
+            }
+            else
+            {
+                // Seen by customer, notify staff
+                await Clients.Group("SupportStaff").SendAsync("MessageSeen", new { roomId });
+            }
         }
     }
 }

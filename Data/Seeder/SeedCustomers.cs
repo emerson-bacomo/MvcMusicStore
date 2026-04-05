@@ -30,11 +30,11 @@ namespace MvcMusic.Data
                         EmailConfirmed = true,
                         DateCreated = DateTime.UtcNow.AddMonths(-rng.Next(1, 12))
                     };
-                    if ((await userManager.CreateAsync(user, "Customer@123")).Succeeded)
+                    if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                     {
                         logger.LogInformation("Created Customer user: {Email}", email);
-                        await userManager.AddToRoleAsync(user, "User");
-                        await activityLogger.LogAsync(ActivityAction.Register, $"Registered a new <a href='/customers/profile/{user.Id}' class='customer-link'>account</a>.", user.Id, user.UserName, "User", user.FullName);
+                        await userManager.AddToRoleAsync(user, "Customer");
+                        await activityLogger.LogAsync(ActivityAction.Register, $"Registered a new <a href='/customers/profile/{user.Id}' class='customer-link'>account</a>.", user.Id, user.UserName, "Customer", user.FullName);
                     }
                 }
                 customers.Add(user);

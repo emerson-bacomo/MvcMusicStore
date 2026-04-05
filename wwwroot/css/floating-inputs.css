@@ -196,7 +196,11 @@ nc-floating-input.nc-has-content:not(.nc-is-focused) .nc-floating-label,
     /* To wrap on max-width */
     line-height: 2;
     opacity: 0;
-    transform: translateY(10px);
+    /* Base: Label is NOT floating (scale 1.0) 
+       We use 0.85 scale to match the preferred width, translateY to lift it off the input,
+       and translateX(-0.75rem) to pre-align it with the floating state's offset left position. */
+    transform: translateY(-0.5rem) translateX(-0.75rem) scale(0.85);
+    transform-origin: left bottom;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 100, 100, 0.2);
@@ -221,7 +225,17 @@ nc-floating-input.nc-has-content:not(.nc-is-focused) .nc-floating-label,
 .nc-show-all-errors .nc-error-popup,
 .nc-error-popup.show {
     opacity: 1;
-    transform: translateY(0);
+    /* Keep the base transform (scale 0.85 + translateY) if not floating */
+}
+
+/* State: Label is floating (already at scale 0.85)
+   We set scale to 1 here so the effective scale remains 0.85 */
+nc-floating-input.nc-is-focused .nc-error-popup,
+nc-floating-input.nc-has-content .nc-error-popup,
+.nc-floating-control:focus~.nc-floating-label .nc-error-popup,
+.nc-floating-control:not(:placeholder-shown)~.nc-floating-label .nc-error-popup {
+    /* Label has shifted left by 0.75rem, so we remove the translateX here to keep the absolute position stable */
+    transform: translateY(0) translateX(0) scale(1);
 }
 
 /* Password Toggle Support (Unified Flex Stack) */

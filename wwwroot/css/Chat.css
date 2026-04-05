@@ -1,33 +1,136 @@
-/* Messenger UI Styles */
-.nc-messenger {
-    display: flex;
-    height: calc(100vh - var(--nc-nav-height) - 4rem);
-    background: var(--nc-bg-card);
-    border: 1px solid var(--nc-border);
-    border-radius: var(--nc-radius);
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 40px;
+:root {
+    --nc-chat-sidebar-width: 360px;
+    --nc-nav-height: 70px;
+    --nc-text-lighter: rgba(255, 255, 255, 0.7);
 }
 
-/* Sidebar Inbox */
+/* Override nc-page for full-height internal layout */
+.nc-page:has(.nc-chat-system) {
+    padding-top: var(--nc-nav-height) !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    overflow: hidden;
+    background: var(--nc-bg-primary);
+}
+
+/* 1. Page Layout Containers */
+.nc-chat-system {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--nc-bg-primary);
+    overflow: hidden;
+    width: 100%;
+}
+
+.chat-layout, .support-layout {
+    display: flex;
+    flex: 1;
+    background: var(--nc-bg);
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+.chat-layout {
+    width: 100%;
+    display: flex;
+}
+
 .nc-messenger-sidebar {
-    width: 360px;
+    width: var(--nc-chat-sidebar-width);
     border-right: 1px solid var(--nc-border);
     display: flex;
     flex-direction: column;
     background: rgba(20, 26, 40, 0.4);
     z-index: 10;
+    flex-shrink: 0;
 }
 
+.nc-messenger-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 12, 16, 0.2);
+    position: relative;
+    min-width: 0;
+    height: 100%;
+}
+
+/* 2. Sidebar Inbox Items */
 .nc-messenger-sidebar-header {
     padding: 1.5rem;
     border-bottom: 1px solid var(--nc-border);
 }
 
-.nc-messenger-inbox {
-    flex: 1;
-    overflow-y: auto;
+.nc-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.nc-search-icon {
+    position: absolute;
+    left: 1.25rem;
+    color: var(--nc-text-lighter);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.nc-search-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1.5px solid var(--nc-border);
+    border-radius: var(--nc-radius-sm);
+    padding: 0.8rem 1rem 0.8rem 3rem;
+    color: var(--nc-text-primary);
+    font-size: 0.9rem;
+    transition: var(--transition);
+    outline: none;
+}
+
+.nc-search-input:focus {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--nc-primary);
+    box-shadow: 0 0 0 4px rgba(123, 171, 221, 0.1);
+}
+
+.nc-chat-header-wrapper {
+    background: rgba(20, 26, 40, 0.6);
+    border-bottom: 1px solid var(--nc-border);
+    backdrop-filter: blur(10px);
+}
+
+.btn-back {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    color: var(--nc-text-primary) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.btn-back:hover {
+    transform: scale(1.1);
+    color: var(--nc-primary) !important;
+}
+
+/* 2. Sidebar Inbox Items */
+.nc-messenger-sidebar-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-messenger-sidebar-header .btn-outline-secondary {
+    color: var(--nc-text-lighter);
+    transition: var(--transition);
+}
+
+.nc-messenger-sidebar-header .btn-outline-secondary:hover {
+    color: var(--nc-primary);
+    background: var(--nc-primary-glow);
 }
 
 .nc-inbox-item {
@@ -38,6 +141,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    position: relative;
 }
 
 .nc-inbox-item:hover {
@@ -52,7 +156,7 @@
 .nc-inbox-avatar {
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    border-radius: 12px;
     background: var(--nc-primary-glow);
     display: flex;
     align-items: center;
@@ -60,6 +164,8 @@
     font-weight: 700;
     color: var(--nc-primary);
     flex-shrink: 0;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
 .nc-inbox-info {
@@ -74,60 +180,67 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 0.1rem;
+    margin-bottom: 0.15rem;
 }
 
-.nc-inbox-customer {
+.nc-inbox-customer, .nc-room-last-msg {
     font-size: 0.85rem;
-    color: var(--nc-text-secondary);
-    margin-bottom: 0.2rem;
-}
-
-.nc-inbox-preview {
-    font-size: 0.8rem;
-    color: var(--nc-text-muted);
+    color: var(--nc-text-lighter);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Chat Main Area */
-.nc-messenger-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: rgba(10, 12, 16, 0.2);
-    position: relative;
+.nc-unread-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--nc-primary);
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 0 10px var(--nc-primary);
+    animation: nc-pulse 2s infinite;
 }
 
+@keyframes nc-pulse {
+    0% { transform: translateY(-50%) scale(0.95); box-shadow: 0 0 0 0 rgba(123, 171, 221, 0.7); }
+    70% { transform: translateY(-50%) scale(1); box-shadow: 0 0 0 6px rgba(123, 171, 221, 0); }
+    100% { transform: translateY(-50%) scale(0.95); box-shadow: 0 0 0 0 rgba(123, 171, 221, 0); }
+}
+
+/* 3. Messenger Header */
 .nc-messenger-header {
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--nc-border);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: rgba(21, 26, 38, 0.8);
-    backdrop-filter: blur(10px);
+    background: rgba(21, 26, 38, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 5;
+    min-height: 80px;
 }
 
 .nc-messenger-body {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .nc-messenger-footer {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem 2rem;
     border-top: 1px solid var(--nc-border);
-    background: rgba(21, 26, 38, 0.8);
+    background: rgba(21, 26, 38, 0.85);
+    backdrop-filter: blur(12px);
 }
 
-/* Message Bubbles */
+/* 4. Message Bubbles */
 .nc-message {
-    max-width: 70%;
+    max-width: 75%;
     display: flex;
     flex-direction: column;
 }
@@ -141,52 +254,52 @@
 }
 
 .nc-message-bubble {
-    padding: 0.8rem 1.2rem;
-    border-radius: 18px;
+    padding: 0.85rem 1.25rem;
+    border-radius: 1.25rem;
     font-size: 0.95rem;
-    line-height: 1.4;
+    line-height: 1.5;
     position: relative;
+    word-break: break-word;
 }
 
 .nc-message.sent .nc-message-bubble {
-    background: var(--nc-primary);
+    background: linear-gradient(135deg, var(--nc-primary), #5b71a8);
     color: #fff;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 15px rgba(123, 171, 221, 0.15);
 }
 
 .nc-message.received .nc-message-bubble {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--nc-bg-card);
     color: var(--nc-text-primary);
+    border: 1px solid var(--nc-border);
     border-bottom-left-radius: 4px;
 }
 
 .nc-message-sender {
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--nc-text-muted);
-    margin-bottom: 0.25rem;
-    margin-left: 0.5rem;
+    color: var(--nc-text-lighter);
+    margin-bottom: 0.35rem;
+    padding: 0 0.5rem;
 }
 
 .nc-message.sent .nc-message-sender {
     text-align: right;
-    margin-right: 0.5rem;
-    margin-left: 0;
 }
 
 .nc-message-time {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 0.25rem;
-    align-self: flex-end;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 0.35rem;
+    padding: 0 0.5rem;
 }
 
 .nc-message.received .nc-message-time {
-    color: var(--nc-text-muted);
-    align-self: flex-start;
+    color: var(--nc-text-lighter);
 }
 
-/* Chat Input */
+/* 5. Inputs & Indicators */
 .nc-chat-input-wrapper {
     display: flex;
     gap: 1rem;
@@ -195,23 +308,24 @@
 
 .nc-chat-input {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--nc-border);
     border-radius: 24px;
-    padding: 0.75rem 1.25rem;
-    color: var(--nc-text-primary);
+    padding: 0.85rem 1.5rem;
+    color: white !important;
     outline: none;
     transition: var(--transition);
 }
 
 .nc-chat-input:focus {
     border-color: var(--nc-primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(123, 171, 221, 0.1);
 }
 
 .btn-chat-send {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: var(--nc-primary);
     color: #fff;
@@ -220,11 +334,86 @@
     justify-content: center;
     border: none;
     transition: var(--transition);
+    flex-shrink: 0;
 }
 
 .btn-chat-send:hover {
-    transform: scale(1.1);
-    background: #8cbbe6;
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.nc-typing-indicator {
+    padding: 0.5rem 2rem;
+    color: var(--nc-text-lighter);
+    font-size: 0.85rem;
+}
+
+.nc-typing-dots { 
+    display: inline-flex; 
+    gap: 4px; 
+    align-items: center; 
+    margin-left: 6px;
+}
+
+.nc-typing-dots span { 
+    width: 6px; 
+    height: 6px; 
+    background: var(--nc-primary); 
+    border-radius: 50%; 
+    animation: nc-typing-bounce 1.4s infinite ease-in-out both; 
+}
+
+.nc-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.nc-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes nc-typing-bounce {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* 6. Page Specific Layout Styles */
+.nc-topic-selector {
+    padding: 2rem;
+    background: var(--nc-bg-card);
+    border-radius: var(--nc-radius);
+    border: 1px solid var(--nc-border);
+    margin: auto;
+    max-width: 500px;
+}
+
+/* Empty States */
+.nc-messenger-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--nc-text-lighter);
+    text-align: center;
+    padding: 3rem;
+    height: 100%;
+}
+
+.nc-messenger-empty i {
+    font-size: 4rem;
+    margin-bottom: 2rem;
+    opacity: 0.15;
+}
+
+.nc-link-primary {
+    color: var(--nc-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.nc-link-primary:hover {
+    color: var(--nc-accent);
+    text-decoration: underline;
+}
+
+.nc-text-lighter {
+    color: var(--nc-text-lighter) !important;
 }
 
 /* Mobile Responsiveness */
@@ -236,6 +425,7 @@
         left: 0;
         height: 100%;
         transition: transform 0.3s ease;
+        z-index: 100;
     }
 
     .nc-messenger.show-chat .nc-messenger-sidebar {
@@ -246,71 +436,128 @@
         width: 100%;
     }
 
-    .nc-messenger-header .btn-back {
+    .btn-back {
         display: block !important;
     }
 }
 
-.btn-back {
-    display: none;
+/* Custom Scrollbar for Messaging */
+.nc-messenger-body::-webkit-scrollbar,
+.nc-messenger-inbox::-webkit-scrollbar {
+    width: 6px;
+}
+.nc-messenger-body::-webkit-scrollbar-thumb,
+.nc-messenger-inbox::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+.nc-messenger-body::-webkit-scrollbar-track,
+.nc-messenger-inbox::-webkit-scrollbar-track {
     background: transparent;
-    border: none;
-    color: var(--nc-primary);
-    font-size: 1.25rem;
-    margin-right: 1rem;
 }
 
-/* Placeholder for empty state */
-.nc-messenger-empty {
-    flex: 1;
+/* Dropdown Theming */
+.nc-dark-dropdown {
+    background: rgba(21, 26, 40, 0.95) !important;
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--nc-border) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
+    padding: 0.5rem 0 !important;
+    border-radius: var(--nc-radius-sm) !important;
+}
+
+.nc-dark-dropdown .dropdown-item {
+    color: var(--nc-text-primary) !important;
+    padding: 0.75rem 1.25rem !important;
+    font-size: 0.9rem !important;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--nc-text-muted);
-    text-align: center;
-    padding: 2rem;
+    align-items: center !important;
+    transition: all 0.2s !important;
 }
 
-.nc-messenger-empty i {
-    font-size: 4rem;
-    margin-bottom: 1.5rem;
-    opacity: 0.2;
+.nc-dark-dropdown .dropdown-item:hover {
+    background: rgba(123, 171, 221, 0.1) !important;
+    color: var(--nc-primary) !important;
 }
 
-/* Typing Indicator */
-.nc-typing-indicator {
-    display: none;
-    align-self: flex-start;
-    padding: 0.6rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 18px;
-    border-bottom-left-radius: 4px;
-    margin-bottom: 1rem;
-    font-size: 0.8rem;
-    color: var(--nc-text-muted);
+.nc-dark-dropdown .dropdown-item i {
+    opacity: 0.7;
+    width: 20px;
 }
 
-.nc-typing-dots {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    margin-left: 5px;
+.nc-dark-dropdown .dropdown-divider {
+    border-top: 1px solid var(--nc-border) !important;
+    margin: 0.5rem 0 !important;
 }
 
-.nc-typing-dots span {
-    width: 4px;
-    height: 4px;
-    background: var(--nc-primary);
-    border-radius: 50%;
-    display: inline-block;
-    animation: nc-typing-bounce 1.4s infinite ease-in-out both;
+/* Fix NcSelect Chevron inside Chat Area */
+.nc-select-arrow {
+    font-size: 0.8rem !important;
+    opacity: 0.8;
 }
 
-.nc-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-.nc-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+/* Centralized Button Sizing */
+.nc-chat-btn-large {
+    height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
 
-@keyframes nc-typing-bounce {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-    40% { transform: scale(1); opacity: 1; }
+/* Mobile Responsiveness */
+@media (max-width: 991.98px) {
+    .chat-layout {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nc-messenger-sidebar {
+        width: 100% !important;
+        position: absolute !important;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 10;
+        border-right: none !important;
+    }
+
+    .nc-messenger-main {
+        width: 100% !important;
+        position: absolute !important;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 20;
+    }
+
+    .chat-layout.show-chat .nc-messenger-sidebar {
+        transform: translateX(-100%);
+    }
+
+    .chat-layout.show-chat .nc-messenger-main {
+        transform: translateX(0);
+    }
+
+    .nc-messenger-body {
+        padding: 1.5rem 1rem;
+    }
+
+    .nc-message {
+        max-width: 85%;
+    }
+
+    .nc-messenger-header {
+        padding: 0.75rem 1rem;
+        min-height: 70px;
+    }
+
+    .nc-messenger-footer {
+        padding: 1rem;
+    }
 }

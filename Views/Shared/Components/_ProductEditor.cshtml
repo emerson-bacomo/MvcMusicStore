@@ -166,7 +166,7 @@
                     </div>
                 </div>
 
-                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                 {
                     <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
                         <div class="nc-meta-stat position-relative">
@@ -277,7 +277,7 @@
                     </div>
                 </div>
 
-                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Staff"))
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                 {
                     <div class="mt-4">
                         <h3 class="nc-section-title">Banner Data</h3>

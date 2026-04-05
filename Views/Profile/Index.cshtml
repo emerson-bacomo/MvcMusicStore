@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "My Profile";
     var roles = ViewBag.Roles as IList<string> ?? new List<string>();
-    var isCustomer = User.IsInRole("User");
+    var isCustomer = User.IsInRole("Customer");
 }
 
 <div class="nc-page">
@@ -30,7 +30,7 @@
                 </div>
                 <div class="nc-profile-info">
                     <div class="d-flex align-items-center gap-3">
-                        <h1 class="nc-profile-name" id="displayFullName">@Model.FirstName @Model.LastName</h1>
+                        <h1 class="nc-profile-name" id="displayFullName" data-first="@Model.FirstName" data-last="@Model.LastName">@Model.FirstName @Model.LastName</h1>
                         @if (isCustomer)
                         {
                             <button class="btn-nc-icon-only" onclick="toggleEditName()" title="Edit Name">
@@ -41,18 +41,16 @@
                     
                     <div id="editNameForm" class="hidden mt-2">
                         <div class="d-flex gap-2">
-                            <div class="nc-floating-group mb-0" style="flex: 1;">
-                                <input type="text" id="editFirstName" class="nc-floating-control" value="@Model.FirstName" placeholder=" " data-label="First Name" />
-                                <label class="nc-floating-label">First Name</label>
-                            </div>
-                            <div class="nc-floating-group mb-0" style="flex: 1;">
-                                <input type="text" id="editLastName" class="nc-floating-control" value="@Model.LastName" placeholder=" " data-label="Last Name" />
-                                <label class="nc-floating-label">Last Name</label>
-                            </div>
-                            <button class="btn-nc-primary px-3" onclick="saveName()" id="btnSaveName">
+                            <nc-floating-input label="First Name" bg="rgba(30, 35, 45, 0.9)" style="flex: 1; min-height: 48px; --nc-input-padding-y: 0.75rem; border-color: rgba(255,255,255,0.1); margin-bottom: 0;">
+                                <input type="text" id="editFirstName" value="@Model.FirstName" required data-val-required="First name is required" />
+                            </nc-floating-input>
+                            <nc-floating-input label="Last Name" bg="rgba(30, 35, 45, 0.9)" style="flex: 1; min-height: 48px; --nc-input-padding-y: 0.75rem; border-color: rgba(255,255,255,0.1); margin-bottom: 0;">
+                                <input type="text" id="editLastName" value="@Model.LastName" required data-val-required="Last name is required" />
+                            </nc-floating-input>
+                            <button class="btn-nc-primary" onclick="saveName()" id="btnSaveName" style="height: 48px; width: 48px; padding: 0; align-items: center; justify-content: center;">
                                 <i class="fa fa-check"></i>
                             </button>
-                            <button class="btn-nc-outline px-3" onclick="toggleEditName()">
+                            <button class="btn-nc-outline" onclick="toggleEditName()" style="height: 48px; width: 48px; padding: 0; align-items: center; justify-content: center;">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -61,7 +59,7 @@
                     <div class="nc-profile-badges mt-2">
                         @foreach (var role in roles)
                         {
-                            <span class="nc-badge nc-badge-@role.ToLower()">@role</span>
+                            <span class="nc-badge nc-badge-@role.ToLower().Replace("staff", "staff")">@role</span>
                         }
                     </div>
                 </div>
@@ -222,11 +220,21 @@
         color: var(--nc-text-primary);
     }
 
+    .nc-badge { 
+        padding: 0.25rem 0.75rem; 
+        font-size: 0.75rem; 
+        font-weight: 700; 
+        border-radius: 100px; 
+        text-transform: uppercase; 
+        display: inline-flex;
+        align-items: center;
+    }
+
     .nc-badge-superadmin { background: rgba(255, 215, 0, 0.1); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.2); }
     .nc-badge-admin { background: rgba(123, 171, 221, 0.1); color: var(--nc-primary); border: 1px solid rgba(123, 171, 221, 0.2); }
     .nc-badge-productstaff { background: rgba(129, 199, 132, 0.1); color: #81c784; border: 1px solid rgba(129, 199, 132, 0.2); }
     .nc-badge-salesstaff { background: rgba(244, 143, 177, 0.1); color: #f48fb1; border: 1px solid rgba(244, 143, 177, 0.2); }
-    .nc-badge-user { background: rgba(255, 255, 255, 0.05); color: var(--nc-text-muted); border: 1px solid var(--nc-border); }
+    .nc-badge-customer { background: rgba(255, 255, 255, 0.05); color: var(--nc-text-muted); border: 1px solid var(--nc-border); }
 
     .nc-profile-actions {
         display: flex;
@@ -256,16 +264,12 @@
     }
 
     .nc-username-tag {
-        background: rgba(123, 171, 221, 0.1);
         color: var(--nc-primary);
-        padding: 4px 12px;
-        border-radius: 6px;
         font-family: monospace;
         letter-spacing: 0.5px;
-        font-size: 0.95rem;
+        font-size: 1.05rem;
         display: inline-block;
-        margin-top: 4px;
-        border: 1px solid rgba(123, 171, 221, 0.2);
+        font-weight: 600;
     }
 </style>
 
@@ -276,17 +280,36 @@
             const form = document.getElementById('editNameForm');
             display.classList.toggle('hidden');
             form.classList.toggle('hidden');
+            
+            if (form.classList.contains('hidden')) {
+                const nameDisplay = document.getElementById('displayFullName');
+                document.getElementById('editFirstName').value = nameDisplay.getAttribute('data-first');
+                document.getElementById('editLastName').value = nameDisplay.getAttribute('data-last');
+                
+                if (window.ValidationEngine) {
+                    window.ValidationEngine.setError(document.getElementById('editFirstName'), "");
+                    window.ValidationEngine.setError(document.getElementById('editLastName'), "");
+                }
+            }
         }
 
         async function saveName() {
             const btn = document.getElementById('btnSaveName');
-            const firstName = document.getElementById('editFirstName').value;
-            const lastName = document.getElementById('editLastName').value;
-
-            if (!firstName || !lastName) {
-                window.showToast("Names cannot be empty.", "error");
-                return;
+            const firstNameEl = document.getElementById('editFirstName');
+            const lastNameEl = document.getElementById('editLastName');
+            
+            let isValid = true;
+            if (window.ValidationEngine) {
+                if (!window.ValidationEngine.validate(firstNameEl)) isValid = false;
+                if (!window.ValidationEngine.validate(lastNameEl)) isValid = false;
+            } else {
+                if (!firstNameEl.value.trim() || !lastNameEl.value.trim()) isValid = false;
             }
+
+            if (!isValid) return;
+
+            const firstName = firstNameEl.value.trim();
+            const lastName = lastNameEl.value.trim();
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
@@ -303,7 +326,10 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    document.getElementById('displayFullName').textContent = data.fullName;
+                    const display = document.getElementById('displayFullName');
+                    display.textContent = data.fullName;
+                    display.setAttribute('data-first', firstName);
+                    display.setAttribute('data-last', lastName);
                     window.showToast("Name updated successfully.");
                     toggleEditName();
                 } else {

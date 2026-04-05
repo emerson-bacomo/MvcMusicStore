@@ -23,5 +23,6 @@ namespace MvcMusic.Models
 
         public virtual ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
         public bool IsDeleted { get; set; } = false;
+        public bool IsArchived { get; set; } = false;
     }
 }

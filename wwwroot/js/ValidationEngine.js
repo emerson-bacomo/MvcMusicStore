@@ -8,6 +8,7 @@ window.ValidationEngine = {
         this._initDebouncedEmailCheck();
         this.observeDOM();
         this.initializeAll();
+        this.setupFormSubmitListeners();
     },
 
     observeDOM() {
@@ -67,8 +68,8 @@ window.ValidationEngine = {
         const errors = [];
 
         // 1. Required Check
-        if (el.hasAttribute("required") && value === "") {
-            errors.push(el.getAttribute("data-val-required") || "This field is required.");
+        if ((el.hasAttribute("required") || el.hasAttribute("data-val-required")) && value === "") {
+            errors.push(el.getAttribute("data-val-required") || el.getAttribute("required") || "This field is required.");
         }
 
         // 2. Email Format Check
@@ -140,7 +141,9 @@ window.ValidationEngine = {
         }
 
         // Support both floating labels and standard labels
-        const label = el.parentElement.querySelector(".nc-floating-label, .nc-pd-floating-label, .nc-label");
+        const parent =
+            el.closest("nc-floating-input, .nc-floating-group, .nc-pd-floating-group, .nc-form-group") || el.parentElement;
+        const label = parent.querySelector(".nc-floating-label, .nc-pd-floating-label, .nc-label");
         if (!label) return;
 
         let errorInline = label.querySelector(".nc-error-inline");
@@ -163,13 +166,18 @@ window.ValidationEngine = {
             const msg = message.toLowerCase();
             if (msg.includes("•")) concise = "invalid";
             else if (msg.includes("taken")) concise = "already taken";
-            else if (msg.includes("field is required") || (msg === "required") || (msg.includes("required") && !msg.includes("character") && !msg.includes("digit") && !msg.includes("letter"))) concise = "required";
+            else if (
+                msg.includes("field is required") ||
+                msg === "required" ||
+                (msg.includes("required") && !msg.includes("character") && !msg.includes("digit") && !msg.includes("letter"))
+            )
+                concise = "required";
             else if (msg.includes("at least") || msg.includes("too short")) concise = "too short";
             else if (msg.includes("cannot exceed") || msg.includes("too long")) concise = "too long";
             else if (msg.includes("match")) concise = "mismatch";
             else if (msg.includes("character") || msg.includes("digit") || msg.includes("letter")) concise = "too weak";
 
-            errorInline.textContent = ` (${concise})`; // Enclose in parentheses
+            errorInline.textContent = ` ${concise}`;
             errorPopup.textContent = message;
         } else {
             el.classList.remove("is-invalid");
@@ -199,7 +207,6 @@ window.ValidationEngine = {
             if (!engine.validate(el)) return;
 
             const emailAtStart = el.value.trim();
-            console.log(el.getAttribute("data-ajax-url"));
             const ajaxUrl = el.getAttribute("data-ajax-url") || "/account/is-email-available";
 
             try {
@@ -338,6 +345,43 @@ window.ValidationEngine = {
             item.classList.remove("success");
             icon.className = "fa fa-circle-o";
         }
+    },
+
+    setupFormSubmitListeners() {
+        // Use capture phase to catch submit before jQuery or other scripts might stop it
+        document.addEventListener(
+            "submit",
+            (e) => {
+                const form = e.target;
+                if (form.tagName !== "FORM") return;
+
+                const controls = form.querySelectorAll(".nc-floating-control, .nc-pd-floating-control");
+                if (controls.length === 0) return;
+
+                let isFormValid = true;
+                let firstInvalid = null;
+
+                controls.forEach((el) => {
+                    if (!this.validate(el)) {
+                        isFormValid = false;
+                        if (!firstInvalid) firstInvalid = el;
+                    }
+                });
+
+                if (!isFormValid) {
+                    console.log("ValidationEngine: form is invalid, blocking submit.");
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                        // Also scroll into view if needed
+                        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                }
+            },
+            true,
+        ); // true = capture phase
     },
 };
 

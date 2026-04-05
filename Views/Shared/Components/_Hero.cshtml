@@ -204,21 +204,9 @@
                    line-height: 1.7; 
                    max-width: 500px;
                ">
-                Discover premium instruments curated for every musician - from first-time players to seasoned performers.
+                Discover premium instruments curated for every musician, from first-time players to seasoned performers.
                 NightCord brings the music to you.
             </p>
-
-            <div class="d-flex gap-3 flex-wrap justify-content-center justify-content-lg-start">
-                @if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    <a asp-controller="Account" asp-action="Login" class="btn-hero-primary">
-                        <i class="fa fa-right-to-bracket me-2"></i> Login
-                    </a>
-                    <a asp-controller="Account" asp-action="Register" class="btn-hero-secondary">
-                        <i class="fa fa-user-plus me-2"></i> Join Free
-                    </a>
-                }
-            </div>
         </div>
 
         <div class="col-lg-6 col-12 position-relative d-flex flex-column ms-auto" 
