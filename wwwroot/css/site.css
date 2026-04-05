@@ -201,7 +201,7 @@ nav .nav-link.active {
 }
 
 .nc-card {
-    background: rgba(30, 35, 45, 0.45);
+    background: #11141aff;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -431,8 +431,7 @@ nav .nav-link.active {
 
 /* Product Form Layouts */
 .nc-form-card {
-    max-width: 800px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .nc-form-grid {
@@ -912,7 +911,7 @@ input[type=number] {
 
 .ut-side-popup {
     position: absolute;
-    z-index: 2100;
+    z-index: 2200; /* Above markers and table elements */
     background: var(--nc-bg-card);
     border: 1px solid var(--nc-popup-border);
     border-radius: 12px;
@@ -920,6 +919,22 @@ input[type=number] {
     min-width: 240px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Dropdown Variant (Filter Popup Style) */
+.ut-popup-dropdown {
+    border-width: 1.5px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+    border-radius: var(--nc-radius) !important;
+    padding: 1rem !important;
+}
+
+.ut-popup-dropdown .ut-popup-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--nc-border);
+    font-size: 0.85rem;
+    font-weight: 700;
 }
 
 /* Positioning Variants */
@@ -1300,6 +1315,7 @@ input[type="password"] {
     box-shadow: 0 40px 100px rgba(0,0,0,0.5);
     position: relative;
     overflow: hidden;
+    margin-bottom: 2rem;
 }
 
 /* Prevent Price/Description Jumping */

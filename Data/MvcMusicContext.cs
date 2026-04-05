@@ -21,6 +21,7 @@ namespace MvcMusic.Data
         public DbSet<ChartPoint> ChartPoint { get; set; } = default!;
         public DbSet<ChatRoom> ChatRoom { get; set; } = default!;
         public DbSet<ChatMessage> ChatMessage { get; set; } = default!;
+        public DbSet<ActivityLogSeenStatus> ActivityLogSeenStatus { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -7,6 +7,7 @@ export default class UpdatableTable {
         this.fieldDefinitions = config.fieldDefinitions || {};
         this.onSave = config.onSave;
         this.label = config.label || "";
+        this.customFilters = config.customFilters || [];
 
         this.data = config.initialData || null;
         this.rows = new Map();
@@ -48,6 +49,8 @@ export default class UpdatableTable {
         this.handleSearch = this.handleSearch.bind(this);
         this.toggleFilterMenu = this.toggleFilterMenu.bind(this);
         this.handleSort = this.handleSort.bind(this);
+        this.updateMarkerPositions = this.updateMarkerPositions.bind(this);
+        this.markers = new Map();
 
         this.renderContainer();
         this.parseUrlFilters(); // Sync URL params before fetching
@@ -69,7 +72,9 @@ export default class UpdatableTable {
 
         window.addEventListener("resize", () => {
             this.calculateStickyOffsets();
+            this.updateMarkerPositions();
         });
+        window.addEventListener("scroll", this.updateMarkerPositions, { passive: true });
     }
 
     saveToLocalStorage() {
@@ -144,10 +149,11 @@ export default class UpdatableTable {
     cleanupLegacyData() {
         if (!this.data) return;
         const validColIds = new Set(this.data.columns.map((c) => c.id));
+        const customFilterIds = new Set((this.customFilters || []).map((cf) => cf.id));
 
-        // Cleanup Filter Dropdowns
+        // Cleanup Filter Dropdowns (preserve custom filter ids)
         Object.keys(this.filters).forEach((k) => {
-            if (k !== "visibleColumns" && !validColIds.has(k)) {
+            if (k !== "visibleColumns" && !validColIds.has(k) && !customFilterIds.has(k)) {
                 delete this.filters[k];
             }
         });
@@ -212,6 +218,20 @@ export default class UpdatableTable {
                 this.filters[key] = value;
             }
         });
+
+        // URL is authoritative for custom filters and column-based select filters.
+        // If a key is NOT in the URL, clear it — prevents stale sessionStorage values from
+        // persisting when navigating to a page without that param (e.g. "View All Logs").
+        (this.customFilters || []).forEach((cf) => {
+            if (!params.has(cf.id)) delete this.filters[cf.id];
+        });
+        if (this.data) {
+            this.data.columns.forEach((col) => {
+                const fDef = this.fieldDefinitions[col.id] || {};
+                const colType = col.type || fDef.type;
+                if (colType === "select" && !params.has(col.id)) delete this.filters[col.id];
+            });
+        }
     }
 
     renderContainer() {
@@ -228,20 +248,6 @@ export default class UpdatableTable {
                             <i class="fa fa-filter"></i>
                         </button>
                         <div class="ut-filter-popup">
-                            <div class="ut-filter-section" style="display:none;">
-                                <h4>Record Status</h4>
-                                <div class="ut-status-filters">
-                                    <label class="ut-checkbox-label">
-                                        <input type="checkbox" id="ut-filter-active" ${this.statusFilters.active ? "checked" : ""}> 
-                                        <span>Active</span> <span class="ut-count-badge active-count">0</span>
-                                    </label>
-                                    <label class="ut-checkbox-label">
-                                        <input type="checkbox" id="ut-filter-deleted" ${this.statusFilters.deleted ? "checked" : ""}> 
-                                        <span>Deleted</span> <span class="ut-count-badge deleted-count">0</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="ut-filter-separator ut-status-separator" style="display:none;"></div>
                             <div class="ut-dropdown-filter-list"></div>
                             <div class="ut-filter-separator ut-dropdown-separator" style="display:none;"></div>
                             <div class="ut-filter-section">
@@ -278,24 +284,6 @@ export default class UpdatableTable {
         this.container.querySelector(".ut-filter-btn").addEventListener("click", (e) => {
             e.stopPropagation();
             this.toggleFilterMenu();
-        });
-
-        const activeCheck = this.container.querySelector("#ut-filter-active");
-        const deletedCheck = this.container.querySelector("#ut-filter-deleted");
-
-        activeCheck.addEventListener("change", (e) => {
-            this.statusFilters.active = e.target.checked;
-            this.saveToLocalStorage();
-            this.updateUrl();
-            this.currentPage = 1;
-            this.renderTable();
-        });
-        deletedCheck.addEventListener("change", (e) => {
-            this.statusFilters.deleted = e.target.checked;
-            this.saveToLocalStorage();
-            this.updateUrl();
-            this.currentPage = 1;
-            this.renderTable();
         });
     }
 
@@ -393,6 +381,7 @@ export default class UpdatableTable {
             if (btn) btn.classList.add("ut-popup-active-trigger");
             this.renderDropdownFilters();
             this.renderColumnToggles();
+            this.updateFilterCounts();
         } else {
             if (overlay) overlay.classList.remove("show");
             this.container.classList.remove("ut-has-popup");
@@ -402,42 +391,94 @@ export default class UpdatableTable {
 
     renderDropdownFilters() {
         const container = this.container.querySelector(".ut-dropdown-filter-list");
-        if (!this.data || !container) return;
+        if (!container) return;
 
         container.innerHTML = "";
         let hasFilters = false;
 
-        this.data.columns.forEach((col) => {
-            if (col.type === "select" && col.options) {
-                hasFilters = true;
-                const section = document.createElement("div");
-                section.className = "ut-filter-item-dropdown";
-                const label = this.fieldDefinitions[col.id]?.label || this.toLabelCase(col.id);
+        const renderSelectSection = (filterId, label, options, currentValue) => {
+            const section = document.createElement("div");
+            section.className = "ut-filter-item-dropdown";
 
-                section.innerHTML = `
-                    <label style="display:block; font-size:0.75rem; color:var(--nc-text-muted); margin-bottom:0.25rem;">${label}</label>
-                    <select class="ut-input ut-select" style="padding:0.4rem 0.6rem; height:auto; background:rgba(255,255,255,0.05); border:1px solid var(--nc-border); width:100%; border-radius:4px;">
-                        <option value="">All ${label}</option>
-                        ${Array.from(col.options)
-                            .map(
-                                (opt) =>
-                                    `<option value="${opt.value}" ${String(this.filters[col.id]) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
-                            )
-                            .join("")}
-                    </select>
-                `;
+            section.innerHTML = `
+                <label style="display:block; font-size:0.75rem; color:var(--nc-text-muted); margin-bottom:0.25rem;">${label}</label>
+                <select class="ut-input ut-select" style="padding:0.4rem 0.6rem; height:auto; background:rgba(255,255,255,0.05); border:1px solid var(--nc-border); width:100%; border-radius:4px;">
+                    <option value="">All ${label}</option>
+                    ${options
+                        .map(
+                            (opt) =>
+                                `<option value="${opt.value}" ${String(currentValue) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
+                        )
+                        .join("")}
+                </select>
+            `;
 
-                section.querySelector("select").addEventListener("change", (e) => {
-                    if (e.target.value) this.filters[col.id] = e.target.value;
-                    else delete this.filters[col.id];
-                    this.saveToLocalStorage();
-                    this.updateUrl();
-                    this.currentPage = 1;
-                    this.renderTable();
-                    this.calculateStickyOffsets();
-                });
-                container.appendChild(section);
-            }
+            section.querySelector("select").addEventListener("change", (e) => {
+                if (e.target.value) this.filters[filterId] = e.target.value;
+                else delete this.filters[filterId];
+                this.saveToLocalStorage();
+                this.updateUrl();
+                this.currentPage = 1;
+                this.renderTable();
+                this.calculateStickyOffsets();
+            });
+            return section;
+        };
+
+        if (this.hasRecordStatus) {
+            hasFilters = true;
+            const statusSection = document.createElement("div");
+            statusSection.className = "ut-filter-item-dropdown";
+            statusSection.innerHTML = `
+                <label style="display:block; font-size:0.75rem; color:var(--nc-text-muted); margin-bottom:0.25rem;">Record Status</label>
+                <label class="ut-checkbox-label">
+                    <input type="checkbox" id="ut-filter-active" ${this.statusFilters.active ? "checked" : ""}>
+                    <span>Active</span>
+                    <span class="ut-count-badge active-count">${this.activeCount || 0}</span>
+                </label>
+                <label class="ut-checkbox-label">
+                    <input type="checkbox" id="ut-filter-deleted" ${this.statusFilters.deleted ? "checked" : ""}>
+                    <span>Deleted</span>
+                    <span class="ut-count-badge deleted-count">${this.deletedCount || 0}</span>
+                </label>
+            `;
+            statusSection.querySelector("#ut-filter-active").addEventListener("change", (e) => {
+                this.statusFilters.active = e.target.checked;
+                this.saveToLocalStorage();
+                this.updateUrl();
+                this.currentPage = 1;
+                this.renderTable();
+            });
+            statusSection.querySelector("#ut-filter-deleted").addEventListener("change", (e) => {
+                this.statusFilters.deleted = e.target.checked;
+                this.saveToLocalStorage();
+                this.updateUrl();
+                this.currentPage = 1;
+                this.renderTable();
+            });
+            container.appendChild(statusSection);
+        }
+
+        // 1. Column-based select filters (server columns, with fieldDefinitions as fallback for type/options)
+        if (this.data) {
+            this.data.columns.forEach((col) => {
+                const fDef = this.fieldDefinitions[col.id] || {};
+                const colType = col.type || fDef.type;
+                const colOptions = col.options || fDef.options;
+                if (colType === "select" && colOptions?.length) {
+                    hasFilters = true;
+                    const label = fDef.label || col.label || this.toLabelCase(col.id);
+                    container.appendChild(renderSelectSection(col.id, label, Array.from(colOptions), this.filters[col.id]));
+                }
+            });
+        }
+
+        // 2. Custom filters defined in config (e.g. userId -> Full Name)
+        (this.customFilters || []).forEach((cf) => {
+            if (!cf.id || !cf.options?.length) return;
+            hasFilters = true;
+            const label = cf.label || this.toLabelCase(cf.id);
+            container.appendChild(renderSelectSection(cf.id, label, cf.options, this.filters[cf.id]));
         });
 
         if (!hasFilters) {
@@ -455,6 +496,19 @@ export default class UpdatableTable {
 
     updateUrl() {
         const url = new URL(window.location);
+
+        // Pre-clear custom filter params and column select params so that
+        // selecting "All" (which deletes the key from this.filters) actually
+        // removes the URL parameter rather than leaving a stale value.
+        (this.customFilters || []).forEach((cf) => url.searchParams.delete(cf.id));
+        if (this.data) {
+            this.data.columns.forEach((col) => {
+                const fDef = this.fieldDefinitions[col.id] || {};
+                const colType = col.type || fDef.type;
+                if (colType === "select") url.searchParams.delete(col.id);
+            });
+        }
+
         Object.entries(this.filters).forEach(([key, value]) => {
             if (key === "visibleColumns") return;
             if (value && value !== "false") {
@@ -612,22 +666,9 @@ export default class UpdatableTable {
             this.loadFromLocalStorage(); // Load after data is fetched and rows Map is populated
             this.parseUrlFilters(); // If URL has filters, they should override localStorage
 
-            // Sync UI elements that might have been rendered before LocalStorage was loaded
-            const activeCheck = this.container.querySelector("#ut-filter-active");
-            const deletedCheck = this.container.querySelector("#ut-filter-deleted");
-            if (activeCheck) activeCheck.checked = this.statusFilters.active;
-            if (deletedCheck) deletedCheck.checked = this.statusFilters.deleted;
-
             this.updateUrl(); // Sync URL with our final filters
             this.renderTable(); // Re-render to show indicators and apply filters
             this.updateControls();
-
-            // Auto-hide record status filter section if no recordStatus column
-            const hasRecordStatus = this.data.columns.some((c) => c.id === "recordStatus");
-            const statusSection = this.container.querySelector(".ut-status-filters")?.closest(".ut-filter-section");
-            const statusSep = this.container.querySelector(".ut-status-separator");
-            if (statusSection) statusSection.style.display = hasRecordStatus ? "" : "none";
-            if (statusSep) statusSep.style.display = hasRecordStatus ? "" : "none";
         } catch (error) {
             console.error("UpdatableTable: Error fetching data", error);
         }
@@ -642,8 +683,8 @@ export default class UpdatableTable {
         // 1. Exclude "Extra" rows immediately (they are only for diffing/sync)
         let processed = allRowsArray.filter((r) => !r._isExtra);
 
-        const hasRecordStatus = this.data.columns.some((c) => c.id === "recordStatus");
-        if (hasRecordStatus) {
+        this.hasRecordStatus = processed[0].recordStatus;
+        if (this.hasRecordStatus) {
             // Update counts (before status filters) based on non-extra rows
             this.activeCount = processed.filter((r) => r.recordStatus !== "Deleted").length;
             this.deletedCount = processed.filter((r) => r.recordStatus === "Deleted").length;
@@ -716,6 +757,8 @@ export default class UpdatableTable {
         if (!this.data) {
             return;
         }
+
+        this.clearMarkers();
 
         const thead = this.container.querySelector("thead");
         const tbody = this.container.querySelector("tbody");
@@ -799,7 +842,11 @@ export default class UpdatableTable {
             const tr = document.createElement("tr");
             tr.dataset.rowId = rowId;
             const isDeleted = rowData.recordStatus === "Deleted";
-            tr.className = isDeleted ? "ut-deleted-row" : "";
+            const rowClasses = [];
+            if (isDeleted) rowClasses.push("ut-deleted-row");
+            if (rowData._isNew) rowClasses.push("ut-row-new");
+            tr.className = rowClasses.join(" ");
+
             if (isDeleted) tr.dataset.deleted = "true";
 
             this.data.columns.forEach((col) => {
@@ -861,7 +908,13 @@ export default class UpdatableTable {
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
+
+            if (rowData._isNew) {
+                this.createMarker(rowId, tr);
+            }
         });
+
+        this.updateMarkerPositions();
 
         this.updateFilterCounts();
         this.renderPagination(processedRows.length);
@@ -994,10 +1047,9 @@ export default class UpdatableTable {
     }
 
     updateFilterCounts() {
-        const activeBadge = this.container.querySelector(".active-count");
-        const deletedBadge = this.container.querySelector(".deleted-count");
-        if (activeBadge) activeBadge.textContent = this.activeCount || 0;
-        if (deletedBadge) deletedBadge.textContent = this.deletedCount || 0;
+        const counts = { active: this.activeCount || 0, deleted: this.deletedCount || 0 };
+        this.container.querySelectorAll(".active-count").forEach((el) => (el.textContent = counts.active));
+        this.container.querySelectorAll(".deleted-count").forEach((el) => (el.textContent = counts.deleted));
         // Apply sticky offsets
         this.calculateStickyOffsets();
     }
@@ -1089,10 +1141,51 @@ export default class UpdatableTable {
             }
         };
 
-        this._scrollListener = updateBorderOnScroll;
-        tableContainer.addEventListener("scroll", updateBorderOnScroll, { passive: true });
+        this._scrollListener = () => {
+            updateBorderOnScroll();
+            this.updateMarkerPositions();
+        };
+        tableContainer.addEventListener("scroll", this._scrollListener, { passive: true });
         // Trigger once on render to set initial state
         updateBorderOnScroll();
+    }
+
+    createMarker(rowId, tr) {
+        const marker = document.createElement("div");
+        marker.className = "ut-floating-indicator";
+        marker.title = "New unseen log";
+        document.body.appendChild(marker);
+        this.markers.set(rowId, { marker, tr });
+    }
+
+    updateMarkerPositions() {
+        if (this.markers.size === 0) return;
+
+        const containerRect = this.container.querySelector(".ut-wrapper").getBoundingClientRect();
+        const tableContainer = this.container.querySelector(".ut-table-container");
+        const tableRect = tableContainer.getBoundingClientRect();
+
+        this.markers.forEach(({ marker, tr }, rowId) => {
+            const rowRect = tr.getBoundingClientRect();
+
+            // Check if row is within the visible area of the table container (vertical clipping)
+            const isVisibleVertically = rowRect.top < tableRect.bottom && rowRect.bottom > tableRect.top;
+
+            if (!isVisibleVertically) {
+                marker.style.display = "none";
+                return;
+            }
+
+            marker.style.display = "block";
+            marker.style.top = `${rowRect.top + rowRect.height / 2 + window.scrollY}px`;
+            // Position exactly -9px from the left edge of the table wrapper
+            marker.style.left = `${containerRect.left + window.scrollX - 2}px`;
+        });
+    }
+
+    clearMarkers() {
+        this.markers.forEach(({ marker }) => marker.remove());
+        this.markers.clear();
     }
     renderCellContent(containerElement, rowId, col, rowData, isUpdatable) {
         containerElement.innerHTML = "";
@@ -1835,7 +1928,6 @@ export default class UpdatableTable {
 
     confirmRestore(rowId, url, element) {
         window.showSidePopup(
-
             element,
             "Restore record?",
             () => {
@@ -1869,7 +1961,6 @@ export default class UpdatableTable {
 
     confirmDelete(rowId, url, element) {
         window.showSidePopup(
-
             element,
             "Delete record?",
             () => {

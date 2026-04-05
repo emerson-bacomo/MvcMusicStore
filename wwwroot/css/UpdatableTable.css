@@ -484,6 +484,24 @@
 .ut-change-indicator { background: #4caf50; cursor: pointer; }
 .ut-invalid-indicator { background: var(--nc-error); }
 
+/* New Row Indicator (Floating Portal) */
+.ut-floating-indicator {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #4caf50;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+    z-index: 9999;
+    animation: ut-pulse-green 2s infinite;
+}
+
+@keyframes ut-pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
 .ut-input {
     width: 100%;
     min-width: 0; /* In fixed layout, 100% means exactly the column width */

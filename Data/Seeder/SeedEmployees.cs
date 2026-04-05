@@ -49,7 +49,8 @@ namespace MvcMusic.Data
                     FirstName = "Alice",
                     LastName = "Rivera",
                     EmailConfirmed = true,
-                    DateCreated = DateTime.UtcNow
+                    DateCreated = DateTime.UtcNow,
+                    RequiresPasswordChange = true
                 };
                 if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
@@ -65,7 +66,7 @@ namespace MvcMusic.Data
             var stockEmail = "stockstaff@nightcord.com";
             if (await userManager.FindByEmailAsync(stockEmail) == null)
             {
-                var user = new ApplicationUser { UserName = $"{year}-T0001", Email = stockEmail, FirstName = "Tina", LastName = "Stone", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                var user = new ApplicationUser { UserName = $"{year}-T0001", Email = stockEmail, FirstName = "Tina", LastName = "Stone", EmailConfirmed = true, DateCreated = DateTime.UtcNow, RequiresPasswordChange = true };
                 if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "StockStaff");
@@ -77,7 +78,7 @@ namespace MvcMusic.Data
             var productEmail = "productstaff@nightcord.com";
             if (await userManager.FindByEmailAsync(productEmail) == null)
             {
-                var user = new ApplicationUser { UserName = $"{year}-P0001", Email = productEmail, FirstName = "Paula", LastName = "Cruz", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                var user = new ApplicationUser { UserName = $"{year}-P0001", Email = productEmail, FirstName = "Paula", LastName = "Cruz", EmailConfirmed = true, DateCreated = DateTime.UtcNow, RequiresPasswordChange = true };
                 if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "ProductStaff");
@@ -89,7 +90,7 @@ namespace MvcMusic.Data
             var salesEmail = "salesstaff@nightcord.com";
             if (await userManager.FindByEmailAsync(salesEmail) == null)
             {
-                var user = new ApplicationUser { UserName = $"{year}-L0001", Email = salesEmail, FirstName = "Leon", LastName = "Drake", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                var user = new ApplicationUser { UserName = $"{year}-L0001", Email = salesEmail, FirstName = "Leon", LastName = "Drake", EmailConfirmed = true, DateCreated = DateTime.UtcNow, RequiresPasswordChange = true };
                 if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "SalesStaff");
@@ -101,7 +102,7 @@ namespace MvcMusic.Data
             var customerEmail = "customerstaff@nightcord.com";
             if (await userManager.FindByEmailAsync(customerEmail) == null)
             {
-                var user = new ApplicationUser { UserName = $"{year}-C0001", Email = customerEmail, FirstName = "Clara", LastName = "Vance", EmailConfirmed = true, DateCreated = DateTime.UtcNow };
+                var user = new ApplicationUser { UserName = $"{year}-C0001", Email = customerEmail, FirstName = "Clara", LastName = "Vance", EmailConfirmed = true, DateCreated = DateTime.UtcNow, RequiresPasswordChange = true };
                 if ((await userManager.CreateAsync(user, "Password123")).Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "CustomerStaff");

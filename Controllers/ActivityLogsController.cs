@@ -25,15 +25,40 @@ namespace MvcMusic.Controllers
         }
 
         // GET: /activity-logs
-        [Route("")]
-        [Route("index")]
+        [HttpGet]
         public async Task<IActionResult> Index(string? userId = null)
         {
+            var currentAdminId = _userManager.GetUserId(User);
+
             if (!string.IsNullOrEmpty(userId))
             {
                 var targetUser = await _userManager.FindByIdAsync(userId);
                 ViewBag.Employee = targetUser;
                 ViewBag.UserId = userId;
+
+                // Mark current logs for this user as seen by this admin
+                // Exclude Login/Logout actions to prevent cluttering the unseen count
+                var unseenLogIds = await _context.ActivityLog
+                    .Where(l => l.UserId == userId)
+                    .Where(l => l.Action != ActivityAction.Login && l.Action != ActivityAction.Logout)
+                    .Where(l => !_context.ActivityLogSeenStatus
+                        .Any(s => s.ActivityLogId == l.Id && s.AdminUserId == currentAdminId))
+                    .Select(l => l.Id)
+                    .ToListAsync();
+
+                if (unseenLogIds.Any())
+                {
+                    var newSeenStatuses = unseenLogIds.Select(id => new ActivityLogSeenStatus
+                    {
+                        ActivityLogId = id,
+                        AdminUserId = currentAdminId
+                    });
+                    _context.ActivityLogSeenStatus.AddRange(newSeenStatuses);
+                    await _context.SaveChangesAsync();
+
+                    // Store these specific IDs so GetTableData can mark them as "New" indicator rows
+                    TempData["JustSeenLogIds"] = string.Join(",", unseenLogIds);
+                }
             }
             
             // For the filter dropdowns in UpdatableTable config or custom UI if needed
@@ -64,7 +89,7 @@ namespace MvcMusic.Controllers
             return View();
         }
 
-        [HttpGet]
+        [HttpGet("data")]
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetTableData(
             string? userId = null, 
@@ -130,15 +155,22 @@ namespace MvcMusic.Controllers
                 new { id = "details" }
             };
 
+            var justSeenIdsStr = TempData.Peek("JustSeenLogIds") as string;
+            var justSeenIds = !string.IsNullOrEmpty(justSeenIdsStr) 
+                ? justSeenIdsStr.Split(',').Select(int.Parse).ToHashSet() 
+                : new HashSet<int>();
+
             var rows = logs.ToDictionary(l => l.Id, l => (object)new
             {
                 id = l.Id,
+                userId = l.UserId ?? "",
                 timestamp = l.Timestamp.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 username = string.IsNullOrEmpty(l.Username) ? "—" : l.Username,
                 fullname = string.IsNullOrEmpty(l.UserFullName) ? "—" : l.UserFullName,
                 role = l.Role ?? "",
                 action = l.Action.ToString(),
-                details = l.Details ?? ""
+                details = l.Details ?? "",
+                _isNew = justSeenIds.Contains(l.Id)
             });
 
             return Json(new 

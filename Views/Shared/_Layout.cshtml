@@ -183,7 +183,7 @@
                             </li>
                         }
 
-                        @if (isSuper)
+                        @if (isAdminOrSuper)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
@@ -322,7 +322,7 @@
     </nav>
 
     <!-- Mobile Off-canvas Menu -->
-    <div id="ncMobileMenu" class="nc-mobile-menu d-lg-none">
+    <div id="ncMobileMenu" class="nc-mobile-menu">
         <div class="nc-mobile-menu-header">
             <div style="font-family: 'Orbitron', sans-serif; font-weight: 900; color: var(--nc-primary); letter-spacing: 1px;">MENU</div>
             <button id="ncMobileMenuClose" class="btn p-0 border-0 bg-transparent text-white">
@@ -398,7 +398,7 @@
                         </li>
                     }
 
-                    @if (isSuper)
+                    @if (isAdminOrSuper)
                     {
                         <li class="nc-mobile-nav-item">
                             <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "active" : "")" asp-controller="Employee" asp-action="Index">
@@ -424,9 +424,10 @@
                     <a class="nc-mobile-nav-link" asp-controller="Profile" asp-action="Index">
                         <i class="fa fa-user-circle"></i> Profile
                     </a>
-                    <form asp-controller="Account" asp-action="Logout" method="post" class="mt-2">
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="nc-mobile-nav-item mt-2">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn-nc-outline w-100 text-danger border-danger" style="font-size: 0.85rem; padding: 0.85rem;">
+                        <button type="submit" class="nc-mobile-nav-link text-danger border-0 w-100" 
+                                style="background: none; text-align: left; padding: 0.75rem 1rem; font-weight: 500;">
                             <i class="fa fa-right-from-bracket me-2"></i> Sign Out
                         </button>
                     </form>

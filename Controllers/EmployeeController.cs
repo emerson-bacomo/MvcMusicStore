@@ -9,7 +9,7 @@ using MvcMusic.ViewModels;
 
 namespace MvcMusic.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class EmployeeController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -38,12 +38,37 @@ namespace MvcMusic.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             ViewBag.CurrentUserId = user?.Id;
+            ViewBag.IsSuperAdmin = await _userManager.IsInRoleAsync(user!, "SuperAdmin");
             return View();
+        }
+
+        // GET: /employees/profile/{id}
+        [HttpGet]
+        public async Task<IActionResult> Profile(string id)
+        {
+            var employee = await _userManager.FindByIdAsync(id);
+            if (employee == null) return NotFound();
+
+            var roles = await _userManager.GetRolesAsync(employee);
+            ViewBag.Employee = employee;
+            ViewBag.Role = roles.FirstOrDefault() ?? "No Role";
+
+            var logs = await _context.ActivityLog
+                .Where(l => l.UserId == id)
+                .OrderByDescending(l => l.Timestamp)
+                .ToListAsync();
+
+            return View(logs);
         }
 
         // GET: /employees/create
         [HttpGet]
-        public IActionResult Create() => View();
+        public async Task<IActionResult> Create()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.IsSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+            return View();
+        }
 
         // POST: /employees/create
         [HttpPost]
@@ -51,6 +76,15 @@ namespace MvcMusic.Controllers
         public async Task<IActionResult> Create(EmployeeCreateViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+
+            if (!isCurrentSuperAdmin && (model.Role == "Admin" || model.Role == "SuperAdmin"))
+            {
+                TempData["Error"] = "You do not have permission to create accounts with this role.";
+                return RedirectToAction(nameof(Index));
+            }
 
             var existingEmail = await _userManager.FindByEmailAsync(model.Email);
             if (existingEmail != null)
@@ -93,7 +127,25 @@ namespace MvcMusic.Controllers
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
+
             var roles = await _userManager.GetRolesAsync(user);
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+            ViewBag.IsSuperAdmin = isCurrentSuperAdmin;
+            var role = roles.FirstOrDefault() ?? "";
+
+            if (!isCurrentSuperAdmin && (role == "Admin" || role == "SuperAdmin") && user.Id != currentUser!.Id)
+            {
+                TempData["Error"] = "You do not have permission to edit this account.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Also standard Admins cannot edit their own data from the employee panel (should use profile).
+            if (!isCurrentSuperAdmin && user.Id == currentUser!.Id)
+            {
+                TempData["Error"] = "Admins cannot update their own data through the employee panel.";
+                return RedirectToAction(nameof(Index));
+            }
             var vm = new EmployeeEditViewModel
             {
                 Id = user.Id,
@@ -116,66 +168,60 @@ namespace MvcMusic.Controllers
             var user = await _userManager.FindByIdAsync(model.Id);
             if (user == null) return NotFound();
 
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+
+            if (!isCurrentSuperAdmin && (currentRole == "Admin" || currentRole == "SuperAdmin"))
+            {
+                TempData["Error"] = "You do not have permission to edit this account.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!isCurrentSuperAdmin && user.Id == currentUser!.Id)
+            {
+                TempData["Error"] = "Admins cannot update their own data through the employee panel.";
+                return RedirectToAction(nameof(Index));
+            }
+
             user.FirstName = model.FirstName;
             user.LastName = model.LastName;
             user.Email = model.Email;
 
             await _userManager.UpdateAsync(user);
 
-            // Update role
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var currentUser = await _userManager.GetUserAsync(User);
-            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
-
-            // Only SuperAdmin can change roles
-            if (model.Role != currentRoles.FirstOrDefault() && isCurrentSuperAdmin)
+            // Update role constraints
+            if (model.Role != currentRole)
             {
-                // SuperAdmin cannot change their own role
-                if (user.Id == currentUser!.Id)
+                if (!isCurrentSuperAdmin && (model.Role == "Admin" || model.Role == "SuperAdmin"))
                 {
-                    TempData["Error"] = "SuperAdmins cannot change their own role.";
-                    return RedirectToAction(nameof(Edit), new { id = model.Id });
+                    TempData["Error"] = "You do not have permission to promote users to this role.";
+                    return RedirectToAction(nameof(Index));
                 }
 
+                if (user.Id == currentUser!.Id)
+                {
+                    TempData["Error"] = "You cannot change your own role.";
+                    return RedirectToAction(nameof(Edit), new { id = model.Id });
+                }
+                
                 var allowedRoles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff", "SuperAdmin" };
                 if (allowedRoles.Contains(model.Role))
                 {
                     await _userManager.RemoveFromRolesAsync(user, currentRoles);
                     await _userManager.AddToRoleAsync(user, model.Role);
+                    user.UserName = await GenerateEmployeeCodeAsync(model.Role);
+                    await _userManager.UpdateAsync(user);
                 }
-            }
-            else if (model.Role != currentRoles.FirstOrDefault() && !isCurrentSuperAdmin)
-            {
-                TempData["Error"] = "Only SuperAdmins can change roles.";
             }
 
             var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.EditEmployee, $"Edited employee <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>, set role to {model.Role}", cId, cName, cRole, cFull);
+            await _logger.LogAsync(ActivityAction.EditEmployee, $"Edited employee <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>", cId, cName, cRole, cFull);
             TempData["Success"] = "Employee updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /employees/ban/{id}
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleBan(string id)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
-
-            user.IsBanned = !user.IsBanned;
-            await _userManager.UpdateAsync(user);
-
-            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            var actorDesc = !string.IsNullOrEmpty(cFull) ? $"{cFull} ({cName})" : (cName ?? "SuperAdmin");
-            var action = user.IsBanned ? ActivityAction.BanEmployee : ActivityAction.UnbanEmployee;
-            var details = user.IsBanned 
-                ? $"<b>{actorDesc}</b> banned employee: <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>" 
-                : $"<b>{actorDesc}</b> unbanned employee: <a href='/employees/edit/{user.Id}' class='employee-link'>{user.UserName} ({user.Email})</a>";
-            await _logger.LogAsync(action, details, cId, cName, cRole, cFull);
-            TempData["Success"] = $"Employee {(user.IsBanned ? "banned" : "unbanned")} successfully.";
-            return RedirectToAction(nameof(Index));
-        }
 
 
         // GET: /employees/delete/{id}
@@ -197,6 +243,16 @@ namespace MvcMusic.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+
+            if (!isCurrentSuperAdmin && (currentRole == "Admin" || currentRole == "SuperAdmin"))
+            {
+                return Json(new { success = false, message = "You do not have permission to delete this account." });
+            }
+
             user.RecordStatus = RecordStatus.Deleted;
             await _userManager.UpdateAsync(user);
 
@@ -207,7 +263,7 @@ namespace MvcMusic.Controllers
                 return Json(new { success = true });
 
             TempData["Success"] = "Employee account soft-deleted.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Profile), new { id = user.Id });
         }
 
         // POST: /employees/restore/{id}
@@ -217,6 +273,16 @@ namespace MvcMusic.Controllers
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
+            var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+
+            if (!isCurrentSuperAdmin && (currentRole == "Admin" || currentRole == "SuperAdmin"))
+            {
+                return Json(new { success = false, message = "You do not have permission to restore this account." });
+            }
 
             user.RecordStatus = RecordStatus.Active;
             await _userManager.UpdateAsync(user);
@@ -228,34 +294,44 @@ namespace MvcMusic.Controllers
                 return Json(new { success = true });
 
         TempData["Success"] = "Employee account restored.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Profile), new { id = user.Id });
         }
 
         // POST: /employees/reset-password/{id}
         [HttpPost]
-        [Authorize(Roles = "SuperAdmin")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(string id)
+        public async Task<IActionResult> ResetPassword(string id, string? newPassword)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return Json(new { success = false, message = "User not found." });
 
-            // SuperAdmins cannot reset their own password through this endpoint (security best practice)
-            // They should use the profile settings.
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
             var currentUser = await _userManager.GetUserAsync(User);
+            var isCurrentSuperAdmin = await _userManager.IsInRoleAsync(currentUser!, "SuperAdmin");
+
+            if (!isCurrentSuperAdmin && (currentRole == "Admin" || currentRole == "SuperAdmin"))
+            {
+                return Json(new { success = false, message = "You do not have permission to reset this account's password." });
+            }
+
+            // Cannot reset their own password here
             if (user.Id == currentUser!.Id)
             {
                 return Json(new { success = false, message = "You cannot reset your own password here. Use Profile Settings." });
             }
 
-            // Generate a random password
-            var charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-            var random = new Random();
-            var newPassword = new string(Enumerable.Repeat(charset, 12).Select(s => s[random.Next(s.Length)]).ToArray());
-            
-            // Add at least one digit and one special if missing
-            if (!newPassword.Any(char.IsDigit)) newPassword = newPassword.Substring(0, 11) + random.Next(10).ToString();
-            if (!newPassword.Any(c => "!@#$%^&*()_+".Contains(c))) newPassword = newPassword.Substring(0, 10) + "!" + newPassword.Last();
+            // Use provided password or generate a random one
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                var charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+                var random = new Random();
+                newPassword = new string(Enumerable.Repeat(charset, 12).Select(s => s[random.Next(s.Length)]).ToArray());
+                
+                // Add at least one digit and one special if missing
+                if (!newPassword.Any(char.IsDigit)) newPassword = newPassword.Substring(0, 11) + random.Next(10).ToString();
+                if (!newPassword.Any(c => "!@#$%^&*()_+".Contains(c))) newPassword = newPassword.Substring(0, 10) + "!" + newPassword.Last();
+            }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
@@ -342,19 +418,29 @@ namespace MvcMusic.Controllers
                 new { id = "actions", updatable = false }
             };
 
-            var rows = allEmployees.ToDictionary(e => e.user.Id, e => (object)new
-            {
-                code = e.user.UserName,
-                name = $"{e.user.FirstName} {e.user.LastName}",
-                username = e.user.UserName,
-                email = e.user.Email,
-                role = e.role,
-                status = e.user.IsBanned ? "Banned" : "Active",
-                id = e.user.Id,
-                isBanned = e.user.IsBanned,
-                profilePicture = e.user.ProfilePicture,
-                firstName = string.IsNullOrEmpty(e.user.FirstName) ? "Employee" : e.user.FirstName,
-                recordStatus = e.user.RecordStatus.ToString()
+            var currentAdminId = _userManager.GetUserId(User);
+
+            var rows = allEmployees.ToDictionary(e => e.user.Id, e => {
+                var unseenCount = _context.ActivityLog
+                    .Where(l => l.UserId == e.user.Id)
+                    .Where(l => l.Action != ActivityAction.Login && l.Action != ActivityAction.Logout)
+                    .Count(l => !_context.ActivityLogSeenStatus
+                        .Any(s => s.ActivityLogId == l.Id && s.AdminUserId == currentAdminId));
+
+                return (object)new
+                {
+                    code = e.user.UserName,
+                    name = $"{e.user.FirstName} {e.user.LastName}",
+                    username = e.user.UserName,
+                    email = e.user.Email,
+                    role = e.role,
+                    status = e.user.RecordStatus == RecordStatus.Deleted ? "Deleted" : "Active",
+                    id = e.user.Id,
+                    profilePicture = e.user.ProfilePicture,
+                    firstName = string.IsNullOrEmpty(e.user.FirstName) ? "Employee" : e.user.FirstName,
+                    recordStatus = e.user.RecordStatus.ToString(),
+                    unseenLogsCount = unseenCount
+                };
             });
 
             return Json(new { columns, rows });
@@ -384,6 +470,14 @@ namespace MvcMusic.Controllers
                 .DefaultIfEmpty(0).Max();
 
             return $"{year}-{prefix}{(maxNum + 1):D4}";
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPreviewUsername([FromQuery] string role)
+        {
+            if (string.IsNullOrEmpty(role)) return Json(new { username = "" });
+            var code = await GenerateEmployeeCodeAsync(role);
+            return Json(new { username = code });
         }
     }
 }

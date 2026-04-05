@@ -25,12 +25,34 @@
             else
             {
                 <!-- DISPLAY MODE: Delete then Edit -->
-                <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', null, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
-                    <i class="fa fa-trash"></i>
-                </button>
+                <span id="productStatusToggle">
+                    @if (Model.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
+                    {
+                        <button type="button" class="nc-gutter-btn btn-success nc-read-only-hide" onclick="if(window.confirmRestore) window.confirmRestore('@Model.Id', '@Url.Action("Restore", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('deleteBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Restore", "Products", new { id = Model.Id })'" title="Restore Product">
+                            <i class="fa fa-trash-restore"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('restoreBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    }
+                </span>
                 <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
                     <i class="fa fa-pen"></i>
                 </button>
+                
+                <template id="deleteBtnTemplate">
+                    <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('restoreBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </template>
+                <template id="restoreBtnTemplate">
+                    <button type="button" class="nc-gutter-btn btn-success nc-read-only-hide" onclick="if(window.confirmRestore) window.confirmRestore('@Model.Id', '@Url.Action("Restore", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('deleteBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Restore", "Products", new { id = Model.Id })'" title="Restore Product">
+                        <i class="fa fa-trash-restore"></i>
+                    </button>
+                </template>
                 
                 <!-- EDIT MODE: Revert, Save, then Exit -->
                 <div class="nc-editable-actions flex-row gap-3">
@@ -68,7 +90,7 @@
         <div class="nc-detail-card">
             <!-- Visual Section -->
             <div class="d-flex flex-column gap-2">
-                <div class="w-100 position-relative overflow-hidden nc-visual-stack" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
+                <div class="w-100 position-relative overflow-hidden nc-visual-stack" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 15px 50px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.15);">
                     <div id="productCarousel" class="carousel slide h-100 nc-main-image-wrapper">
                         <div class="carousel-inner h-100" id="carouselTrack">
                             @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
@@ -168,7 +190,7 @@
 
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                 {
-                    <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
+                <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
                         <div class="nc-meta-stat position-relative">
                             <!-- Stock Indicator (beside the whole card) -->
                             <div id="indicator-Stock" class="nc-changed-indicator nc-indicator-stat-card" style="display: none;" onclick="editor.showRevertPopup('Stock', 'Stock Amount', this)"></div>
@@ -431,11 +453,9 @@
     }
 
     .nc-detail-container {
-        padding: 2rem 0;
         animation: fadeIn 0.6s ease-out;
         position: relative;
-        max-width: 1400px;
-        margin: 2rem auto;
+        margin: 0 auto;
     }
 
     /* ── Visual Stack (Unified parent for Carousel, Pills, Upload) ── */
@@ -483,7 +503,7 @@
     /* Gutter Admin Actions — Horizontal Sibling Toolbar */
     .nc-gutter-actions {
         position: relative;
-        margin: 0 auto 1.5rem auto;
+        margin: 0 auto 2rem auto;
         display: flex;
         flex-direction: row;
         justify-content: flex-end;
@@ -508,8 +528,13 @@
         box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
     
+    .nc-gutter-btn.btn-edit { border-color: rgba(123, 171, 221, 0.3) !important; color: var(--nc-primary) !important; }
+    .nc-gutter-btn.btn-delete { border-color: rgba(239, 83, 80, 0.3) !important; color: #ef5350 !important; }
+    .nc-gutter-btn.btn-success { border-color: rgba(102, 187, 106, 0.3) !important; color: #66bb6a !important; }
+
     .nc-gutter-btn.btn-save:hover { background: #4caf50; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(76, 175, 80, 0.4); }
-    .nc-gutter-btn.btn-delete:hover { background: #ef5350; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(239, 83, 80, 0.4); }
+    .nc-gutter-btn.btn-delete:hover { background: #ef5350; color: #fff !important; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(239, 83, 80, 0.4); }
+    .nc-gutter-btn.btn-success:hover { background: #66bb6a; color: #fff !important; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(102, 187, 106, 0.4); }
     .nc-gutter-btn.btn-clear:hover, .nc-gutter-btn.nc-btn-cancel-edit:hover { transform: translateY(-4px); }
 
     .nc-changes-badge {
@@ -526,7 +551,7 @@
         justify-content: center;
         font-weight: 800;
         font-size: 0.75rem;
-        border: 2px solid #1e232d;
+        border: 2px solid #11141aff;
         z-index: 10;
         animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
@@ -1237,7 +1262,7 @@
         z-index: 50;
         transition: all 0.3s;
     }
-    .nc-revert-btn:hover { background: #ffb74d; color: #1e232d; transform: translateY(-50%) scale(1.1) rotate(-45deg); }
+    .nc-revert-btn:hover { background: #ffb74d; color: #11141aff; transform: translateY(-50%) scale(1.1) rotate(-45deg); }
     .nc-field-changed .nc-revert-btn { display: flex; animation: slideInRevert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
     @@keyframes slideInRevert { from { opacity: 0; transform: translateY(-50%) translateX(-10px) scale(0.5); } to { opacity: 1; transform: translateY(-50%) translateX(0) scale(0.8); } }
@@ -1402,8 +1427,8 @@
 
     /* Description textarea: same font metrics as the display span */
     .nc-description-edit {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255,255,255,0.15);
         border-radius: 1rem;
         padding: 0.75rem 1rem;
         color: #fff;
@@ -1417,7 +1442,7 @@
         overflow: hidden;    /* hide scrollbar while JS hasn't fired yet */
         min-height: 3rem;
     }
-    .nc-description-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255,255,255,0.08); }
+    .nc-description-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255, 255, 255, 0.07); }
 
     /* Banner text: read-only must NOT be bold */
     .nc-banner-text-display {
@@ -1429,7 +1454,7 @@
     .nc-pd-stock-input {
         appearance: none;
         -webkit-appearance: none;
-        background: rgba(255,255,255,0.06);
+        background: rgba(255, 255, 255, 0.04);
         border: 1.5px solid rgba(255, 255, 255, 0.15);
         border-radius: 0.6rem;
         color: #fff;
@@ -1439,7 +1464,7 @@
         transition: border-color 0.3s, background 0.3s;
         align-self: center; /* centred inside the grid cell */
     }
-    .nc-pd-stock-input:focus { border-color: var(--nc-primary); background: rgba(255,255,255,0.1); outline: none; }
+    .nc-pd-stock-input:focus { border-color: var(--nc-primary); background: rgba(255, 255, 255, 0.08); outline: none; }
 
     /* Stock display span: stays inline inside its grid cell */
     .nc-stock-display { display: block; }

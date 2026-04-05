@@ -7,11 +7,8 @@
 
 <div class="nc-page">
     <div class="container-fluid px-4">
-        <div style="margin-bottom:2rem;">
-            <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem; border-radius:var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back
-            </a>
-        </div>
+        <!-- Layout top padding since back button is removed -->
+        <div style="margin-bottom:1rem;"></div>
 
         <div class="row gx-4">
             <div class="col-lg-4 mb-4">
@@ -39,9 +36,13 @@
                         <div style="text-align:left;border-top:1px solid var(--nc-border);padding-top:1.5rem;">
                             <div style="margin-bottom:1rem;font-size:0.85rem;">
                                 <span class="nc-text-muted d-block" style="margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Status</span>
-                                @if (customer.IsBanned)
+                                @if (customer.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
                                 {
-                                    <span style="color:#e57373;font-weight:700;"><i class="fa fa-ban me-1"></i> Banned / Disabled</span>
+                                    <span style="color:#e57373;font-weight:700;"><i class="fa fa-trash me-1"></i> Deleted Account</span>
+                                }
+                                else if (customer.IsBanned)
+                                {
+                                    <span style="color:#ffb74d;font-weight:700;"><i class="fa fa-ban me-1"></i> Banned / Disabled</span>
                                 }
                                 else
                                 {
@@ -59,21 +60,42 @@
                         </div>
 
                         <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--nc-border);">
-                            <form asp-action="ToggleBan" asp-route-id="@customer.Id" method="post">
-                                @Html.AntiForgeryToken()
-                                @if (customer.IsBanned)
+                            <div class="d-flex flex-column gap-2">
+                                <form asp-action="ToggleBan" asp-route-id="@customer.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    @if (customer.IsBanned)
+                                    {
+                                        <button type="submit" class="btn btn-warning w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;color:#000;">
+                                            <i class="fa fa-circle-play me-2"></i> Unban Account
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-outline-warning w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                            <i class="fa fa-ban me-2"></i> Ban Customer
+                                        </button>
+                                    }
+                                </form>
+
+                                @if (customer.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
                                 {
-                                    <button type="submit" class="btn btn-success w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
-                                        <i class="fa fa-circle-play me-2"></i> Restore Account
-                                    </button>
+                                    <form asp-action="Restore" asp-route-id="@customer.Id" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-success w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                            <i class="fa fa-trash-restore me-2"></i> Restore Account
+                                        </button>
+                                    </form>
                                 }
                                 else
                                 {
-                                    <button type="submit" class="btn btn-outline-danger w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
-                                        <i class="fa fa-ban me-2"></i> Ban Customer
-                                    </button>
+                                    <form asp-action="Delete" asp-route-id="@customer.Id" method="post" onsubmit="return confirm('Are you sure you want to delete this customer?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                            <i class="fa fa-trash me-2"></i> Delete Customer
+                                        </button>
+                                    </form>
                                 }
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>

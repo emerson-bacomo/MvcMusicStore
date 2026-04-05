@@ -1,17 +1,17 @@
 @model MvcMusic.ViewModels.EmployeeCreateViewModel
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Options
+@inject IOptions<IdentityOptions> IdentityOptions
 
 @{
     ViewData["Title"] = "Add Employee";
-    var roles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff" };
+    var isSuperAdmin = ViewBag.IsSuperAdmin == true;
+    var allRoles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff", "SuperAdmin" };
+    var roles = isSuperAdmin ? allRoles : new[] { "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff" };
 }
 
 <div class="nc-page">
     <div class="nc-container">
-        <div class="mb-4">
-            <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back
-            </a>
-        </div>
 
         <div class="nc-page-header">
             <div>
@@ -31,15 +31,15 @@
                     <div class="nc-form-section">
                         <div class="nc-form-section-title">Personal Information</div>
                         <div class="nc-form-grid">
-                            <div class="nc-form-group">
-                                <label asp-for="FirstName" class="nc-label"></label>
-                                <input asp-for="FirstName" class="nc-input" />
-                                <span asp-validation-for="FirstName" class="nc-validation-error"></span>
+                            <div class="mb-3">
+                                <nc-floating-input label="First Name" icon="fa fa-user" bg="#11141aff">
+                                    <input asp-for="FirstName" class="nc-floating-control" placeholder=" " />
+                                </nc-floating-input>
                             </div>
-                            <div class="nc-form-group">
-                                <label asp-for="LastName" class="nc-label"></label>
-                                <input asp-for="LastName" class="nc-input" />
-                                <span asp-validation-for="LastName" class="nc-validation-error"></span>
+                            <div class="mb-3">
+                                <nc-floating-input label="Last Name" icon="fa fa-user" bg="#11141aff">
+                                    <input asp-for="LastName" class="nc-floating-control" placeholder=" " />
+                                </nc-floating-input>
                             </div>
                         </div>
                     </div>
@@ -48,9 +48,10 @@
                         <div class="nc-form-section-title">Account Details</div>
                         <div class="nc-form-grid">
                             <div class="nc-form-group">
-                                <label asp-for="Email" class="nc-label"></label>
-                                <input asp-for="Email" type="email" class="nc-input" />
-                                <span asp-validation-for="Email" class="nc-validation-error"></span>
+                                <label class="nc-label" style="visibility: hidden;">Email</label>
+                                <nc-floating-input label="Email Address" icon="fa fa-envelope" bg="#11141aff">
+                                    <input asp-for="Email" type="email" class="nc-floating-control" placeholder=" " />
+                                </nc-floating-input>
                             </div>
                             <div class="nc-form-group">
                                 <label asp-for="Role" class="nc-label"></label>
@@ -86,22 +87,29 @@
                     <div class="nc-form-section">
                         <div class="nc-form-section-title">Password Management</div>
                         <div class="nc-form-group">
-                            <label asp-for="Password" class="nc-label">Generated Temporary Password</label>
-                            <div class="d-flex gap-2">
-                                <div style="position:relative; flex-grow:1;">
-                                    <input asp-for="Password" id="genPassword" class="nc-input" style="letter-spacing:1px; font-family:'JetBrains Mono', monospace;" />
-                                    <button type="button" id="copyPassword" class="btn border-0 py-0" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--nc-primary);" title="Copy to Clipboard">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="flex-grow-1" style="position:relative;">
+                                    <nc-floating-input label="Temporary Password" icon="fa fa-lock" class="nc-password-wrapper" bg="#11141aff">
+                                        <input asp-for="Password" id="genPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " autocomplete="new-password"
+                                               data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
+                                               data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
+                                               data-val-password-lowercase="@IdentityOptions.Value.Password.RequireLowercase.ToString().ToLower()"
+                                               data-val-password-digit="@IdentityOptions.Value.Password.RequireDigit.ToString().ToLower()"
+                                               data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()" />
+                                    </nc-floating-input>
+                                </div>
+                                <div class="d-flex gap-2" style="margin-top: 1.3rem;"> <!-- Offset for floating label height -->
+                                    <button type="button" id="copyPassword" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Copy to Clipboard">
                                         <i class="fa fa-copy"></i>
                                     </button>
+                                    <button type="button" id="regeneratePassword" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Regenerate">
+                                        <i class="fa fa-sync-alt"></i>
+                                    </button>
                                 </div>
-                                <button type="button" id="regeneratePassword" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm);" title="Regenerate">
-                                    <i class="fa fa-sync-alt"></i>
-                                </button>
                             </div>
                             <div class="nc-text-muted mt-2" style="font-size:0.75rem;">
-                                <i class="fa fa-info-circle me-1"></i> This is a temporary password. The user will be required to change it upon their first login.
+                                <i class="fa fa-info-circle me-1"></i> The user will be required to change this password upon their first login.
                             </div>
-                            <span asp-validation-for="Password" class="nc-validation-error"></span>
                         </div>
                     </div>
 
@@ -141,35 +149,42 @@
 
         // Password generation
         function generateRandomPassword(length = 12) {
-            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@@#$%^&*()_+";
+            // Using char code 64 for at-symbol to prevent Razor parsing issues
+            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!" + String.fromCharCode(64) + "#$%^&*()_+";
             let retVal = "";
             for (let i = 0, n = charset.length; i < length; ++i) {
                 retVal += charset.charAt(Math.floor(Math.random() * n));
             }
             // Ensure at least one special char and one number
-            if (!/[0-9]/.test(retVal) || !/[!@@#$%^&*()_+]/.test(retVal)) {
+            const specialChars = "!" + String.fromCharCode(64) + "#$%^&*()_+";
+            const hasNumber = /[0-9]/.test(retVal);
+            const hasSpecial = retVal.split('').some(c => specialChars.includes(c));
+
+            if (!hasNumber || !hasSpecial) {
                 return generateRandomPassword(length);
             }
             return retVal;
         }
 
         const passInput = document.getElementById('genPassword');
-        passInput.type = "text";
-        const copyBtn = document.getElementById('copyPassword');
         const regenBtn = document.getElementById('regeneratePassword');
+        const copyBtn = document.getElementById('copyPassword');
 
         function setPass() {
             passInput.value = generateRandomPassword();
+            // Trigger input event for ValidationEngine
+            passInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         setPass();
-
         regenBtn.addEventListener('click', setPass);
 
         copyBtn.addEventListener('click', function() {
+            passInput.type = "text";
             passInput.select();
             passInput.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(passInput.value);
+            passInput.type = "password";
             
             const icon = this.querySelector('i');
             icon.classList.remove('fa-copy');

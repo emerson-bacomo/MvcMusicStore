@@ -1,3 +1,6 @@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Options
+@inject IOptions<IdentityOptions> IdentityOptions
 @{
     ViewData["Title"] = "Employee Management";
     var currentUrl = Context.Request.Path + Context.Request.QueryString;
@@ -30,7 +33,6 @@
     <link rel="stylesheet" href="~/css/UpdatableTable.css" />
     <style>
         .emp-code {
-            font-family: 'Orbitron', monospace;
             font-size: 0.7rem;
             color: var(--nc-primary);
             background: rgba(123, 171, 221, 0.1);
@@ -161,7 +163,6 @@
         import UpdatableTable from '/js/UpdatableTable.js';
 
         const table = new UpdatableTable('#employees-table-container', {
-            label: 'Employees',
             storagePrefix: 'employee',
             request: {
                 url: '@Url.Action("GetTableData", "Employee")',
@@ -210,8 +211,7 @@
                     renderContent: (val) => {
                         const color = val === 'Active' ? '#81c784' : '#e57373';
                         const icon = val === 'Active' ? 'fa-circle-check' : 'fa-circle-dashed';
-                        const label = val === 'Banned' ? 'Banned' : val;
-                        return `<span style="color:${color}; font-size:0.8rem; font-weight:600;"><i class="fa ${icon} me-1"></i>${label}</span>`;
+                        return `<span style="color:${color}; font-size:0.8rem; font-weight:600;"><i class="fa ${icon} me-1"></i>${val}</span>`;
                     }
                 },
                 actions: {
@@ -220,28 +220,36 @@
                     spanStyle: 'padding: 0; display: flex; justify-content: flex-start;',
                     renderContent: (val, col, row) => {
                         let links = `
-                            <a href="/Employee/Edit/${row.id}" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>
-                            <a href="/activity-logs?userId=${row.id}" class="nc-action-link" title="View Logs"><i class="fa fa-list-check"></i></a>
-                        `;
-                        
-                        links += `
-                            <form action="/Employee/ToggleBan/${row.id}" method="post" style="display:inline;" onsubmit="event.preventDefault(); window.confirmBan(this);" data-type="employee">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="nc-action-link ${row.isBanned ? 'enable' : 'ban'}" title="${row.isBanned ? 'Unban' : 'Ban'}">
-                                    <i class="fa ${row.isBanned ? 'fa-circle-check' : 'fa-ban'}"></i>
-                                </button>
-                            </form>
+                            <a href="/Employee/Profile/${row.id}" class="nc-action-link" title="Profile"><i class="fa fa-user"></i></a>
+                            
+                            <div class="position-relative d-inline-block">
+                                <a href="/activity-logs?userId=${row.id}" class="nc-action-link" title="View Logs"><i class="fa fa-list-check"></i></a>
+                                ${row.unseenLogsCount > 0 ? `
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" 
+                                          style="font-size: 0.6rem; padding: 0.25rem 0.4rem; z-index: 5; border: 2px solid var(--nc-bg-card); transform: translate(-30%, -30%) !important;">
+                                        ${row.unseenLogsCount > 9 ? '9+' : row.unseenLogsCount}
+                                    </span>
+                                ` : ''}
+                            </div>
                         `;
 
-                        if (row.id !== '@ViewBag.CurrentUserId') {
+                        const isSuperAdminUser = @((ViewBag.IsSuperAdmin == true).ToString().ToLower());
+                        const isTargetAdmin = row.role === 'Admin' || row.role === 'SuperAdmin';
+                        const canModify = isSuperAdminUser || (!isTargetAdmin);
+
+                        if (canModify) {
+                            links += `<a href="/Employee/Edit/${row.id}" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>`;
+                        }
+
+                        if (row.id !== '@ViewBag.CurrentUserId' && canModify) {
                             links += `
-                                <button type="button" class="nc-action-link" title="Reset Password" onclick="window.resetStaffPassword('${row.id}', '${row.username}')" style="margin-left:0.5rem;">
+                                <button type="button" class="nc-action-link" title="Reset Password" onclick="window.resetStaffPassword('${row.id}', '${row.username}', this)" style="margin-left:0.5rem;">
                                     <i class="fa fa-key"></i>
                                 </button>
                             `;
                         }
 
-                        if (row.role !== 'SuperAdmin') {
+                        if (row.role !== 'SuperAdmin' && canModify) {
                             if (row.recordStatus === 'Deleted') {
                                 links += `
                                     <button type="button" class="nc-action-link restore border-0" title="Restore"
@@ -301,29 +309,119 @@
     </div>
 
     <script>
-        window.resetStaffPassword = function(userId, username) {
-            if (!confirm('Are you sure you want to reset the password for ' + username + '?')) return;
-
-            const formData = new FormData();
-            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-            fetch('/Employee/ResetPassword/' + userId, {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('resetTargetUser').textContent = username;
-                    document.getElementById('newResetPass').value = data.newPassword;
-                    new bootstrap.Modal(document.getElementById('resetPassModal')).show();
-                } else {
-                    alert('Error: ' + data.message);
+        window.resetStaffPassword = function(userId, username, element) {
+            const generateRandomComplexPassword = () => {
+                const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!" + String.fromCharCode(64) + "#$%^&*";
+                let generated = "";
+                for (let i = 0; i < 12; i++) {
+                    generated += charset.charAt(Math.floor(Math.random() * charset.length));
                 }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('An error occurred while resetting the password.');
+                // Ensure complexity
+                const specialChars = "!" + String.fromCharCode(64) + "#$%^&*";
+                if (!/\d/.test(generated)) generated = generated.substring(0, 11) + Math.floor(Math.random() * 10);
+                if (!generated.split('').some(c => specialChars.includes(c))) generated = generated.substring(0, 10) + "!" + generated.charAt(11);
+                return generated;
+            };
+
+            let generated = generateRandomComplexPassword();
+
+            const popupContent = `
+                <div class="ut-popup-form mt-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="flex-grow-1">
+                            <nc-floating-input label="New Password" icon="fa fa-lock" bg="var(--nc-bg-card)">
+                                <input type="password" id="manualResetPass" class="nc-floating-control nc-password-strength" 
+                                       value="${generated}" placeholder=" "
+                                       data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
+                                       data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
+                                       data-val-password-lowercase="@IdentityOptions.Value.Password.RequireLowercase.ToString().ToLower()"
+                                       data-val-password-digit="@IdentityOptions.Value.Password.RequireDigit.ToString().ToLower()"
+                                       data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()" />
+                            </nc-floating-input>
+                        </div>
+                        <div class="d-flex gap-2" style="margin-top: 1.3rem;">
+                            <button type="button" id="copyResetBtn" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Copy to Clipboard">
+                                <i class="fa fa-copy"></i>
+                            </button>
+                            <button type="button" id="regenResetBtn" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Regenerate">
+                                <i class="fa fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="nc-text-muted mt-2" style="font-size:0.75rem;">
+                        <i class="fa fa-info-circle me-1"></i> The user will be required to change this password upon their first login.
+                    </div>
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    window.showSidePopup(
+                        element,
+                        'Reset Password',
+                        () => {
+                            const passInput = document.getElementById('manualResetPass');
+                            const newPassword = passInput ? passInput.value : '';
+                            
+                            const formData = new FormData();
+                            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+                            formData.append('newPassword', newPassword);
+
+                            fetch('/Employee/ResetPassword/' + userId, {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    document.getElementById('resetTargetUser').textContent = username;
+                                    document.getElementById('newResetPass').value = data.newPassword;
+                                    new bootstrap.Modal(document.getElementById('resetPassModal')).show();
+                                } else {
+                                    window.showToast(data.message, 'error');
+                                }
+                            })
+                            .catch(err => {
+                                console.error(err);
+                                window.showToast('An error occurred.', 'error');
+                            });
+                        },
+                        'fa-key',
+                        'Reset',
+                        'var(--nc-primary)',
+                        popupContent,
+                        'btn-primary',
+                        'ut-popup-dropdown',
+                        true // hideArrow for cleaner dropdown look
+                    );
+
+                    // Hook up utility buttons
+                    const input = document.getElementById('manualResetPass');
+                    const copyBtn = document.getElementById('copyResetBtn');
+                    const regenBtn = document.getElementById('regenResetBtn');
+
+                    if (copyBtn) {
+                        copyBtn.onclick = () => {
+                            navigator.clipboard.writeText(input.value);
+                            const icon = copyBtn.querySelector('i');
+                            icon.className = 'fa fa-check';
+                            icon.style.color = 'var(--nc-success)';
+                            setTimeout(() => {
+                                icon.className = 'fa fa-copy';
+                                icon.style.color = '';
+                            }, 2000);
+                        };
+                    }
+
+                    if (regenBtn) {
+                        regenBtn.onclick = () => {
+                            input.value = generateRandomComplexPassword();
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            regenBtn.style.transform = 'rotate(360deg)';
+                            setTimeout(() => regenBtn.style.transform = '', 500);
+                        };
+                    }
+                });
             });
         };
 

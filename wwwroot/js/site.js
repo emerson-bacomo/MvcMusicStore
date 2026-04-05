@@ -51,7 +51,7 @@ window.showSidePopup = function (
     popup.style.top = "-9999px";
     popup.style.visibility = "hidden";
     popup.style.display = "block";
-    const isWide = rect.width > 200;
+    const isWide = rect.width > 200 || (extraClass && extraClass.includes("ut-popup-dropdown")); // Force dropdown logic for specific types
     const showOnLeft = rect.left > window.innerWidth / 2;
     const showOnTop = rect.bottom > window.innerHeight * 0.7; // If in bottom 30%, show on top
 
@@ -94,7 +94,18 @@ window.showSidePopup = function (
                 popup.style.top = `${rect.bottom + scrollY + 12}px`;
             }
             popup.style.transform = "none";
-            popup.style.left = `${rect.left + rect.width / 2 - popupWidth / 2}px`;
+            
+            if (extraClass && extraClass.includes("ut-popup-dropdown")) {
+                // Dropdown alignment (Left or Right based on screen half)
+                if (showOnLeft) {
+                    popup.style.left = `${rect.right - popupWidth}px`;
+                } else {
+                    popup.style.left = `${rect.left}px`;
+                }
+            } else {
+                // Standard wide modal centering
+                popup.style.left = `${rect.left + rect.width / 2 - popupWidth / 2}px`;
+            }
         } else if (customContent) {
             popup.style.top = `${rect.bottom + scrollY + 12}px`;
             popup.style.transform = "none";

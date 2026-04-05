@@ -2,16 +2,13 @@
 
 @{
     ViewData["Title"] = "Edit Employee";
-    var roles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff" };
+    var isSuperAdmin = ViewBag.IsSuperAdmin == true;
+    var allRoles = new[] { "Admin", "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff", "SuperAdmin" };
+    var roles = isSuperAdmin ? allRoles : new[] { "StockStaff", "ProductStaff", "SalesStaff", "CustomerStaff" };
 }
 
 <div class="nc-page">
     <div class="nc-container">
-        <div class="mb-4">
-            <a href="javascript:history.back()" class="btn-nc-outline" style="padding:0.5rem 1rem;border-radius:var(--nc-radius-sm);">
-                <i class="fa fa-arrow-left me-1"></i> Back
-            </a>
-        </div>
 
         <div class="nc-page-header">
             <div>
@@ -26,7 +23,7 @@
 
         <div class="nc-card nc-form-card">
             <div class="nc-card-body">
-                <asp-validation-summary class="nc-validation-summary" model-only="false"></asp-validation-summary>
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4" style="font-size:0.9rem; font-weight:600; padding:1rem; background:rgba(229,115,115,0.05); border:1px solid rgba(229,115,115,0.2); border-radius:8px;"></div>
 
                 <form asp-action="Edit" method="post">
                     @Html.AntiForgeryToken()
@@ -36,28 +33,28 @@
                         <div class="nc-form-section-title">Account Identity (Read-only)</div>
                         <div class="nc-form-group">
                             <label class="nc-label">Username</label>
-                            <input value="@Model.UserName" class="nc-input opacity-75" readonly style="cursor:not-allowed;" />
-                            <small class="nc-text-muted" style="font-size:0.75rem;">Username cannot be changed by admins.</small>
+                            <input value="@Model.UserName" class="nc-input opacity-75" readonly style="cursor:not-allowed;" id="UsernamePreviewField" />
+                            <small class="nc-text-muted" style="font-size:0.75rem;">Username cannot be changed directly. It will automatically update if the role changes.</small>
                         </div>
                     </div>
 
                     <div class="nc-form-section">
                         <div class="nc-form-section-title">Personal Information</div>
                         <div class="nc-form-grid">
-                            <div class="nc-form-group">
-                                <label asp-for="FirstName" class="nc-label"></label>
-                                <input asp-for="FirstName" class="nc-input" />
-                                <span asp-validation-for="FirstName" class="nc-validation-error"></span>
+                            <div class="mb-3">
+                                <nc-floating-input label="First Name" icon="fa fa-user" bg="#11141aff">
+                                    <input asp-for="FirstName" class="nc-floating-control" placeholder=" " />
+                                </nc-floating-input>
                             </div>
-                            <div class="nc-form-group">
-                                <label asp-for="LastName" class="nc-label"></label>
-                                <input asp-for="LastName" class="nc-input" />
-                                <span asp-validation-for="LastName" class="nc-validation-error"></span>
+                            <div class="mb-3">
+                                <nc-floating-input label="Last Name" icon="fa fa-user" bg="#11141aff">
+                                    <input asp-for="LastName" class="nc-floating-control" placeholder=" " />
+                                </nc-floating-input>
                             </div>
-                            <div class="nc-form-group">
-                                <label asp-for="Email" class="nc-label"></label>
-                                <input asp-for="Email" type="email" class="nc-input" />
-                                <span asp-validation-for="Email" class="nc-validation-error"></span>
+                            <div class="mb-3" style="grid-column: 1 / -1;">
+                                <nc-floating-input label="Email Address" icon="fa fa-envelope" bg="#11141aff">
+                                    <input asp-for="Email" class="nc-floating-control" type="email" placeholder=" " />
+                                </nc-floating-input>
                             </div>
                             <div class="nc-form-group">
                                 <label asp-for="Role" class="nc-label"></label>
@@ -94,7 +91,6 @@
 @section Styles {
     <style>
         .emp-code-display {
-            font-family: 'Orbitron', monospace;
             font-size: 0.9rem;
             color: var(--nc-primary);
             background: rgba(123, 171, 221, 0.1);
@@ -112,4 +108,16 @@
     </style>
 }
 
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts { 
+    <partial name="_ValidationScriptsPartial" /> 
+    <script>
+        document.getElementById('Role')?.addEventListener('change', async function() {
+            const role = this.value;
+            const res = await fetch(`/Employee/GetPreviewUsername?role=${encodeURIComponent(role)}`);
+            const data = await res.json();
+            if (data && data.username) {
+                document.getElementById('UsernamePreviewField').value = data.username;
+            }
+        });
+    </script>
+}

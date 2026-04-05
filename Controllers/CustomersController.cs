@@ -69,7 +69,7 @@ namespace MvcMusic.Controllers
             var details = customer.IsBanned ? $"Banned customer: <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>" : $"Unbanned customer: <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>";
             await _logger.LogAsync(action, details, cId, cName, cRole, cFull);
             TempData["Success"] = $"Customer {(customer.IsBanned ? "banned" : "unbanned")} successfully.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Profile), new { id = customer.Id });
         }
 
         // POST: /customers/delete/{id}
@@ -90,7 +90,7 @@ namespace MvcMusic.Controllers
                 return Json(new { success = true });
 
             TempData["Success"] = "Customer account soft-deleted.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Profile), new { id = customer.Id });
         }
 
         // POST: /customers/restore/{id}
@@ -111,7 +111,7 @@ namespace MvcMusic.Controllers
                 return Json(new { success = true });
 
             TempData["Success"] = "Customer account restored.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Profile), new { id = customer.Id });
         }
         // AJAX endpoint for UpdatableTable
         [HttpGet]

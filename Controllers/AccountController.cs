@@ -46,6 +46,12 @@ namespace MvcMusic.Controllers
             
             if (user != null)
             {
+                if (user.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
+                {
+                    ModelState.AddModelError(string.Empty, "This account has been deleted. Please contact support if you believe this is an error.");
+                    return View(model);
+                }
+
                 if (user.IsBanned)
                 {
                     ModelState.AddModelError(string.Empty, "This account has been banned. Please contact an administrator.");

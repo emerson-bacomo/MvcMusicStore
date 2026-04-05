@@ -17,6 +17,19 @@ class ProductEditor {
         this.dragSrcGalleryEl = null;
 
         this.init();
+
+        // Disable browser's automatic scroll restoration to previous positions
+        if ("scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+        }
+
+        // Ensure reset to top on load/init to avoid weird browser scroll memory or focus jumps.
+        // Using setTimeout to ensure it runs AFTER the browser has finished its initial layout and any autofocus.
+        if (!this.isCreate) {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 10);
+        }
     }
 
     init() {
@@ -344,7 +357,7 @@ class ProductEditor {
         if (isBanner) {
             const bannerDesc = this.form.querySelector('[name="BannerDescription"]');
             const bannerUrl = document.getElementById("bannerUrlInput");
-            
+
             if (bannerDesc && !bannerDesc.value.trim()) {
                 window.showToast("Banner description is required.", "error");
                 if (bannerDesc._invalidTimer) clearTimeout(bannerDesc._invalidTimer);
