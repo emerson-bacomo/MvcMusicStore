@@ -289,7 +289,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
-        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,BannerImageUrl")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
         {
             if (id != product.Id) return Json(new { success = false, message = "Id mismatch" });
 
