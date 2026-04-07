@@ -71,7 +71,7 @@ namespace MvcMusic.Controllers
                     // Check if password change is required
                     if (user.RequiresPasswordChange)
                     {
-                        return RedirectToAction(nameof(ChangePassword));
+                        return RedirectToAction(nameof(ChangeTemporaryPassword));
                     }
 
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -85,22 +85,36 @@ namespace MvcMusic.Controllers
             return View(model);
         }
 
-        // GET: /account/change-password
+        // GET: /account/change-temporary-password
         [HttpGet]
-        public async Task<IActionResult> ChangePassword()
+        public async Task<IActionResult> ChangeTemporaryPassword(bool forced = false)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction(nameof(Login));
+            
+            if (!user.RequiresPasswordChange)
+                return RedirectToAction(nameof(AccessDenied));
+            
+            if (forced)
+            {
+                TempData["Error"] = "You must change your password before proceeding.";
+            }
+
+            ViewData["HideFooter"] = true;
+            
             return View();
         }
 
-        // POST: /account/change-password
+        // POST: /account/change-temporary-password
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ChangePassword(string newPassword)
+        public async Task<IActionResult> ChangeTemporaryPassword(string newPassword)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction(nameof(Login));
+            
+            if (!user.RequiresPasswordChange)
+                return RedirectToAction(nameof(AccessDenied));
 
             if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
             {
@@ -116,6 +130,8 @@ namespace MvcMusic.Controllers
             {
                 user.RequiresPasswordChange = false;
                 await _userManager.UpdateAsync(user);
+                
+                await _signInManager.RefreshSignInAsync(user);
                 
                 var roles = await _userManager.GetRolesAsync(user);
                 await _logger.LogAsync(ActivityAction.UpdateTable, "User changed their temporary password.", user.Id, user.UserName, roles.FirstOrDefault(), user.FullName);

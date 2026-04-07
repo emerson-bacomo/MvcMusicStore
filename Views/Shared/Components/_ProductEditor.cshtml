@@ -2,7 +2,6 @@
 @{
     var categories = ViewBag.Categories as List<MvcMusic.Models.Category> ?? new List<MvcMusic.Models.Category>();
     var brands = ViewBag.Brands as List<MvcMusic.Models.Brand> ?? new List<MvcMusic.Models.Brand>();
-    var primaryUrl = Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url;
     var isCreate = ViewData["IsCreate"] as bool? ?? false;
 }
 
@@ -83,7 +82,6 @@
         {
             <input type="hidden" name="Id" value="@Model.Id" />
         }
-        <input type="hidden" name="primaryImage" id="primaryImageInput" value="@(Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url)" />
         <input type="hidden" name="imageOrder" id="imageOrderInput" value="@string.Join(",", (Model.ProductImages ?? new List<MvcMusic.Models.ProductImage>()).OrderBy(p => p.SortOrder).Select(p => p.Url))" />
         <input type="hidden" name="deletedImages" id="deletedImagesInput" value="[]" />
 
@@ -169,20 +167,16 @@
                         {
                             foreach (var img in Model.ProductImages.OrderBy(p => p.SortOrder))
                             {
-                                var isPrimary = img.IsPrimary || (Model.ProductImages.FirstOrDefault(p => p.IsPrimary) == null && img == Model.ProductImages.OrderBy(x => x.SortOrder).First());
-                                    <div class="nc-gallery-item @(img.Url == primaryUrl ? "active is-thumbnail" : "")" 
-                                         data-url="@img.Url" 
-                                         onclick="if(!document.getElementById('productDetailContainer').classList.contains('nc-edit-mode')) updateMainImage('@img.Url', this)">
-                                        <img src="@img.Url" alt="Thumbnail" />
-                                        <div class="nc-gallery-status-icon nc-editable"><i class="fa fa-image"></i></div>
-                                        <input type="hidden" name="existingImages" value="@img.Url" />
-                                        
-                                        <div class="nc-editable nc-item-actions">
-                                            <button type="button" class="nc-item-btn btn-thumbnail @(isPrimary ? "active" : "")" onclick="editor.setPrimaryImage(this)" title="Set as Thumbnail"><i class="fa fa-image"></i></button>
-                                            <button type="button" class="nc-item-btn btn-edit" onclick="editor.editImageUrl(this)" title="Edit URL"><i class="fa fa-link"></i></button>
-                                            <button type="button" class="nc-item-btn btn-danger" onclick="editor.toggleRemoveImage(this)" title="Remove"><i class="fa fa-trash"></i></button>
-                                        </div>
+                                <div class="nc-gallery-item" 
+                                     data-url="@img.Url" 
+                                     onclick="if(!document.getElementById('productDetailContainer').classList.contains('nc-edit-mode')) updateMainImage('@img.Url', this)">
+                                    <img src="@img.Url" alt="Image" />
+                                    <input type="hidden" name="existingImages" value="@img.Url" />
+                                    <div class="nc-editable nc-item-actions">
+                                        <button type="button" class="nc-item-btn btn-edit" onclick="editor.editImageUrl(this)" title="Edit URL"><i class="fa fa-link"></i></button>
+                                        <button type="button" class="nc-item-btn btn-danger" onclick="editor.toggleRemoveImage(this)" title="Remove"><i class="fa fa-trash"></i></button>
                                     </div>
+                                </div>
                             }
                         }
                     </div>
@@ -268,14 +262,14 @@
                         <div class="position-relative flex-grow-1 nc-price-row">
                             <div class="nc-read-only position-relative">
                                 <div style="display: flex; align-items: center; width: 100%;">
-                                    <span class="nc-currency-sign nc-currency-ro">₱</span>
+                                    <span class="nc-currency-sign nc-currency-ro">@GlobalConfig.CurrencySymbol</span>
                                     <span class="nc-detail-price nc-editable-span nc-pd-sync-span-plain nc-price-display">@Model.Price.ToString("N2")</span>
                                 </div>
                             </div>
                             <div class="nc-input-edit position-relative">
                                 <div id="indicator-Price" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Price', 'Price', this)"></div>
                                 <div style="display: flex; align-items: center; width: 100%;">
-                                    <span class="nc-currency-sign nc-currency-edit">₱</span>
+                                    <span class="nc-currency-sign nc-currency-edit">@GlobalConfig.CurrencySymbol</span>
                                     <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" oninput="editor.trackFieldChange('Price', this.value)" data-initial-value="@Model.Price" required data-val-required="Price is required." min="0.01" />
                                 </div>
                             </div>
@@ -749,14 +743,6 @@
     .ut-popup-btn-confirm:hover { filter: brightness(1.2); transform: translateY(-2px); }
     .ut-popup-btn-confirm.btn-danger { background: #ef5350; color: #fff !important; }
 
-    /* Fix image preview in diff (if needed) */
-    .ut-diff-thumb {
-        width: 32px; height: 32px;
-        border-radius: 4px;
-        object-fit: cover;
-        margin-right: 0.75rem;
-    }
-
     @@keyframes slideInLeft {
         from { opacity: 0; transform: translateX(-5px); }
         to { opacity: 1; transform: translateX(0); }
@@ -1137,39 +1123,6 @@
     .nc-gallery-item:hover { background: rgba(255,255,255,0.1); transform: translateY(-6px); box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
     .nc-gallery-item.active { border-color: var(--nc-primary); background: rgba(123, 171, 221, 0.12); }
     .nc-gallery-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 1.2rem; }
-    
-    .nc-gallery-status-icon {
-        position: absolute;
-        bottom: 0.75rem;
-        right: 0.75rem;
-        font-size: 1.1rem;
-        color: var(--nc-primary);
-        pointer-events: none;
-        transition: opacity 0.2s;
-        z-index: 5;
-        background: rgba(123, 171, 221, 0.15);
-        width: 32px;
-        height: 32px;
-        display: none; /* Only show for thumbnail */
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        border: 1px solid rgba(123, 171, 221, 0.3);
-    }
-    
-    .nc-gallery-item.is-thumbnail .nc-gallery-status-icon {
-        display: flex;
-    }
-    
-    .nc-gallery-item:hover .nc-gallery-status-icon {
-        opacity: 0;
-    }
-    
-    .nc-item-btn.btn-thumbnail.active {
-        background: var(--nc-primary) !important;
-        color: white !important;
-        box-shadow: 0 4px 12px rgba(123, 171, 221, 0.4);
-    }
 
     .nc-edit-mode .nc-image-gallery {
         flex-wrap: wrap;
@@ -1569,7 +1522,7 @@
         line-height: 1.2 !important;
         border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 1rem !important;
-        /* Left padding must push text rightward past the ₱ sign (same as display span) */
+        /* Left padding must push text rightward past the @GlobalConfig.CurrencySymbol sign (same as display span) */
         padding: 0.15rem 0.75rem 0.15rem 2.75rem !important;
         background: rgba(255,255,255,0.06) !important;
     }

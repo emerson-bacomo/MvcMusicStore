@@ -1,3 +1,4 @@
+@using MvcMusic.Utils
 @{
     var rawPath = Context.Request.Path.ToString().ToLower();
     var isHomeHeroRoute = rawPath == "/" || rawPath.StartsWith("/home") || rawPath.StartsWith("/landing/hero");
@@ -22,6 +23,11 @@
     <link rel="stylesheet" href="~/MvcMusic.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/floating-inputs.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script>
+        window.ncConfig = {
+            currency: '@GlobalConfig.CurrencySymbol'
+        };
+    </script>
     @* Critical script to prevent FOUC when navigating to anchors *@
     <script>
         (function() {

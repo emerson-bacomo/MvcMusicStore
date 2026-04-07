@@ -189,8 +189,7 @@
             {
                 var p = products[i];
                 var imgSrc = (useBanner ? p.BannerImageUrl : null)
-                    ?? p.ProductImages?.FirstOrDefault(img => img.IsPrimary)?.Url
-                    ?? p.ProductImages?.FirstOrDefault()?.Url;
+                    ?? p.ProductImages?.OrderBy(img => img.SortOrder).FirstOrDefault()?.Url;
 
                 var desc = (useBanner ? p.BannerDescription : null) ?? p.Description ?? string.Empty;
                 var tag  = fixedTag ?? p.Category?.Name ?? string.Empty;
@@ -230,7 +229,7 @@
                             {
                                 <div class="nc-carousel-desc @(useBanner ? "" : "limit-2")">@desc</div>
                             }
-                            <div class="nc-carousel-price">₱ @p.Price.ToString("N2")</div>
+                            <div class="nc-carousel-price">@GlobalConfig.CurrencySymbol @p.Price.ToString("N2")</div>
                         </div>
                     </div>
                 </div>

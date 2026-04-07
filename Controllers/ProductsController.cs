@@ -136,10 +136,10 @@ namespace MvcMusic.Controllers
             var rows = new Dictionary<string, object>();
             foreach (var p in products)
             {
-                var primaryImage = p.ProductImages.FirstOrDefault(img => img.IsPrimary)?.Url ?? p.ProductImages.FirstOrDefault()?.Url;
+                var imageUrl = p.ProductImages.OrderBy(img => img.SortOrder).FirstOrDefault()?.Url;
                 rows[p.Id.ToString()] = new {
                     id = p.Id,
-                    image = new { image = primaryImage, isBanner = p.IsBanner },
+                    image = new { image = imageUrl, isBanner = p.IsBanner },
                     name = p.Name,
                     category = p.CategoryId,
                     categoryLabel = p.Category?.Name ?? "Uncategorized",
@@ -177,18 +177,10 @@ namespace MvcMusic.Controllers
                     var product = await _context.Product.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
                     if (product != null)
                     {
-                        var previousValues = new Dictionary<string, object> 
-                        { 
-                            ["Name"] = product.Name, 
-                            ["CategoryId"] = product.CategoryId, 
-                            ["BrandId"] = product.BrandId,
-                            ["Price"] = product.Price,
-                            ["Stock"] = product.Stock
-                        };
-                        var newValues = new Dictionary<string, object>(previousValues);
-                        var changedFields = new List<string>();
+                        var previousValues = new Dictionary<string, object>();
+                        var newValues = new Dictionary<string, object>();
 
-                        var dbProduct = await _context.Product.FindAsync(id);
+                        var dbProduct = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
                         if (dbProduct != null)
                         {
                             foreach(var colChange in rowChange.Value)
@@ -204,45 +196,98 @@ namespace MvcMusic.Controllers
                                 {
                                     if (colName == "category" && int.TryParse(valueStr, out int catId) && dbProduct.CategoryId != catId)
                                     {
-                                        changedFields.Add("CategoryId");
+                                        previousValues["CategoryId"] = dbProduct.CategoryId;
                                         dbProduct.CategoryId = catId;
                                         newValues["CategoryId"] = catId;
                                     }
                                     else if (colName == "brand" && int.TryParse(valueStr, out int brId) && dbProduct.BrandId != brId)
                                     {
-                                        changedFields.Add("BrandId");
+                                        previousValues["BrandId"] = dbProduct.BrandId;
                                         dbProduct.BrandId = brId;
                                         newValues["BrandId"] = brId;
                                     }
                                     else if (colName == "name" && dbProduct.Name != valueStr)
                                     {
-                                        changedFields.Add("Name");
+                                        previousValues["Name"] = dbProduct.Name;
                                         dbProduct.Name = valueStr ?? dbProduct.Name;
                                         newValues["Name"] = dbProduct.Name;
+                                    }
+                                    else if (colName == "gallery" && !string.IsNullOrEmpty(valueStr))
+                                    {
+                                        try {
+                                            using var doc = JsonDocument.Parse(valueStr);
+                                            var root = doc.RootElement;
+                                            
+                                            bool changed = false;
+                                            
+                                            // Handle Deletions
+                                            if (root.TryGetProperty("deleted", out var deletedProp) && deletedProp.ValueKind == JsonValueKind.Array) {
+                                                foreach (var del in deletedProp.EnumerateArray()) {
+                                                    var url = del.GetString();
+                                                    var toDelete = dbProduct.ProductImages.FirstOrDefault(p => p.Url == url);
+                                                    if (toDelete != null) {
+                                                        _context.ProductImage.Remove(toDelete);
+                                                        changed = true;
+                                                    }
+                                                }
+                                            }
+
+                                            // Handle Order
+                                            if (root.TryGetProperty("order", out var orderProp)) {
+                                                var orderStr = orderProp.GetString();
+                                                if (!string.IsNullOrEmpty(orderStr)) {
+                                                    var orderArray = orderStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                                    for (int i = 0; i < orderArray.Length; i++) {
+                                                        var img = dbProduct.ProductImages.FirstOrDefault(p => p.Url == orderArray[i]);
+                                                        if (img != null && img.SortOrder != i) {
+                                                            img.SortOrder = i;
+                                                            changed = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Handle Additions (URLs)
+                                            if (root.TryGetProperty("added", out var addedProp) && addedProp.ValueKind == JsonValueKind.Array) {
+                                                foreach (var add in addedProp.EnumerateArray()) {
+                                                    var url = add.GetString();
+                                                    if (!string.IsNullOrWhiteSpace(url) && !dbProduct.ProductImages.Any(p => p.Url == url)) {
+                                                        dbProduct.ProductImages.Add(new ProductImage { Url = url });
+                                                        changed = true;
+                                                    }
+                                                }
+                                            }
+
+                                            if (changed) {
+                                                previousValues["Gallery"] = JsonSerializer.Serialize(product.ProductImages.Select(img => new { url = img.Url, sortOrder = img.SortOrder }));
+                                                newValues["Gallery"] = JsonSerializer.Serialize(dbProduct.ProductImages.Select(img => new { url = img.Url, sortOrder = img.SortOrder }));
+                                            }
+                                        } catch {
+                                            // Fallback or ignore malformed JSON
+                                        }
                                     }
                                 }
                                 if (canEditPrice && colName == "price" && double.TryParse(valueStr, out double price) && dbProduct.Price != price)
                                 {
-                                    changedFields.Add("Price");
+                                    previousValues["Price"] = dbProduct.Price;
                                     dbProduct.Price = price;
                                     newValues["Price"] = price;
                                 }
                                 if (canEditStock && colName == "stock" && int.TryParse(valueStr, out int stock) && dbProduct.Stock != stock)
                                 {
-                                    changedFields.Add("Stock");
+                                    previousValues["Stock"] = dbProduct.Stock;
                                     dbProduct.Stock = stock;
                                     newValues["Stock"] = stock;
                                 }
                             }
                             
-                            if (changedFields.Count > 0)
+                            if (newValues.Count > 0)
                             {
                                 logDetails.Add(new {
                                     table = "Product",
                                     id = id,
                                     type = "UPDATE",
                                     summary = $"Edited product <a href='/products/details/{id}' class='product-link'>{product.Name}</a> in the main table.",
-                                    changedFields = changedFields,
                                     previousValues = previousValues,
                                     newValues = newValues
                                 });
@@ -289,7 +334,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
-        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,BannerImageUrl")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,BannerImageUrl")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? imageOrder)
         {
             if (id != product.Id) return Json(new { success = false, message = "Id mismatch" });
 
@@ -310,18 +355,6 @@ namespace MvcMusic.Controllers
                     if (productImages != null) foreach (var file in productImages) { var filePath = await SaveFile(file); product.ProductImages.Add(new ProductImage { Url = filePath }); }
                     if (imageUrls != null) foreach (var url in imageUrls) if (!string.IsNullOrWhiteSpace(url)) product.ProductImages.Add(new ProductImage { Url = url });
 
-                    if (deletedFiles != null && deletedFiles.Any())
-                    {
-                        foreach (var fileUrl in deletedFiles)
-                        {
-                            if (fileUrl.StartsWith("/uploads/"))
-                            {
-                                var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", fileUrl.TrimStart('/'));
-                                if (System.IO.File.Exists(physicalPath)) System.IO.File.Delete(physicalPath);
-                            }
-                        }
-                    }
-
                     var existingProduct = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
                     if (existingProduct != null)
                     {
@@ -340,14 +373,10 @@ namespace MvcMusic.Controllers
 
                         _context.Entry(existingProduct).CurrentValues.SetValues(product);
                         _context.ProductImage.RemoveRange(existingProduct.ProductImages);
+                        existingProduct.ProductImages.Clear();
+
                         foreach (var img in product.ProductImages) existingProduct.ProductImages.Add(img);
 
-                        if (existingProduct.ProductImages.Any())
-                        {
-                            var primary = existingProduct.ProductImages.FirstOrDefault(p => p.Url == primaryImage) ?? existingProduct.ProductImages.First();
-                            foreach (var img in existingProduct.ProductImages) img.IsPrimary = false;
-                            primary.IsPrimary = true;
-                        }
 
                         if (!string.IsNullOrEmpty(imageOrder))
                         {
@@ -374,27 +403,34 @@ namespace MvcMusic.Controllers
                             ["BannerImageUrl"] = existingProduct.BannerImageUrl ?? ""
                         };
 
-                        var changedFields = previousValues.Keys.Where(k => !Equals(previousValues[k], newValues[k])).ToList();
+                        var finalPrevious = previousValues.Where(kvp => !Equals(kvp.Value, newValues[kvp.Key])).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                        var finalNew = newValues.Where(kvp => finalPrevious.ContainsKey(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         
                         // Check if images changed (simplified)
                         bool imagesChanged = !string.IsNullOrEmpty(deletedImages) || productImages?.Count > 0 || imageUrls?.Count > 0 || !string.IsNullOrEmpty(imageOrder);
-                        if (imagesChanged) changedFields.Add("Gallery");
+                        if (imagesChanged) {
+                            finalPrevious["Gallery"] = JsonSerializer.Serialize(previousValues.ContainsKey("ProductImages") ? previousValues["ProductImages"] : existingProduct.ProductImages.Select(img => new { url = img.Url, sortOrder = img.SortOrder }));
+                            finalNew["Gallery"] = JsonSerializer.Serialize(existingProduct.ProductImages.Select(img => new { url = img.Url, sortOrder = img.SortOrder }));
+                        }
 
                         await _context.SaveChangesAsync();
                         var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
                         
-                        var logItem = new {
-                            table = "Product",
-                            id = id,
-                            type = "UPDATE_INPLACE",
-                            summary = $"Edited product <a href='/products/details/{id}' class='product-link'>{existingProduct.Name}</a>.",
-                            changedFields = changedFields,
-                            previousValues = previousValues,
-                            newValues = newValues
-                        };
-                        
-                        var jsonLog = JsonSerializer.Serialize(new List<object> { logItem });
-                        await _logger.LogAsync(ActivityAction.EditProduct, jsonLog, cId, cName, cRole, cFull);
+                        if (finalNew.Count > 0)
+                        {
+                            var logItem = new {
+                                table = "Product",
+                                id = id,
+                                type = "UPDATE_INPLACE",
+                                summary = $"Edited product <a href='/products/details/{id}' class='product-link'>{existingProduct.Name}</a>.",
+                                previousValues = finalPrevious,
+                                newValues = finalNew
+                            };
+                            
+                            var jsonLog = JsonSerializer.Serialize(new List<object> { logItem });
+                            await _logger.LogAsync(ActivityAction.EditProduct, jsonLog, cId, cName, cRole, cFull);
+                        }
+
                         return Json(new { success = true, message = "Product updated successfully." });
                     }
                     return Json(new { success = false, message = "Product not found." });
@@ -424,7 +460,7 @@ namespace MvcMusic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin")]
-        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? primaryImage, string? imageOrder)
+        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? imageOrder)
         {
             if (ModelState.IsValid)
             {
@@ -446,11 +482,6 @@ namespace MvcMusic.Controllers
                     }
                 }
 
-                if (product.ProductImages.Any())
-                {
-                    var primary = product.ProductImages.FirstOrDefault(p => p.Url == primaryImage) ?? product.ProductImages.First();
-                    primary.IsPrimary = true;
-                }
 
                 if (!string.IsNullOrEmpty(imageOrder))
                 {

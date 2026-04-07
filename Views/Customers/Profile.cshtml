@@ -55,7 +55,7 @@
                             </div>
                             <div style="font-size:0.85rem;">
                                 <span class="nc-text-muted d-block" style="margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em;">Total Spent</span>
-                                <span class="nc-text-primary mb-0" style="font-weight:800;font-size:1.2rem;">₱ @Model.Where(o => o.Status != "Cancelled").Sum(o => o.TotalAmount).ToString("N2")</span>
+                                <span class="nc-text-primary mb-0" style="font-weight:800;font-size:1.2rem;">@GlobalConfig.CurrencySymbol @Model.Where(o => o.Status != "Cancelled").Sum(o => o.TotalAmount).ToString("N2")</span>
                             </div>
                         </div>
 
@@ -147,7 +147,7 @@
                                                         }
                                                     </div>
                                                 </td>
-                                                <td style="font-weight:700;">₱ @o.TotalAmount.ToString("N2")</td>
+                                                <td style="font-weight:700;">@GlobalConfig.CurrencySymbol @o.TotalAmount.ToString("N2")</td>
                                                 <td>
                                                     @{
                                                         var sc = o.Status switch { "Delivered" => "status-delivered", "OnDelivery" => "status-delivery", "Pending" => "status-pending", _ => "status-cancelled" };

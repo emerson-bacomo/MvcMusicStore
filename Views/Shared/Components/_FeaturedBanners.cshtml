@@ -107,7 +107,7 @@
             var detailUrl = Url.Action("Details", "Products", new { id = product.Id });
             
             <div class="nc-banner-card" onclick="window.location='@detailUrl'">
-                <img src="@(product.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? product.ProductImages?.FirstOrDefault()?.Url)"
+                <img src="@(product.ProductImages?.OrderBy(p => p.SortOrder).FirstOrDefault()?.Url)"
                      alt="@product.Name"
                      class="nc-img-loading"
                      onload="this.classList.remove('nc-img-loading');this.classList.add('nc-img-loaded')"
@@ -121,7 +121,7 @@
                 <div class="nc-banner-overlay">
                     <div class="nc-banner-name">@product.Name</div>
 
-                    <div class="nc-banner-price">₱ @product.Price.ToString("N2")</div>
+                    <div class="nc-banner-price">@GlobalConfig.CurrencySymbol @product.Price.ToString("N2")</div>
                 </div>
             </div>
         }

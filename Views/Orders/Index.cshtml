@@ -39,7 +39,7 @@
                         label: 'Amount', 
                         widthPercentage: '1%', 
                         spanStyle: 'font-weight: 700;',
-                        renderContent: (val) => `₱${parseFloat(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                        renderContent: (val) => `${(window.ncConfig?.currency)}${parseFloat(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
                     },
                     status: { 
                         label: 'Status', 

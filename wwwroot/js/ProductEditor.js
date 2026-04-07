@@ -9,7 +9,7 @@ class ProductEditor {
         this.storageKey = `product-edit-${this.productId}`;
 
         this.originalState = this.isCreate
-            ? { fields: {}, images: { primary: "", order: "", deleted: "", bannerUrl: "" } }
+            ? { fields: {}, images: { order: "", deleted: "", bannerUrl: "" } }
             : this.captureState();
         this.changedFields = new Set();
         this.isInfiniteScrolling = false;
@@ -71,9 +71,8 @@ class ProductEditor {
 
     getImagesState() {
         return {
-            primary: document.getElementById("primaryImageInput").value,
-            order: document.getElementById("imageOrderInput").value,
-            deleted: document.getElementById("deletedImagesInput").value,
+            order: document.getElementById("imageOrderInput")?.value || "",
+            deleted: document.getElementById("deletedImagesInput")?.value || "",
             bannerUrl: document.getElementById("bannerUrlInput")?.value || "",
         };
     }
@@ -652,20 +651,11 @@ class ProductEditor {
 
         item.innerHTML = `
             <img src="${src}" alt="New Image" />
-            <div class="nc-gallery-status-icon nc-editable"><i class="fa fa-image"></i></div>
             ${hiddenInput}
             <div class="nc-editable nc-item-actions">
-                <button type="button" class="nc-item-btn btn-thumbnail" onclick="editor.setPrimaryImage(this)"><i class="fa fa-image"></i></button>
                 <button type="button" class="nc-item-btn btn-danger" onclick="editor.removeTempImage(this)"><i class="fa fa-trash"></i></button>
             </div>
         `;
-        const isFirst = gallery.querySelectorAll(".nc-gallery-item").length === 0;
-        if (isFirst) {
-            item.classList.add("is-thumbnail");
-            const btn = item.querySelector(".btn-thumbnail");
-            if (btn) btn.classList.add("active");
-            document.getElementById("primaryImageInput").value = src;
-        }
 
         gallery.appendChild(item);
         this.setupGalleryDragAndDrop(item);
@@ -696,19 +686,6 @@ class ProductEditor {
         input.value = "";
     }
 
-    setPrimaryImage(btn) {
-        const item = btn.closest(".nc-gallery-item");
-        document.querySelectorAll(".btn-thumbnail").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-
-        document.querySelectorAll(".nc-gallery-item").forEach((it) => it.classList.remove("is-thumbnail"));
-        item.classList.add("is-thumbnail");
-        document.getElementById("primaryImageInput").value = item.dataset.url;
-        this.changedFields.add("PrimaryImage");
-        this.checkGalleryChanges();
-        this.checkChanges();
-        this.saveToLocalStorage();
-    }
 
     toggleRemoveImage(btn) {
         const item = btn.closest(".nc-gallery-item");
@@ -728,6 +705,7 @@ class ProductEditor {
         }
 
         deletedInput.value = JSON.stringify(deleted);
+
         this.updateImageOrder();
         this.refreshCarousel();
         this.changedFields.add("Images");
@@ -746,14 +724,11 @@ class ProductEditor {
     checkGalleryChanges() {
         const oldOrder = (this.originalState.images.order || "").split(",").filter((x) => x);
         const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter((x) => x);
-        const oldPrimary = this.originalState.images.primary;
-        const newPrimary = document.getElementById("primaryImageInput").value;
 
         const orderChanged = JSON.stringify(oldOrder) !== JSON.stringify(newOrder);
-        const primaryChanged = oldPrimary !== newPrimary;
 
         const galleryInd = document.getElementById("indicator-Gallery");
-        if (orderChanged || primaryChanged) {
+        if (orderChanged) {
             this.changedFields.add("Images");
             if (galleryInd) galleryInd.style.display = "block";
         } else {
@@ -866,7 +841,6 @@ class ProductEditor {
 
     syncGalleryWithInputs() {
         const orderValue = document.getElementById("imageOrderInput").value;
-        const primaryValue = document.getElementById("primaryImageInput").value;
         const deletedValue = document.getElementById("deletedImagesInput").value;
         if (!orderValue) return;
 
@@ -888,15 +862,9 @@ class ProductEditor {
         });
         items.forEach((item) => gallery.appendChild(item));
 
-        // 2. Update classes (active/thumbnail/deleted)
+        // 2. Update classes (active/deleted)
         gallery.querySelectorAll(".nc-gallery-item").forEach((item) => {
             const url = item.dataset.url;
-
-            // Primary
-            const isPrimary = url === primaryValue;
-            item.classList.toggle("is-thumbnail", isPrimary);
-            const thumbBtn = item.querySelector(".btn-thumbnail");
-            if (thumbBtn) thumbBtn.classList.toggle("active", isPrimary);
 
             // Deleted
             const isDeleted = deleted.includes(url);
@@ -956,8 +924,8 @@ class ProductEditor {
 
     revertGallery() {
         this.changedFields.delete("Images");
-        this.changedFields.delete("PrimaryImage");
-        document.getElementById("primaryImageInput").value = this.originalState.images.primary;
+        this._galleryOrderChanged = false;
+        this._galleryThumbnailChanged = false;
         document.getElementById("imageOrderInput").value = this.originalState.images.order;
         document.getElementById("deletedImagesInput").value = this.originalState.images.deleted;
         this.syncGalleryWithInputs();
@@ -1063,39 +1031,66 @@ class ProductEditor {
 
         diff.forEach((d) => {
             if (d.type === "gallery") {
-                html += `<tr><td>${d.field}</td><td colspan="2">`;
+                html += `<tr><td class="ut-diff-field-cell">${d.field}</td>`;
 
-                // Show Gallery Changes specifically
-                const allUrls = Array.from(new Set([...d.oldOrder, ...d.newOrder]));
-                allUrls.forEach((url, idx) => {
+                // Render Original Gallery
+                let oldHtml = '<div class="d-flex flex-wrap gap-2">';
+                if (d.oldOrder.length === 0) {
+                    oldHtml += '<span class="opacity-50" style="font-size: 0.85rem;">Empty</span>';
+                }
+                d.oldOrder.forEach((url, idx) => {
+                    oldHtml += `
+                        <div class="position-relative" style="width: 60px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid var(--nc-border);">
+                            <img src="${url}" class="w-100 h-100" style="object-fit: cover;" />
+                            <div class="position-absolute top-0 start-0 bg-dark text-white px-1" style="font-size: 0.65rem; border-bottom-right-radius: 4px; opacity: 0.9">${idx + 1}</div>
+                        </div>
+                    `;
+                });
+                oldHtml += "</div>";
+
+                // Render Current Gallery including removed ones but marked
+                let newHtml = '<div class="d-flex flex-wrap gap-2">';
+                if (d.newOrder.length === 0 && d.oldOrder.length === 0) {
+                    newHtml += '<span class="opacity-50" style="font-size: 0.85rem;">Empty</span>';
+                }
+
+                // Show new/reordered
+                d.newOrder.forEach((url, idx) => {
+                    const isNew = !d.oldOrder.includes(url);
                     const oldIdx = d.oldOrder.indexOf(url);
-                    const newIdx = d.newOrder.indexOf(url);
-                    const isRemoved = newIdx === -1;
-                    const isAdded = oldIdx === -1;
-                    const isMoved = !isRemoved && !isAdded && oldIdx !== newIdx;
-                    const isPrimary = url === d.newPrimary;
-                    const wasPrimary = url === d.oldPrimary;
-                    const primaryChanged = isPrimary !== wasPrimary;
+                    const isMoved = !isNew && oldIdx !== idx;
 
-                    if (isRemoved || isAdded || isMoved || primaryChanged) {
-                        html += `
-                            <div class="ut-gallery-diff-item ${isRemoved ? "opacity-30" : ""}">
-                                <img src="${url}" class="ut-gallery-diff-img" />
-                                <div class="ut-gallery-diff-info">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="ut-gallery-diff-pos">
-                                            ${isAdded ? "New Image" : isRemoved ? "Removed" : `<i class="fa fa-arrows-alt-h mx-1"></i> ${oldIdx + 1} → ${newIdx + 1}`}
-                                        </span>
-                                        ${isPrimary ? '<span class="ut-gallery-diff-tag">Thumbnail</span>' : ""}
-                                    </div>
-                                    <div class="opacity-50" style="font-size: 0.6rem; word-break: break-all;">${url.split("/").pop()}</div>
-                                </div>
+                    let borderStyle = "1px solid var(--nc-border)";
+                    if (isNew) {
+                        borderStyle = "2px solid #81c784";
+                    } else if (isMoved) {
+                        borderStyle = "2px solid #ffb74d";
+                    }
+
+                    newHtml += `
+                        <div class="position-relative" style="width: 60px; height: 60px; border-radius: 6px; overflow: hidden; border: ${borderStyle};">
+                            <img src="${url}" class="w-100 h-100" style="object-fit: cover;" />
+                            <div class="position-absolute top-0 start-0 bg-dark text-white px-1" style="font-size: 0.65rem; border-bottom-right-radius: 4px; opacity: 0.9">${idx + 1}</div>
+                        </div>
+                    `;
+                });
+
+                // Show deleted images
+                d.oldOrder.forEach((url) => {
+                    if (!d.newOrder.includes(url)) {
+                        newHtml += `
+                            <div class="position-relative" style="width: 60px; height: 60px; border-radius: 6px; overflow: hidden; border: 2px solid #e57373; opacity: 0.4;">
+                                <img src="${url}" class="w-100 h-100" style="object-fit: cover; filter: grayscale(100%);" />
+                                <div class="position-absolute top-0 start-0 bg-danger text-white px-1" style="font-size: 0.65rem; border-bottom-right-radius: 4px; opacity: 0.9"><i class="fa fa-times"></i></div>
                             </div>
                         `;
                     }
                 });
+                newHtml += "</div>";
 
-                html += "</td>";
+                html += `<td class="ut-diff-old" style="vertical-align: top;">${oldHtml}</td>`;
+                html += `<td class="ut-diff-new" style="vertical-align: top;">${newHtml}</td>`;
+
                 html += isRevert
                     ? `<td><button type="button" class="ut-revert-cell-btn" title="Revert Gallery" onclick="editor.handleRowRevert(this, 'Images', true)"><i class="fa fa-undo"></i></button></td>`
                     : "";
@@ -1131,7 +1126,7 @@ class ProductEditor {
         };
 
         this.changedFields.forEach((field) => {
-            if (field === "Images" || field === "PrimaryImage" || field === "imageOrder") return; // Handled separately
+            if (field === "Images" || field === "imageOrder") return;
 
             const input = this.form.querySelector(`[name="${field}"]`);
             if (input) {
@@ -1140,8 +1135,9 @@ class ProductEditor {
                 let currentVal = input.type === "checkbox" ? (input.checked ? "True" : "False") : input.value || "(Empty)";
 
                 if (field === "Price") {
-                    originalVal = "₱" + parseFloat(originalVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
-                    currentVal = "₱" + parseFloat(currentVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                    const currency = window.ncConfig?.currency;
+                    originalVal = currency + parseFloat(originalVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                    currentVal = currency + parseFloat(currentVal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
                 }
 
                 diff.push({
@@ -1153,19 +1149,15 @@ class ProductEditor {
             }
         });
 
-        if (this.changedFields.has("Images") || this.changedFields.has("PrimaryImage")) {
+        if (this.changedFields.has("Images")) {
             const oldOrder = (this.originalState.images.order || "").split(",").filter((x) => x);
             const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter((x) => x);
-            const oldPrimary = this.originalState.images.primary;
-            const newPrimary = document.getElementById("primaryImageInput").value;
 
             diff.push({
-                field: "Gallery Changes",
+                field: "Gallery Order",
                 type: "gallery",
                 oldOrder: isRevert ? newOrder : oldOrder,
                 newOrder: isRevert ? oldOrder : newOrder,
-                oldPrimary: isRevert ? newPrimary : oldPrimary,
-                newPrimary: isRevert ? oldPrimary : newPrimary,
             });
         }
 
@@ -1220,7 +1212,12 @@ class ProductEditor {
                     if (result.success) {
                         localStorage.removeItem(this.storageKey);
                         window.showToast(result.message || "Product updated successfully.");
-                        setTimeout(() => location.reload(), 1000);
+                        setTimeout(() => {
+                            if (window.location.hash === "#edit") {
+                                history.replaceState(null, null, " ");
+                            }
+                            location.reload();
+                        }, 1000);
                     } else {
                         let errorMsg = result.message || "Save failed.";
                         if (result.errors && result.errors.length > 0) {

@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MvcMusic.Data;
 
 #nullable disable
 
-namespace MvcMusic.Migrations
+namespace MvcMusic.Data.Migrations
 {
     [DbContext(typeof(MvcMusicContext))]
-    partial class MvcMusicContextModelSnapshot : ModelSnapshot
+    [Migration("20260407160438_RenameIsPrimaryToIsThumbnail")]
+    partial class RenameIsPrimaryToIsThumbnail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -576,6 +579,9 @@ namespace MvcMusic.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsThumbnail")
+                        .HasColumnType("bit");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");

@@ -85,9 +85,8 @@ namespace MvcMusic.Controllers
                     var brand = await _context.Brand.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
                     if (brand != null)
                     {
-                        var previousValues = new Dictionary<string, object> { ["Name"] = brand.Name, ["RecordStatus"] = brand.RecordStatus.ToString() };
-                        var newValues = new Dictionary<string, object> { ["Name"] = brand.Name, ["RecordStatus"] = brand.RecordStatus.ToString() };
-                        var changedFields = new List<string>();
+                        var previousValues = new Dictionary<string, object>();
+                        var newValues = new Dictionary<string, object>();
 
                         var dbBrand = await _context.Brand.FindAsync(id);
                         if (dbBrand != null)
@@ -101,7 +100,7 @@ namespace MvcMusic.Controllers
                                 {
                                     if (dbBrand.Name != valueStr)
                                     {
-                                        changedFields.Add("Name");
+                                        previousValues["Name"] = dbBrand.Name;
                                         dbBrand.Name = valueStr ?? dbBrand.Name;
                                         newValues["Name"] = dbBrand.Name;
                                     }
@@ -110,20 +109,19 @@ namespace MvcMusic.Controllers
                                 {
                                     if (dbBrand.RecordStatus != status)
                                     {
-                                        changedFields.Add("RecordStatus");
+                                        previousValues["RecordStatus"] = dbBrand.RecordStatus.ToString();
                                         dbBrand.RecordStatus = status;
                                         newValues["RecordStatus"] = dbBrand.RecordStatus.ToString();
                                     }
                                 }
                             }
                             
-                            if (changedFields.Count > 0)
+                            if (newValues.Count > 0)
                             {
                                 logDetails.Add(new {
                                     table = "Brand",
                                     id = id,
                                     type = "UPDATE",
-                                    changedFields = changedFields,
                                     previousValues = previousValues,
                                     newValues = newValues
                                 });

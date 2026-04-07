@@ -47,8 +47,7 @@
                                 <tbody>
                                     @foreach (var item in Model.OrderItems)
                                     {
-                                        var primaryImage = item.Product?.ProductImages?.FirstOrDefault(img => img.IsPrimary)?.Url 
-                                                         ?? item.Product?.ProductImages?.FirstOrDefault()?.Url;
+                                        var imageUrl = item.Product?.ProductImages?.OrderBy(img => img.SortOrder).FirstOrDefault()?.Url;
                                         
                                         var displayName = item.ProductName ?? item.Product?.Name ?? "Deleted Product";
                                         var displayPrice = item.Price > 0 ? item.Price : (decimal)(item.Product?.Price ?? 0);
@@ -57,9 +56,9 @@
                                             <td class="ps-0 py-4">
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="product-icon-box flex-shrink-0">
-                                                        @if (!string.IsNullOrEmpty(primaryImage))
+                                                        @if (!string.IsNullOrEmpty(imageUrl))
                                                         {
-                                                            <img src="@primaryImage" alt="@displayName" class="w-100 h-100 rounded" style="object-fit:cover;">
+                                                            <img src="@imageUrl" alt="@displayName" class="w-100 h-100 rounded" style="object-fit:cover;">
                                                         }
                                                         else
                                                         {
@@ -82,9 +81,9 @@
                                             <td class="text-center py-4 px-3">
                                                 <span class="fw-black text-white" style="font-size:1.1rem;">× @item.Quantity</span>
                                             </td>
-                                            <td class="text-end py-4 px-3 text-nowrap" style="font-size:0.95rem; font-weight:500;">₱@displayPrice.ToString("N2")</td>
+                                            <td class="text-end py-4 px-3 text-nowrap" style="font-size:0.95rem; font-weight:500;">@GlobalConfig.CurrencySymbol@displayPrice.ToString("N2")</td>
                                             <td class="text-end pe-0 py-4 text-nowrap">
-                                                <span class="fw-bold" style="font-size:1.05rem; color:var(--nc-primary);">₱@((displayPrice * item.Quantity).ToString("N2"))</span>
+                                                <span class="fw-bold" style="font-size:1.05rem; color:var(--nc-primary);">@GlobalConfig.CurrencySymbol@((displayPrice * item.Quantity).ToString("N2"))</span>
                                             </td>
                                         </tr>
                                     }
@@ -95,7 +94,7 @@
                         <div class="d-flex justify-content-end mt-5">
                             <div class="total-pill px-5">
                                 <span class="nc-text-muted text-uppercase mb-2" style="font-size:0.7rem; font-weight:700; letter-spacing:1px; opacity:0.8;">Grand Total</span>
-                                <span class="fw-black text-white" style="font-size:2rem; line-height:1;">₱@Model.TotalAmount.ToString("N2")</span>
+                                <span class="fw-black text-white" style="font-size:2rem; line-height:1;">@GlobalConfig.CurrencySymbol@Model.TotalAmount.ToString("N2")</span>
                             </div>
                         </div>
                     </div>

@@ -156,7 +156,7 @@
 
 <a class="nc-product-card" asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id">
     <div class="nc-product-img-wrap">
-        <img src="@(Model.ProductImages?.FirstOrDefault(p => p.IsPrimary)?.Url ?? Model.ProductImages?.FirstOrDefault()?.Url)"
+        <img src="@(Model.ProductImages?.OrderBy(p => p.SortOrder).FirstOrDefault()?.Url)"
              alt="@Model.Name"
              width="400"
              height="300"

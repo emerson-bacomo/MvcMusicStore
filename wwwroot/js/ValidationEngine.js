@@ -246,6 +246,7 @@ window.ValidationEngine = {
         toggle.className = "nc-password-toggle";
         toggle.innerHTML = '<i class="fa fa-eye"></i>';
         toggle.title = "Show Password";
+        toggle.tabIndex = -1;
 
         toggle.addEventListener("click", () => {
             const isPassword = el.type === "password";

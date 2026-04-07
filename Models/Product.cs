@@ -52,7 +52,7 @@ namespace MvcMusic.Models
         public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 
         [NotMapped]
-        public string DisplayPrice => $"₱ {Price.ToString("N2")}";
+        public string DisplayPrice => $"{Utils.GlobalConfig.CurrencySymbol} {Price:N2}";
 
         [NotMapped]
         public string DisplayStock => $"{Stock} in stock";

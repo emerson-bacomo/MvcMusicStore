@@ -58,6 +58,96 @@
         .role-superadmin { background: rgba(186, 104, 200, 0.15); color: #ba68c8; }
         .role-staff { background: rgba(79, 195, 247, 0.15); color: #4fc3f7; }
         .role-user { background: rgba(129, 199, 132, 0.15); color: #81c784; }
+
+        .btn-close-custom {
+            background: transparent;
+            border: none;
+            color: #fff;
+            opacity: 0.5;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            border-radius: 8px;
+        }
+        .btn-close-custom:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.1);
+            transform: scale(1.1);
+        }
+
+        /* Log Detail Styles */
+        .log-detail-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid var(--nc-border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.02);
+            font-size: 0.85rem;
+        }
+        .log-detail-table th {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--nc-text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--nc-border);
+        }
+        .log-detail-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+        .log-detail-table tr:last-child td { border-bottom: none; }
+        
+        .log-old-val { color: #e57373; text-decoration: line-through; opacity: 0.8; }
+        .log-new-val { color: #81c784; font-weight: 600; }
+        .log-field-name { font-weight: 700; color: #fff; width: 140px; }
+        
+        .log-image-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid var(--nc-border);
+            background: #000;
+        }
+
+        .nc-nav-tabs {
+            border-bottom: 1px solid var(--nc-border);
+            gap: 0.5rem;
+        }
+        .nc-nav-tabs .nav-link {
+            border: none;
+            color: var(--nc-text-muted);
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .nc-nav-tabs .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nc-nav-tabs .nav-link.active {
+            color: var(--nc-primary);
+            background: transparent;
+        }
+        .nc-nav-tabs .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--nc-primary);
+        }
     </style>
 }
 
@@ -163,33 +253,166 @@
 
         window.viewLogJson = function(jsonStr) {
             try {
-                const obj = JSON.parse(jsonStr);
-                const pretty = JSON.stringify(obj, null, 4);
+                const data = JSON.parse(jsonStr);
+                const items = Array.isArray(data) ? data : [data];
+                
+                // Set Raw JSON
+                const pretty = JSON.stringify(data, null, 4);
                 document.getElementById('jsonViewerBody').textContent = pretty;
+                document.getElementById('jsonViewerBody').setAttribute('data-raw', jsonStr);
+
+                // Build Visual View
+                const visualBody = document.getElementById('visualViewerBody');
+                visualBody.innerHTML = '';
+                
+                items.forEach((item, index) => {
+                    const section = document.createElement('div');
+                    section.className = index > 0 ? 'mt-4' : '';
+                    
+                    if (item.summary) {
+                        section.innerHTML += `<div class="nc-text-muted mb-3" style="font-size:0.9rem; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid var(--nc-primary);">${item.summary}</div>`;
+                    }
+
+                    if (item.previousValues || item.newValues) {
+                        const table = document.createElement('table');
+                        table.className = 'log-detail-table';
+                        table.innerHTML = `
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Previous Value</th>
+                                    <th>New Value</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        `;
+                        const tbody = table.querySelector('tbody');
+                        
+                        const allKeys = new Set([
+                            ...Object.keys(item.previousValues || {}),
+                            ...Object.keys(item.newValues || {})
+                        ]);
+
+                        allKeys.forEach(key => {
+                            const oldVal = item.previousValues?.[key];
+                            const newVal = item.newValues?.[key];
+                            
+                            if (oldVal === newVal && oldVal !== undefined) return;
+
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td class="log-field-name">${formatFieldName(key)}</td>
+                                <td class="log-old-val">${formatValue(key, oldVal)}</td>
+                                <td class="log-new-val">${formatValue(key, newVal)}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        section.appendChild(table);
+                    } else if (typeof item === 'string') {
+                        section.innerHTML += `<div class="p-3 rounded" style="background: rgba(0,0,0,0.2); font-size: 0.9rem;">${item}</div>`;
+                    } else {
+                        // Fallback for simple objects that aren't the standard change pattern
+                        const table = document.createElement('table');
+                        table.className = 'log-detail-table';
+                        const tbody = document.createElement('tbody');
+                        Object.entries(item).forEach(([key, val]) => {
+                            if (key === 'summary') return;
+                            const row = document.createElement('tr');
+                            row.innerHTML = `<td class="log-field-name">${formatFieldName(key)}</td><td colspan="2">${formatValue(key, val)}</td>`;
+                            tbody.appendChild(row);
+                        });
+                        table.appendChild(tbody);
+                        section.appendChild(table);
+                    }
+                    visualBody.appendChild(section);
+                });
+
+                // Default to Visual tab if it has content, else JSON
+                const visualTab = document.getElementById('visual-tab');
+                const jsonTab = document.getElementById('json-tab');
+                if (visualBody.innerHTML) {
+                    bootstrap.Tab.getOrCreateInstance(visualTab).show();
+                } else {
+                    bootstrap.Tab.getOrCreateInstance(jsonTab).show();
+                }
+
                 new bootstrap.Modal(document.getElementById('jsonModal')).show();
             } catch (e) {
+                console.error(e);
                 alert('Invalid JSON data');
             }
+        };
+
+        function formatFieldName(key) {
+            // Convert camelCase or PascalCase to "Pascal Case"
+            return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+        }
+
+        function formatValue(key, val) {
+            if (val === null || val === undefined) return '<span class="opacity-50">None</span>';
+            if (typeof val === 'boolean') return val ? '<span class="text-success">True</span>' : '<span class="text-danger">False</span>';
+            
+            const lowerKey = key.toLowerCase();
+            
+            // Smart Image Detection
+            if (lowerKey.includes('image')) {
+                return `<img src="${val}" class="log-image-preview" onerror="this.src='https://placehold.co/100?text=Error'; this.className+=' opacity-20';" />`;
+            }
+
+            // Smart Price Detection
+            if (lowerKey.includes('price') || lowerKey.includes('amount')) {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                    const currency = window.ncConfig?.currency;
+                    return `<span class="fw-bold">${currency}${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                }
+            }
+
+            return val;
+        }
+
+        window.copyLogJson = function() {
+            const raw = document.getElementById('jsonViewerBody').getAttribute('data-raw');
+            navigator.clipboard.writeText(raw);
+            const btn = event.currentTarget;
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-check me-1"></i> Copied!';
+            setTimeout(() => btn.innerHTML = original, 2000);
         };
     </script>
 
     <!-- JSON Viewer Modal -->
     <div class="modal fade" id="jsonModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content nc-card" style="border:1px solid var(--nc-border); background: #131822 !important;">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title nc-page-title fs-5"><i class="fa fa-code me-2 text-primary"></i> Data Details</h5>
-                    <button type="button" class="ms-auto" data-bs-dismiss="modal" aria-label="Close" style="background: transparent; border: none; color: #fff; opacity: 0.5; padding: 1.25rem !important; margin: -1.25rem -1.25rem -1.25rem auto; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)'" onmouseout="this.style.opacity=0.5; this.style.transform='scale(1)'">
-                        <i class="fa fa-times" style="font-size: 1.2rem;"></i>
+            <div class="modal-content nc-card" style="border:1px solid var(--nc-border); background: #131822 !important; border-radius: 12px; overflow: hidden;">
+                <div class="modal-header border-0 pb-0" style="padding: 1.5rem 1.5rem 0 1.5rem;">
+                    <h5 class="modal-title nc-page-title fs-5"><i class="fa fa-clipboard-list me-2 text-primary"></i> Data Details</h5>
+                    <button type="button" class="ms-auto btn-close-custom" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="fa fa-times"></i>
                     </button>
                 </div>
-                <div class="modal-body py-4">
-                    <pre id="jsonViewerBody" class="p-3 rounded" style="background: rgba(0,0,0,0.5); color: #81c784; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; max-height: 500px; overflow: auto; border: 1px solid var(--nc-border);"></pre>
+                <div class="modal-body p-4">
+                    <ul class="nav nc-nav-tabs mb-4" id="logTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="visual-tab" data-bs-toggle="tab" data-bs-target="#visual-view" type="button" role="tab"><i class="fa fa-eye me-2"></i> Visual View</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-view" type="button" role="tab"><i class="fa fa-code me-2"></i> Raw JSON</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="logTabContent">
+                        <div class="tab-pane fade show active" id="visual-view" role="tabpanel">
+                            <div id="visualViewerBody"></div>
+                        </div>
+                        <div class="tab-pane fade" id="json-view" role="tabpanel">
+                            <pre id="jsonViewerBody" class="p-3 rounded m-0" style="background: rgba(0,0,0,0.5); color: #81c784; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; max-height: 500px; overflow: auto; border: 1px solid var(--nc-border);"></pre>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 p-4">
                     <button type="button" class="btn-nc-outline" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn-nc-primary px-4" onclick="navigator.clipboard.writeText(document.getElementById('jsonViewerBody').textContent); this.innerHTML='<i class=\'fa fa-check me-1\'></i> Copied!'; setTimeout(()=>this.innerHTML='<i class=\'fa fa-copy me-1\'></i> Copy', 2000)">
-                        <i class="fa fa-copy me-1"></i> Copy
+                    <button type="button" class="btn-nc-primary px-4" onclick="window.copyLogJson()">
+                        <i class="fa fa-copy me-1"></i> Copy JSON
                     </button>
                 </div>
             </div>

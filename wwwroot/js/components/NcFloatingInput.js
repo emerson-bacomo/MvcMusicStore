@@ -112,6 +112,7 @@ class NcFloatingInput extends HTMLElement {
             toggle.type = 'button';
             toggle.className = 'nc-password-toggle';
             toggle.innerHTML = '<i class="fa fa-eye"></i>';
+            toggle.tabIndex = -1;
             this.appendChild(toggle);
         }
 

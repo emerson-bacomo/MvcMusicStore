@@ -5,6 +5,7 @@ using MvcMusic.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using MvcMusic.Utils;
+using MvcMusic.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<MvcMusicContext>(options =>
@@ -22,6 +23,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<MvcMusicContext>()
+    .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>()
     .AddErrorDescriber<CustomIdentityErrorDescriber>();
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -78,6 +80,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<RequirePasswordChangeMiddleware>();
 
 app.MapControllerRoute(
     name: "default",

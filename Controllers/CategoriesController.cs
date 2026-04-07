@@ -104,9 +104,8 @@ namespace MvcMusic.Controllers
                     var category = await _context.Category.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
                     if (category != null)
                     {
-                        var previousValues = new Dictionary<string, object> { ["Name"] = category.Name, ["RecordStatus"] = category.RecordStatus.ToString() };
-                        var newValues = new Dictionary<string, object> { ["Name"] = category.Name, ["RecordStatus"] = category.RecordStatus.ToString() };
-                        var changedFields = new List<string>();
+                        var previousValues = new Dictionary<string, object>();
+                        var newValues = new Dictionary<string, object>();
 
                         var dbCategory = await _context.Category.FindAsync(id);
                         if (dbCategory != null)
@@ -120,7 +119,7 @@ namespace MvcMusic.Controllers
                                 {
                                     if (dbCategory.Name != valueStr)
                                     {
-                                        changedFields.Add("Name");
+                                        previousValues["Name"] = dbCategory.Name;
                                         dbCategory.Name = valueStr ?? dbCategory.Name;
                                         newValues["Name"] = dbCategory.Name;
                                     }
@@ -129,20 +128,19 @@ namespace MvcMusic.Controllers
                                 {
                                     if (dbCategory.RecordStatus != status)
                                     {
-                                        changedFields.Add("RecordStatus");
+                                        previousValues["RecordStatus"] = dbCategory.RecordStatus.ToString();
                                         dbCategory.RecordStatus = status;
                                         newValues["RecordStatus"] = dbCategory.RecordStatus.ToString();
                                     }
                                 }
                             }
                             
-                            if (changedFields.Count > 0)
+                            if (newValues.Count > 0)
                             {
                                 logDetails.Add(new {
                                     table = "Category",
                                     id = id,
                                     type = "UPDATE",
-                                    changedFields = changedFields,
                                     previousValues = previousValues,
                                     newValues = newValues
                                 });
