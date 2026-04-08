@@ -166,22 +166,6 @@
                             </form>
                         `;
 
-                        if (row.recordStatus === 'Deleted') {
-                            links += `
-                                <button type="button" class="nc-action-link restore border-0" title="Restore"
-                                        onclick="window.updatableTables['customers-table-container'].confirmRestore('${row.id}', '@Url.Action("Restore", "Customers")', this)">
-                                    <i class="fa fa-trash-restore"></i>
-                                </button>
-                            `;
-                        } else {
-                            links += `
-                                <button type="button" class="nc-action-link delete border-0" title="Delete"
-                                        onclick="window.updatableTables['customers-table-container'].confirmDelete('${row.id}', '@Url.Action("Delete", "Customers")', this)">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            `;
-                        }
-
                         return `<div class="d-flex gap-2 justify-content-start">${links}</div>`;
                     }
                 }

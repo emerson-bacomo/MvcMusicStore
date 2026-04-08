@@ -24,9 +24,8 @@ namespace MvcMusic.Controllers
             _activityLogger = activityLogger;
         }
 
-        // GET: /activity-logs
         [HttpGet]
-        public async Task<IActionResult> Index(string? userId = null)
+        public async Task<IActionResult> Index(string? userId = null, int? productId = null)
         {
             var currentAdminId = _userManager.GetUserId(User);
 
@@ -35,7 +34,7 @@ namespace MvcMusic.Controllers
                 var targetUser = await _userManager.FindByIdAsync(userId);
                 ViewBag.Employee = targetUser;
                 ViewBag.UserId = userId;
-
+                
                 // Mark current logs for this user as seen by this admin
                 // Exclude Login/Logout actions to prevent cluttering the unseen count
                 var unseenLogIds = await _context.ActivityLog
@@ -56,8 +55,38 @@ namespace MvcMusic.Controllers
                     _context.ActivityLogSeenStatus.AddRange(newSeenStatuses);
                     await _context.SaveChangesAsync();
 
-                    // Store these specific IDs so GetTableData can mark them as "New" indicator rows
                     TempData["JustSeenLogIds"] = string.Join(",", unseenLogIds);
+                }
+            }
+
+            if (productId.HasValue)
+            {
+                var product = await _context.Product.FindAsync(productId.Value);
+                ViewBag.Product = product;
+                
+                var productIdString = productId.Value.ToString();
+                var searchPattern = $"\"productId\":{productIdString}";
+                var unseenLogIds = await _context.ActivityLog
+                    .Where(l => l.Details != null && l.Details.Contains(searchPattern))
+                    .Where(l => !_context.ActivityLogSeenStatus.Any(s => s.ActivityLogId == l.Id && s.AdminUserId == currentAdminId))
+                    .Select(l => l.Id)
+                    .ToListAsync();
+
+                if (unseenLogIds.Any())
+                {
+                    var newSeenStatuses = unseenLogIds.Select(id => new ActivityLogSeenStatus
+                    {
+                        ActivityLogId = id,
+                        AdminUserId = currentAdminId
+                    });
+                    _context.ActivityLogSeenStatus.AddRange(newSeenStatuses);
+                    await _context.SaveChangesAsync();
+
+                    var existingJustSeen = TempData["JustSeenLogIds"] as string ?? "";
+                    var allJustSeen = string.IsNullOrEmpty(existingJustSeen) 
+                        ? unseenLogIds 
+                        : existingJustSeen.Split(',').Select(int.Parse).Concat(unseenLogIds).Distinct();
+                    TempData["JustSeenLogIds"] = string.Join(",", allJustSeen);
                 }
             }
             
@@ -98,6 +127,7 @@ namespace MvcMusic.Controllers
             string? roleFilter = null,
             DateTime? startDate = null,
             DateTime? endDate = null,
+            string? productId = null,
             int page = 1, 
             int pageSize = 20)
         {
@@ -106,6 +136,12 @@ namespace MvcMusic.Controllers
             if (!string.IsNullOrEmpty(userId))
             {
                 query = query.Where(l => l.UserId == userId);
+            }
+
+            if (!string.IsNullOrEmpty(productId))
+            {
+                var searchPattern = $"\"productId\":{productId}";
+                query = query.Where(l => l.Details != null && l.Details.Contains(searchPattern));
             }
 
             if (!string.IsNullOrEmpty(searchTerm))

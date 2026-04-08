@@ -91,7 +91,7 @@ namespace MvcMusic.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
         public async Task<IActionResult> UpdateTableData([FromBody] UpdateTableRequest request)
         {
             if (request == null || request.Changes == null) return BadRequest();
@@ -161,7 +161,7 @@ namespace MvcMusic.Controllers
             return Json(new { success = true });
         }
 
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
         public async Task<IActionResult> Create(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name is required.");
@@ -178,7 +178,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
         public async Task<IActionResult> Delete(int id)
         {
             var category = await _context.Category.FindAsync(id);

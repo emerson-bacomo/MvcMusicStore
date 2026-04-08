@@ -191,6 +191,7 @@ nav .nav-link.active {
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    padding: 0.85rem 1.6rem 0.75rem 1.6rem;
     transition: var(--transition);
 }
 
@@ -198,6 +199,11 @@ nav .nav-link.active {
     background: var(--nc-primary-glow);
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(123, 171, 221, 0.08);
+}
+
+body.modal-open {
+    padding-right: 0 !important;
+    overflow-y: auto !important;
 }
 
 .nc-card {
@@ -318,7 +324,9 @@ nav .nav-link.active {
     color: var(--nc-text-secondary);
 }
 
-.nc-password-wrapper, .nc-floating-group, .nc-floating-input {
+.nc-password-wrapper,
+.nc-floating-group,
+.nc-floating-input {
     position: relative;
 }
 
@@ -383,7 +391,8 @@ nav .nav-link.active {
     border-radius: var(--nc-radius-sm);
     padding: 1.25rem;
     z-index: 3000;
-    box-shadow: 0 -15px 35px rgba(0, 0, 0, 0.5); /* Shadow adjusted for top position */
+    box-shadow: 0 -15px 35px rgba(0, 0, 0, 0.5);
+    /* Shadow adjusted for top position */
     display: none;
     opacity: 0;
     transform: translateY(10px);
@@ -748,15 +757,24 @@ input[type=number] {
     display: flex !important;
 }
 
-.me-custom-5 { margin-right: 0 !important; }
-.mb-custom-0 { margin-bottom: 2rem !important; }
-.d-custom-none { display: flex !important; }
+.me-custom-5 {
+    margin-right: 0 !important;
+}
+
+.mb-custom-0 {
+    margin-bottom: 2rem !important;
+}
+
+.d-custom-none {
+    display: flex !important;
+}
 
 /* Mobile Detail Grid: Hide right column */
 @media (max-width: 992px) {
     .nc-detail-info {
         display: none !important;
     }
+
     .nc-detail-card {
         grid-template-columns: 1fr !important;
         padding: 2.5rem !important;
@@ -768,18 +786,27 @@ input[type=number] {
     .navbar-expand-custom .navbar-collapse {
         display: flex !important;
     }
+
     .navbar-expand-custom .navbar-toggler,
     .nc-mobile-menu-toggle.d-custom-none {
         display: none !important;
     }
+
     .navbar-expand-custom .navbar-nav {
         flex-direction: row;
     }
+
     .navbar-expand-custom .navbar-nav .dropdown-menu {
         position: absolute;
     }
-    .me-custom-5 { margin-right: 3rem !important; }
-    .mb-custom-0 { margin-bottom: 0 !important; }
+
+    .me-custom-5 {
+        margin-right: 3rem !important;
+    }
+
+    .mb-custom-0 {
+        margin-bottom: 0 !important;
+    }
 }
 
 
@@ -875,6 +902,7 @@ input[type=number] {
 
 .nc-action-link.delete {
     color: rgba(250, 146, 144, 1);
+    border-color: rgba(250, 146, 144, 0.4);
 }
 
 .nc-action-link.delete:hover {
@@ -886,6 +914,10 @@ input[type=number] {
 /* ================================================================
    Global Popup & Overlay System
    ================================================================ */
+
+.ut-trigger-hidden {
+    visibility: hidden !important;
+}
 
 .ut-visual-portal {
     pointer-events: none !important;
@@ -911,7 +943,8 @@ input[type=number] {
 
 .ut-side-popup {
     position: absolute;
-    z-index: 2200; /* Above markers and table elements */
+    z-index: 2200;
+    /* Above markers and table elements */
     background: var(--nc-bg-card);
     border: 1px solid var(--nc-popup-border);
     border-radius: 12px;
@@ -924,7 +957,7 @@ input[type=number] {
 /* Dropdown Variant (Filter Popup Style) */
 .ut-popup-dropdown {
     border-width: 1.5px !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
     border-radius: var(--nc-radius) !important;
     padding: 1rem !important;
 }
@@ -1166,7 +1199,8 @@ input[type="password"] {
 /* ── Change Tracking UI (Restored Logic) ─────────────────────────── */
 .nc-changed-indicator {
     position: absolute;
-    left: -12px; /* Floating look */
+    left: -12px;
+    /* Floating look */
     top: 10px;
     bottom: 10px;
     width: 3px;
@@ -1306,13 +1340,14 @@ input[type="password"] {
 /* Layout Consistency Fixes */
 .nc-detail-card {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important; /* Ensure 50/50 split remains stable */
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    /* Ensure 50/50 split remains stable */
     gap: 4rem;
     padding: 3rem;
     background: var(--nc-bg-card);
     border-radius: 3rem;
-    border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
     margin-bottom: 2rem;
@@ -1322,7 +1357,8 @@ input[type="password"] {
 .nc-editable-span {
     min-height: 1.2em;
     display: inline-block;
-    transition: none !important; /* Remove transitions during mode switch to prevent "growing" feel */
+    transition: none !important;
+    /* Remove transitions during mode switch to prevent "growing" feel */
     line-height: inherit;
 }
 
@@ -1335,7 +1371,8 @@ input[type="password"] {
 .nc-description-edit {
     line-height: 1.5 !important;
     padding: 0.75rem 1rem !important;
-    min-height: calc(1.5em + 1.5rem) !important; /* line-height + padding */
+    min-height: calc(1.5em + 1.5rem) !important;
+    /* line-height + padding */
     height: auto;
     border-radius: 0.75rem;
     background: rgba(255, 255, 255, 0.05);
@@ -1376,7 +1413,8 @@ nc-select {
     cursor: pointer;
     display: flex;
     align-items: center;
-    position: relative; /* Base for absolute arrow */
+    position: relative;
+    /* Base for absolute arrow */
     font-weight: 600;
     transition: all 0.2s;
 }
@@ -1428,10 +1466,11 @@ nc-select {
     opacity: 0;
     visibility: hidden;
     display: none;
-    overflow: hidden; /* CRITICAL: Clips the inner scrollbar track to the border-radius */
+    overflow: hidden;
+    /* CRITICAL: Clips the inner scrollbar track to the border-radius */
     transform: translateY(-10px);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .nc-select-container.open .nc-select-dropdown {
@@ -1445,14 +1484,16 @@ nc-select {
     max-height: 250px;
     overflow-y: auto;
     padding: 0.5rem 0;
-    padding-left: 8px; /* Balance the 8px scrollbar on the right to keep text centered */
+    padding-left: 8px;
+    /* Balance the 8px scrollbar on the right to keep text centered */
 }
 
 /* Reset selection for option text alignment */
 .nc-option {
     padding: 0.8rem 1.5rem;
     cursor: pointer;
-    color: white; /* High contrast */
+    color: white;
+    /* High contrast */
     transition: all 0.2s;
     text-align: center;
 }

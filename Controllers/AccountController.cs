@@ -86,7 +86,7 @@ namespace MvcMusic.Controllers
         }
 
         // GET: /account/change-temporary-password
-        [HttpGet]
+        [HttpGet("account/change-temporary-password")]
         public async Task<IActionResult> ChangeTemporaryPassword(bool forced = false)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -106,7 +106,7 @@ namespace MvcMusic.Controllers
         }
 
         // POST: /account/change-temporary-password
-        [HttpPost]
+        [HttpPost("account/change-temporary-password")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangeTemporaryPassword(string newPassword)
         {

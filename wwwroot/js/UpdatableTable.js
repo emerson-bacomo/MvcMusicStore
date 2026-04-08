@@ -12,7 +12,8 @@ export default class UpdatableTable {
         this.data = config.initialData || null;
         this.rows = new Map();
         this.localChanges = new Map();
-        this.invalidCells = new Map(); // Map of "rowId:colId" -> errorMessage
+        this.invalidCells = new Map();
+        this.isSaving = false;
 
         // Granular storage prefix (e.g., 'product')
         this.storagePrefix =
@@ -78,9 +79,10 @@ export default class UpdatableTable {
     }
 
     saveToLocalStorage() {
+        if (this.isSaving || !this.storagePrefix) return;
         // 1. Save Row Changes
         for (const [id, changes] of this.localChanges) {
-            localStorage.setItem(`${this.storagePrefix}-${id}`, JSON.stringify(changes));
+            localStorage.setItem(`${this.storagePrefix}-row-${id}`, JSON.stringify(changes));
         }
 
         // 2. Save UI Preferences
@@ -124,10 +126,11 @@ export default class UpdatableTable {
             }
 
             // 2. Load Row Changes
+            const rowPrefix = `${this.storagePrefix}-row-`;
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key.startsWith(prefix) && !key.endsWith("-filters")) {
-                    const id = key.substring(prefix.length);
+                if (key && key.startsWith(rowPrefix)) {
+                    const id = key.substring(rowPrefix.length);
                     const saved = localStorage.getItem(key);
                     if (saved) {
                         const rowChanges = JSON.parse(saved);
@@ -179,17 +182,22 @@ export default class UpdatableTable {
     }
 
     clearLocalStorage() {
-        const prefix = `${this.storagePrefix}-`;
+        if (!this.storagePrefix) return;
+
+        // Remove all row-specific entries for this prefix
+        const rowPrefix = `${this.storagePrefix}-row-`;
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith(prefix) && !key.endsWith("-ui-prefs")) {
+            if (key && key.startsWith(rowPrefix)) {
                 keysToRemove.push(key);
             }
         }
-        keysToRemove.forEach((k) => {
-            localStorage.removeItem(k);
-        });
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+
+        this.localChanges.clear();
+        this.invalidCells.clear();
+        this.updateControls();
     }
 
     parseUrlFilters() {
@@ -405,11 +413,11 @@ export default class UpdatableTable {
                 <select class="ut-input ut-select" style="padding:0.4rem 0.6rem; height:auto; background:rgba(255,255,255,0.05); border:1px solid var(--nc-border); width:100%; border-radius:4px;">
                     <option value="">All ${label}</option>
                     ${options
-                        .map(
-                            (opt) =>
-                                `<option value="${opt.value}" ${String(currentValue) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
-                        )
-                        .join("")}
+                    .map(
+                        (opt) =>
+                            `<option value="${opt.value}" ${String(currentValue) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
+                    )
+                    .join("")}
                 </select>
             `;
 
@@ -643,16 +651,17 @@ export default class UpdatableTable {
 
             this.data = response;
             const fetchedRows = response.rows || {};
-            const fetchedRowIds = new Set(Object.keys(fetchedRows));
-            // Deep copy to prevent accidental reference sharing
-            this.rows = new Map(Object.entries(JSON.parse(JSON.stringify(fetchedRows))));
+            const fetchedRowIds = new Set(Object.values(fetchedRows).map(r => String(r.id)));
+            // Universal row Map population
+            const rowsArray = Array.isArray(fetchedRows) ? fetchedRows : Object.values(fetchedRows);
+            this.rows = new Map(rowsArray.map(r => [String(r.id), r]));
 
             // Sync: Remove local changes for records that no longer exist in the backend
             if (localChangeIds.length > 0) {
                 for (const id of localChangeIds) {
                     if (!fetchedRowIds.has(id)) {
                         this.localChanges.delete(id);
-                        localStorage.removeItem(`${this.storagePrefix}-${id}`);
+                        localStorage.removeItem(`${this.storagePrefix}-row-${id}`);
                     }
                 }
             }
@@ -1643,30 +1652,30 @@ export default class UpdatableTable {
             return;
         }
 
+        const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Item";
         let diffHtml =
-            '<table class="ut-diff-table"><tr><th>Product</th><th>Field</th><th>Original</th><th>Current</th><th></th></tr>';
+            `<table class="ut-diff-table"><tr><th>${entityName}</th><th>Field</th><th>Original</th><th>Current</th><th></th></tr>`;
         for (const [id, changes] of this.localChanges) {
             const row = this.rows.get(id);
             if (!row) continue;
             const name = row.name || `Record #${id}`;
             const imgData = row.image || {};
-            const imgUrl = imgData.image || "https://placehold.co/50x50/1a1f2c/7babdd?text=?";
-            let firstForProduct = true;
+            const imgHtml = imgData.image ? `<img src="${imgData.image}" class="ut-diff-thumb" />` : "";
+            let firstForRow = true;
             for (const [colId, newVal] of Object.entries(changes)) {
                 const label = this.fieldDefinitions[colId]?.label || this.toLabelCase(colId);
                 diffHtml += `
-                    <tr class="ut-diff-data-row ${!firstForProduct ? "ut-diff-row-internal" : ""}" data-product-id="${id}">
+                    <tr class="ut-diff-data-row ${!firstForRow ? "ut-diff-row-internal" : ""}" data-row-id="${id}">
                         <td class="ut-diff-product-cell">
-                            ${
-                                firstForProduct
-                                    ? `
+                            ${firstForRow
+                        ? `
                                 <div class="ut-diff-product-info">
-                                    <img src="${imgUrl}" class="ut-diff-thumb" />
+                                    ${imgHtml}
                                     <span class="ut-diff-product-name" title="${name}">${name}</span>
                                 </div>
                             `
-                                    : ""
-                            }
+                        : ""
+                    }
                         </td>
                         <td class="ut-diff-field-cell">${label}</td>
                         <td class="ut-diff-old">${this.formatValue(row[colId], colId)}</td>
@@ -1678,7 +1687,7 @@ export default class UpdatableTable {
                         </td>
                     </tr>
                 `;
-                firstForProduct = false;
+                firstForRow = false;
             }
         }
         diffHtml += "</table>";
@@ -1747,13 +1756,14 @@ export default class UpdatableTable {
             return;
         }
 
-        let diffHtml = '<table class="ut-diff-table"><tr><th>Product</th><th>Field</th><th>Original</th><th>New</th></tr>';
+        const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Item";
+        let diffHtml = `<table class="ut-diff-table"><tr><th>${entityName}</th><th>Field</th><th>Original</th><th>New</th></tr>`;
         for (const [id, changes] of this.localChanges) {
             const row = this.rows.get(id);
             if (!row) continue;
             const name = row.name || `Record #${id}`;
             const imgData = row.image || {};
-            const imgUrl = imgData.image || "https://placehold.co/50x50/1a1f2c/7babdd?text=?";
+            const imgHtml = imgData.image ? `<img src="${imgData.image}" class="ut-diff-thumb" />` : "";
             const changeEntries = Object.entries(changes);
             const totalChanges = changeEntries.length;
 
@@ -1770,18 +1780,17 @@ export default class UpdatableTable {
                 }
 
                 diffHtml += `
-                    <tr class="${rowClass}" data-product-id="${id}">
+                    <tr class="${rowClass}" data-row-id="${id}">
                         <td class="ut-diff-product-cell">
-                            ${
-                                isFirst
-                                    ? `
+                            ${isFirst
+                        ? `
                                 <div class="ut-diff-product-info">
-                                    <img src="${imgUrl}" class="ut-diff-thumb" />
+                                    ${imgHtml}
                                     <span class="ut-diff-product-name" title="${name}">${name}</span>
                                 </div>
                             `
-                                    : ""
-                            }
+                        : ""
+                    }
                         </td>
                         <td class="ut-diff-field-cell">${label}</td>
                         <td class="ut-diff-old">${this.formatValue(row[colId], colId)}</td>
@@ -1832,6 +1841,7 @@ export default class UpdatableTable {
             changesToSave[id] = changes;
         }
 
+        this.isSaving = true;
         try {
             const res = await fetch(this.data.updateRequest, {
                 method: "POST",
@@ -1848,13 +1858,18 @@ export default class UpdatableTable {
                 window.showToast("Changes saved successfully!", "success");
             }
 
-            if (this.onSave) this.onSave();
             this.clearLocalStorage();
-            await this.fetchData();
+            if (this.onSave) {
+                this.onSave();
+            } else {
+                await this.fetchData();
+            }
         } catch (e) {
             if (typeof window.showToast === "function") {
                 window.showToast("Failed to save changes.", "error");
             }
+        } finally {
+            this.isSaving = false;
         }
     }
 
@@ -1927,9 +1942,10 @@ export default class UpdatableTable {
     }
 
     confirmRestore(rowId, url, element) {
+        const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Record";
         window.showSidePopup(
             element,
-            "Restore record?",
+            `Restore ${entityName}?`,
             () => {
                 if (element) element.classList.remove("ut-popup-active-trigger");
                 this.container.classList.remove("ut-has-popup");
@@ -1944,7 +1960,10 @@ export default class UpdatableTable {
                     body: new URLSearchParams({ id: rowId }),
                 }).then((r) => {
                     if (r.ok) {
-                        window.showToast("Record restored", "success");
+                        window.showToast(`${entityName} restored`, "success");
+                        this.localChanges.delete(rowId);
+                        localStorage.removeItem(`${this.storagePrefix}-row-${rowId}`);
+                        this.saveToLocalStorage();
                         this.fetchData();
                     } else {
                         window.showToast("Failed to restore record", "error");
@@ -1960,9 +1979,10 @@ export default class UpdatableTable {
     }
 
     confirmDelete(rowId, url, element) {
+        const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Record";
         window.showSidePopup(
             element,
-            "Delete record?",
+            `Delete ${entityName}?`,
             () => {
                 if (element) element.classList.remove("ut-popup-active-trigger");
                 this.container.classList.remove("ut-has-popup");
@@ -1977,7 +1997,10 @@ export default class UpdatableTable {
                     body: new URLSearchParams({ id: rowId }),
                 }).then((r) => {
                     if (r.ok) {
-                        window.showToast("Record deleted", "success");
+                        window.showToast(`${entityName} deleted`, "success");
+                        this.localChanges.delete(rowId);
+                        localStorage.removeItem(`${this.storagePrefix}-row-${rowId}`);
+                        this.saveToLocalStorage();
                         this.fetchData();
                     } else {
                         window.showToast("Failed to delete record", "error");

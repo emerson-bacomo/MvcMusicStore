@@ -42,6 +42,7 @@ window.showSidePopup = function (
     portal.style.transition = "none";
 
     portal.appendChild(clone);
+    element.classList.add("ut-trigger-hidden");
     document.body.appendChild(portal);
 
     const popup = document.createElement("div");
@@ -61,16 +62,15 @@ window.showSidePopup = function (
     popup.innerHTML = `
         <div class="ut-popup-content">
             <div class="ut-popup-header"><i class="fa ${icon}" style="color: ${iconColor}"></i><span>${title}</span></div>
-            ${
-                customContent
-                    ? customContent
-                    : `
+            ${customContent
+            ? customContent
+            : `
                 <div class="ut-popup-actions">
                     <button class="ut-popup-btn-cancel">Cancel</button>
                     <button class="ut-popup-btn-confirm ${btnExtraClass || ""}">${confirmText}</button>
                 </div>
             `
-            }
+        }
         </div>
         ${hideArrow ? "" : '<div class="ut-popup-arrow"></div>'}
     `;
@@ -94,7 +94,7 @@ window.showSidePopup = function (
                 popup.style.top = `${rect.bottom + scrollY + 12}px`;
             }
             popup.style.transform = "none";
-            
+
             if (extraClass && extraClass.includes("ut-popup-dropdown")) {
                 // Dropdown alignment (Left or Right based on screen half)
                 if (showOnLeft) {
@@ -130,10 +130,12 @@ window.showSidePopup = function (
 
     popup.querySelector(".ut-popup-btn-cancel")?.addEventListener("click", () => {
         element.classList.remove("ut-popup-active-trigger");
+        element.classList.remove("ut-trigger-hidden");
         window.closePopups();
     });
     popup.querySelector(".ut-popup-btn-confirm")?.addEventListener("click", () => {
         element.classList.remove("ut-popup-active-trigger");
+        element.classList.remove("ut-trigger-hidden");
         onConfirm();
         window.closePopups();
     });
@@ -142,6 +144,7 @@ window.showSidePopup = function (
         const handleOutside = (e) => {
             if (popup.parentNode && !popup.contains(e.target) && e.target !== element) {
                 element.classList.remove("ut-popup-active-trigger");
+                element.classList.remove("ut-trigger-hidden");
                 window.closePopups();
                 document.removeEventListener("mousedown", handleOutside);
             }
@@ -162,6 +165,7 @@ window.closePopups = function () {
     // Cleanup Visual Portal
     document.getElementById("utPortalTrigger")?.remove();
     document.getElementById("ncModalPortalTrigger")?.remove();
+    document.querySelectorAll(".ut-trigger-hidden").forEach(el => el.classList.remove("ut-trigger-hidden"));
 };
 
 

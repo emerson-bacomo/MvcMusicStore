@@ -1,8 +1,20 @@
 @model MvcMusic.Models.Product
+@inject MvcMusic.Data.MvcMusicContext DbContext
+@inject Microsoft.AspNetCore.Identity.UserManager<MvcMusic.Models.ApplicationUser> UserManager
 @{
     var categories = ViewBag.Categories as List<MvcMusic.Models.Category> ?? new List<MvcMusic.Models.Category>();
     var brands = ViewBag.Brands as List<MvcMusic.Models.Brand> ?? new List<MvcMusic.Models.Brand>();
     var isCreate = ViewData["IsCreate"] as bool? ?? false;
+    
+    int unseenCount = 0;
+    if (!isCreate && Model != null)
+    {
+        var currentAdminId = UserManager.GetUserId(User);
+        var searchPattern = $"\"productId\":{Model.Id}";
+        unseenCount = DbContext.ActivityLog
+            .Where(l => l.Details != null && l.Details.Contains(searchPattern))
+            .Count(l => !DbContext.ActivityLogSeenStatus.Any(s => s.ActivityLogId == l.Id && s.AdminUserId == currentAdminId));
+    }
 }
 
 <div class="nc-detail-container @(isCreate ? "nc-edit-mode" : "")" id="productDetailContainer" data-product-id="@(isCreate ? "0" : Model.Id)" data-is-create="@isCreate.ToString().ToLower()">
@@ -24,34 +36,52 @@
             else
             {
                 <!-- DISPLAY MODE: Delete then Edit -->
-                <span id="productStatusToggle">
-                    @if (Model.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
-                    {
-                        <button type="button" class="nc-gutter-btn btn-success nc-read-only-hide" onclick="if(window.confirmRestore) window.confirmRestore('@Model.Id', '@Url.Action("Restore", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('deleteBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Restore", "Products", new { id = Model.Id })'" title="Restore Product">
-                            <i class="fa fa-trash-restore"></i>
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('restoreBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    }
-                </span>
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                {
+                    <span id="productStatusToggle">
+                        @if (Model.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
+                        {
+                            <button type="button" class="nc-gutter-btn btn-success nc-read-only-hide" onclick="if(window.confirmRestore) window.confirmRestore('@Model.Id', '@Url.Action("Restore", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('deleteBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Restore", "Products", new { id = Model.Id })'" title="Restore Product">
+                                <i class="fa fa-trash-restore"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('restoreBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        }
+                    </span>
+                    <div class="position-relative d-inline-block nc-read-only-hide">
+                        <a href="/activity-logs?productId=@Model.Id" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #fff; text-decoration: none;" title="View Logs">
+                            <i class="fa fa-list-check"></i>
+                        </a>
+                        @if (unseenCount > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" 
+                                style="font-size: 0.6rem; padding: 0.25rem 0.4rem; z-index: 5; border: 2px solid #131822; transform: translate(-30%, -30%) !important;">
+                                @(unseenCount > 9 ? "9+" : unseenCount.ToString())
+                            </span>
+                        }
+                    </div>
+                }
+
                 <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
                     <i class="fa fa-pen"></i>
                 </button>
-                
-                <template id="deleteBtnTemplate">
-                    <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('restoreBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </template>
-                <template id="restoreBtnTemplate">
-                    <button type="button" class="nc-gutter-btn btn-success nc-read-only-hide" onclick="if(window.confirmRestore) window.confirmRestore('@Model.Id', '@Url.Action("Restore", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('deleteBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Restore", "Products", new { id = Model.Id })'" title="Restore Product">
-                        <i class="fa fa-trash-restore"></i>
-                    </button>
-                </template>
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                {
+                    <template id="deleteBtnTemplate">
+                        <button type="button" class="nc-gutter-btn btn-delete nc-read-only-hide" onclick="if(window.confirmDelete) window.confirmDelete('@Model.Id', '@Url.Action("Delete", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('restoreBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Delete", "Products", new { id = Model.Id })'" title="Delete Product">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </template>
+                    <template id="restoreBtnTemplate">
+                        <button type="button" class="nc-gutter-btn btn-success nc-read-only-hide" onclick="if(window.confirmRestore) window.confirmRestore('@Model.Id', '@Url.Action("Restore", "Products")', () => document.getElementById('productStatusToggle').innerHTML = document.getElementById('deleteBtnTemplate').innerHTML, this); else window.location.href='@Url.Action("Restore", "Products", new { id = Model.Id })'" title="Restore Product">
+                            <i class="fa fa-trash-restore"></i>
+                        </button>
+                    </template>
+                }
                 
                 <!-- EDIT MODE: Revert, Save, then Exit -->
                 <div class="nc-editable-actions flex-row gap-3">
@@ -184,7 +214,7 @@
 
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                 {
-                <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
+                    <div class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.75rem;">
                         <div class="nc-meta-stat position-relative">
                             <!-- Stock Indicator (beside the whole card) -->
                             <div id="indicator-Stock" class="nc-changed-indicator nc-indicator-stat-card" style="display: none;" onclick="editor.showRevertPopup('Stock', 'Stock Amount', this)"></div>
@@ -203,7 +233,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="nc-meta-stat nc-read-only-invisible">
+                        <div class="nc-meta-stat">
                             <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
                             <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Product Rating</span>
@@ -212,7 +242,7 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="nc-meta-stat nc-read-only-invisible">
+                        <div class="nc-meta-stat">
                             <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
                             <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Sales Performance</span>
@@ -293,7 +323,7 @@
                     </div>
                 </div>
 
-                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("ProductStaff"))
                 {
                     <div class="mt-4">
                         <h3 class="nc-section-title">Banner Data</h3>

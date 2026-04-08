@@ -72,47 +72,7 @@ namespace MvcMusic.Controllers
             return RedirectToAction(nameof(Profile), new { id = customer.Id });
         }
 
-        // POST: /customers/delete/{id}
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(string id)
-        {
-            var customer = await _userManager.FindByIdAsync(id);
-            if (customer == null) return NotFound();
 
-            customer.RecordStatus = RecordStatus.Deleted;
-            await _userManager.UpdateAsync(customer);
-
-            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.DeleteCustomer, $"Soft-deleted customer <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>", cId, cName, cRole, cFull);
-            
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true });
-
-            TempData["Success"] = "Customer account soft-deleted.";
-            return RedirectToAction(nameof(Profile), new { id = customer.Id });
-        }
-
-        // POST: /customers/restore/{id}
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Restore(string id)
-        {
-            var customer = await _userManager.FindByIdAsync(id);
-            if (customer == null) return NotFound();
-
-            customer.RecordStatus = RecordStatus.Active;
-            await _userManager.UpdateAsync(customer);
-
-            var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-            await _logger.LogAsync(ActivityAction.UpdateTable, $"Restored customer <a href='/customers/profile/{customer.Id}' class='customer-link'>{customer.Email}</a>", cId, cName, cRole, cFull);
-
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true });
-
-            TempData["Success"] = "Customer account restored.";
-            return RedirectToAction(nameof(Profile), new { id = customer.Id });
-        }
         // AJAX endpoint for UpdatableTable
         [HttpGet]
         public async Task<IActionResult> GetTableData(string? includeIds = null)

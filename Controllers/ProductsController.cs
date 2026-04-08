@@ -284,6 +284,7 @@ namespace MvcMusic.Controllers
                             if (newValues.Count > 0)
                             {
                                 logDetails.Add(new {
+                                    productId = id,
                                     table = "Product",
                                     id = id,
                                     type = "UPDATE",
@@ -368,7 +369,8 @@ namespace MvcMusic.Controllers
                             ["Description"] = existingProduct.Description ?? "",
                             ["IsBanner"] = existingProduct.IsBanner,
                             ["BannerDescription"] = existingProduct.BannerDescription ?? "",
-                            ["BannerImageUrl"] = existingProduct.BannerImageUrl ?? ""
+                            ["BannerImageUrl"] = existingProduct.BannerImageUrl ?? "",
+                            ["Gallery"] = existingProduct.ProductImages.OrderBy(img => img.SortOrder).Select(img => img.Url).ToList()
                         };
 
                         _context.Entry(existingProduct).CurrentValues.SetValues(product);
@@ -403,14 +405,16 @@ namespace MvcMusic.Controllers
                             ["BannerImageUrl"] = existingProduct.BannerImageUrl ?? ""
                         };
 
-                        var finalPrevious = previousValues.Where(kvp => !Equals(kvp.Value, newValues[kvp.Key])).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                        var finalPrevious = previousValues.Where(kvp => kvp.Key != "Gallery" && !Equals(kvp.Value, newValues[kvp.Key])).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         var finalNew = newValues.Where(kvp => finalPrevious.ContainsKey(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         
-                        // Check if images changed (simplified)
-                        bool imagesChanged = !string.IsNullOrEmpty(deletedImages) || productImages?.Count > 0 || imageUrls?.Count > 0 || !string.IsNullOrEmpty(imageOrder);
-                        if (imagesChanged) {
-                            finalPrevious["Gallery"] = JsonSerializer.Serialize(previousValues.ContainsKey("ProductImages") ? previousValues["ProductImages"] : existingProduct.ProductImages.Select(img => new { url = img.Url, sortOrder = img.SortOrder }));
-                            finalNew["Gallery"] = JsonSerializer.Serialize(existingProduct.ProductImages.Select(img => new { url = img.Url, sortOrder = img.SortOrder }));
+                        var oldGallery = previousValues["Gallery"] as List<string>;
+                        var newGallery = existingProduct.ProductImages.OrderBy(img => img.SortOrder).Select(img => img.Url).ToList();
+                        
+                        if (!Enumerable.SequenceEqual(oldGallery, newGallery))
+                        {
+                            finalPrevious["Gallery"] = JsonSerializer.Serialize(previousValues["Gallery"]);
+                            finalNew["Gallery"] = JsonSerializer.Serialize(newGallery);
                         }
 
                         await _context.SaveChangesAsync();
@@ -419,6 +423,7 @@ namespace MvcMusic.Controllers
                         if (finalNew.Count > 0)
                         {
                             var logItem = new {
+                                productId = id,
                                 table = "Product",
                                 id = id,
                                 type = "UPDATE_INPLACE",
@@ -449,7 +454,7 @@ namespace MvcMusic.Controllers
         }
 
         // GET: /products/create
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
         public async Task<IActionResult> Create()
         {
             ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
@@ -459,7 +464,7 @@ namespace MvcMusic.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
         public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? imageOrder)
         {
             if (ModelState.IsValid)
@@ -497,7 +502,15 @@ namespace MvcMusic.Controllers
                 _context.Add(product);
                 await _context.SaveChangesAsync();
                 var (cId, cName, cRole, cFull) = await CurrentEmployeeInfoAsync();
-                await _logger.LogAsync(ActivityAction.CreateProduct, $"Created product <a href='/products/details/{product.Id}' class='product-link'>{product.Name}</a>.", cId, cName, cRole, cFull);
+                var logItem = new {
+                    productId = product.Id,
+                    table = "Product",
+                    id = product.Id,
+                    type = "CREATE",
+                    summary = $"Created product <a href='/products/details/{product.Id}' class='product-link'>{product.Name}</a>."
+                };
+                var jsonLog = JsonSerializer.Serialize(new List<object> { logItem });
+                await _logger.LogAsync(ActivityAction.CreateProduct, jsonLog, cId, cName, cRole, cFull);
                 TempData["Success"] = $"Product '{product.Name}' created successfully.";
                 return RedirectToAction(nameof(Index));
             }

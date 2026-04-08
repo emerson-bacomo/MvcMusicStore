@@ -200,10 +200,10 @@ class ProductEditor {
             value !== undefined
                 ? String(value)
                 : input.type === "checkbox"
-                  ? input.checked
-                      ? "true"
-                      : "false"
-                  : String(input.value);
+                    ? input.checked
+                        ? "true"
+                        : "false"
+                    : String(input.value);
 
         let isChanged = current !== String(initial);
 
@@ -1154,7 +1154,7 @@ class ProductEditor {
             const newOrder = (document.getElementById("imageOrderInput").value || "").split(",").filter((x) => x);
 
             diff.push({
-                field: "Gallery Order",
+                field: "Gallery",
                 type: "gallery",
                 oldOrder: isRevert ? newOrder : oldOrder,
                 newOrder: isRevert ? oldOrder : newOrder,
