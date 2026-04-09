@@ -2,18 +2,24 @@
 
 @{
     var emp = ViewBag.Employee as MvcMusic.Models.ApplicationUser;
-    ViewData["Title"] = emp != null ? $"Logs — {emp.UserName}" : "All Activity Logs";
+    var product = ViewBag.Product as MvcMusic.Models.Product;
+    
+    string pageTitle = "All Activity Logs";
+    if (emp != null) pageTitle = $"Logs — {emp.UserName}";
+    else if (product != null) pageTitle = $"Logs — {product.Name}";
+    
+    ViewData["Title"] = pageTitle;
 }
 
 <div class="nc-page">
-    <div class="container-fluid px-4">
+    <div class="nc-container-fluid">
         <div class="nc-page-header">
             <div>
                 <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-clipboard-list me-1"></i> System Audits</div>
                 <h1 class="nc-page-title">
                     @if (emp != null)
                     {
-                        <span>Activity Logs - <span style="color:var(--nc-primary);font-size:1.4rem;">@emp.UserName</span></span>
+                        <span>Activity Logs - <span style="color:var(--nc-primary);font-size:1.4rem;">@emp.FullName</span></span>
                     }
                     else if (ViewBag.Product != null)
                     {
@@ -25,7 +31,7 @@
                     }
                 </h1>
             </div>
-            @if (emp != null)
+            @if (emp != null || product != null)
             {
                 <a asp-action="Index" class="btn-nc-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
                     <i class="fa fa-globe me-1"></i> View All Logs
@@ -213,7 +219,7 @@
                         cellClass: 'ut-min-w-fit',
                         type: 'select',
                         options: actions.map(a => ({value: a, label: a})),
-                        renderContent: (val) => `<span style="font-weight:600; font-size:0.85rem;">${val}</span>`
+                        renderContent: (val) => `<span class="nc-text-secondary">${val}</span>`
                     },
                     details: {
                         label: 'Details',
@@ -252,7 +258,41 @@
                         label: 'Users',
                         options: (users || []).map(u => ({ value: u.UserId, label: u.UserFullName || u.Username }))
                     }
-                ]
+                ],
+                onFilter: (filters, q, status) => {
+                    const titleText = document.querySelector('.nc-page-title');
+                    if (!titleText) return;
+
+                    let newTitle = "All Activity Logs";
+                    let isSpecial = false;
+
+                    const currentParams = new URLSearchParams(window.location.search);
+                    if (filters.userId) {
+                        const user = users.find(u => u.UserId === filters.userId);
+                        const name = user ? (user.FullName || user.Username) : ('@Html.Raw(emp?.FullName)' || filters.userId);
+                        newTitle = `Activity Logs - <span style="color:var(--nc-primary);font-size:1.4rem;">${name}</span>`;
+                        isSpecial = true;
+                    } else if (filters.productId || currentParams.get('productId')) {
+                        const currentProductId = filters.productId || currentParams.get('productId');
+                        const initialProductId = '@ViewBag.Product?.Id';
+                        const initialProductName = '@Html.Raw(ViewBag.Product?.Name)';
+
+                        if (currentProductId === initialProductId) {
+                             newTitle = `Activity Logs - <span style="color:var(--nc-primary);font-size:1.4rem;">${initialProductName}</span>`;
+                             isSpecial = true;
+                        } else if (filters.productId) {
+                             newTitle = `Activity Logs - <span style="color:var(--nc-primary);font-size:1.4rem;">Product ID: ${filters.productId}</span>`;
+                             isSpecial = true;
+                        }
+                    }
+
+                    titleText.innerHTML = newTitle;
+                    
+                    const viewAllBtn = document.querySelector('a.btn-nc-outline i.fa-globe')?.parentElement;
+                    if (viewAllBtn) {
+                        viewAllBtn.style.display = isSpecial ? 'inline-flex' : 'none';
+                    }
+                }
             });
         });
 

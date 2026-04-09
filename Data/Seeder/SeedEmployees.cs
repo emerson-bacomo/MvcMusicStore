@@ -7,15 +7,13 @@ namespace MvcMusic.Data
 {
     public static partial class DataSeeder
     {
-        private static async Task<ApplicationUser?> SeedEmployeesAsync(UserManager<ApplicationUser> userManager, ILogger logger, IActivityLogService activityLogger)
+        private static async Task<ApplicationUser?> SeedSuperAdminAsync(UserManager<ApplicationUser> userManager, ILogger logger, IActivityLogService activityLogger)
         {
-            logger.LogInformation("Seeding employees...");
+            logger.LogInformation("Seeding SuperAdmin...");
             var year = DateTime.UtcNow.ToString("yy");
-            ApplicationUser? superAdmin = null;
-
-            // Seed SuperAdmin
+            
             var superAdminEmail = "superadmin@nightcord.com";
-            superAdmin = await userManager.FindByEmailAsync(superAdminEmail);
+            var superAdmin = await userManager.FindByEmailAsync(superAdminEmail);
             if (superAdmin == null)
             {
                 superAdmin = new ApplicationUser
@@ -34,9 +32,13 @@ namespace MvcMusic.Data
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"SuperAdmin account <a href='/employee/edit/{superAdmin.Id}' class='emp-link'>{superAdmin.UserName}</a> was created by System.", "System", "System", "System", "System");
                 }
             }
-            
-            // Re-fetch SuperAdmin to ensure we have the ID and roles for attribution
-            superAdmin = await userManager.FindByEmailAsync(superAdminEmail);
+            return await userManager.FindByEmailAsync(superAdminEmail);
+        }
+
+        private static async Task SeedStaffAsync(UserManager<ApplicationUser> userManager, ILogger logger, IActivityLogService activityLogger, ApplicationUser? superAdmin)
+        {
+            logger.LogInformation("Seeding staff employees...");
+            var year = DateTime.UtcNow.ToString("yy");
 
             // Seed Admin
             var adminEmail = "admin@nightcord.com";
@@ -59,8 +61,6 @@ namespace MvcMusic.Data
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"Admin account <a href='/employee/edit/{user.Id}' class='emp-link'>{user.UserName}</a> was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
                 }
             }
-
-
 
             // Seed StockStaff
             var stockEmail = "stockstaff@nightcord.com";
@@ -109,8 +109,6 @@ namespace MvcMusic.Data
                     await activityLogger.LogAsync(ActivityAction.CreateEmployee, $"CustomerStaff account {user.UserName} was created.", superAdmin?.Id, superAdmin?.UserName, "SuperAdmin", superAdmin?.FullName);
                 }
             }
-
-            return superAdmin;
         }
     }
 }

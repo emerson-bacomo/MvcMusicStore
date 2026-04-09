@@ -11,7 +11,6 @@
 
         <div class="nc-page-header">
             <div>
-                <div class="nc-breadcrumb"><i class="fa fa-user-shield"></i> SuperAdmin Panel</div>
                 <h1 class="nc-page-title">Employee Management</h1>
                 <p class="nc-page-subtitle">Manage Admin and Staff accounts</p>
             </div>
@@ -168,6 +167,7 @@
                 url: '@Url.Action("GetTableData", "Employee")',
                 type: 'GET'
             },
+            sortConfig: { key: 'dateCreated', direction: 'desc' },
             fieldDefinitions: {
                 code: {
                     label: 'Code',
@@ -219,13 +219,21 @@
                     widthPercentage: '1%',
                     spanStyle: 'padding: 0; display: flex; justify-content: flex-start;',
                     renderContent: (val, col, row) => {
+                        let logCount = row.logCount || 0;
+                        let hasLogs = logCount > 0;
                         let links = `
                             <a href="/Employee/Profile/${row.id}" class="nc-action-link" title="Profile"><i class="fa fa-user"></i></a>
                             
                             <div class="position-relative d-inline-block">
-                                <a href="/activity-logs?userId=${row.id}" class="nc-action-link" title="View Logs"><i class="fa fa-list-check"></i></a>
+                                <a href="${hasLogs ? `/activity-logs?userId=${row.id}` : 'javascript:void(0)'}" 
+                                   class="nc-action-link ${!hasLogs ? 'opacity-50' : ''}" 
+                                   title="${hasLogs ? 'View Logs' : 'No entries in log'}"
+                                   ${!hasLogs ? 'onclick="if(window.showToast) window.showToast(\'No entries in log\', \'info\')"' : ''}>
+                                    <i class="fa fa-list-check"></i>
+                                </a>
                                 ${row.unseenLogsCount > 0 ? `
                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" 
+                                          title="Unseen logs"
                                           style="font-size: 0.6rem; padding: 0.25rem 0.4rem; z-index: 5; border: 2px solid var(--nc-bg-card); transform: translate(-30%, -30%) !important;">
                                         ${row.unseenLogsCount > 9 ? '9+' : row.unseenLogsCount}
                                     </span>
@@ -327,9 +335,9 @@
 
             const popupContent = `
                 <div class="ut-popup-form mt-2">
-                    <div class="d-flex gap-2 align-items-center">
+                    <div class="d-flex gap-2 align-items-end">
                         <div class="flex-grow-1">
-                            <nc-floating-input label="New Password" icon="fa fa-lock" bg="var(--nc-bg-card)">
+                            <nc-floating-input label="New Password" icon="fa fa-lock" bg="var(--nc-bg-card)" style="margin-bottom: 0;">
                                 <input type="password" id="manualResetPass" class="nc-floating-control nc-password-strength" 
                                        value="${generated}" placeholder=" "
                                        data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
@@ -339,11 +347,11 @@
                                        data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()" />
                             </nc-floating-input>
                         </div>
-                        <div class="d-flex gap-2" style="margin-top: 1.3rem;">
-                            <button type="button" id="copyResetBtn" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Copy to Clipboard">
+                        <div class="d-flex gap-2" style="height: 52px;">
+                            <button type="button" id="copyResetBtn" class="btn-nc-outline h-100" style="padding:0; aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Copy to Clipboard">
                                 <i class="fa fa-copy"></i>
                             </button>
-                            <button type="button" id="regenResetBtn" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Regenerate">
+                            <button type="button" id="regenResetBtn" class="btn-nc-outline h-100" style="padding:0; aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Regenerate">
                                 <i class="fa fa-sync-alt"></i>
                             </button>
                         </div>

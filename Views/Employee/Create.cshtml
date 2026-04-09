@@ -15,7 +15,6 @@
 
         <div class="nc-page-header">
             <div>
-                <div class="nc-text-muted mb-1" style="font-size:0.8rem;"><i class="fa fa-user-plus me-1"></i> SuperAdmin Panel</div>
                 <h1 class="nc-page-title">Add Employee</h1>
             </div>
         </div>
@@ -87,9 +86,9 @@
                     <div class="nc-form-section">
                         <div class="nc-form-section-title">Password Management</div>
                         <div class="nc-form-group">
-                            <div class="d-flex gap-2 align-items-center">
+                            <div class="d-flex gap-2 align-items-end">
                                 <div class="flex-grow-1" style="position:relative;">
-                                    <nc-floating-input label="Temporary Password" icon="fa fa-lock" class="nc-password-wrapper" bg="#11141aff">
+                                    <nc-floating-input label="Temporary Password" icon="fa fa-lock" class="nc-password-wrapper" bg="#11141aff" style="margin-bottom: 0;">
                                         <input asp-for="Password" id="genPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " autocomplete="new-password"
                                                data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
                                                data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
@@ -98,11 +97,11 @@
                                                data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()" />
                                     </nc-floating-input>
                                 </div>
-                                <div class="d-flex gap-2" style="margin-top: 1.3rem;"> <!-- Offset for floating label height -->
-                                    <button type="button" id="copyPassword" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Copy to Clipboard">
+                                <div class="d-flex gap-2" style="height: 52px;">
+                                    <button type="button" id="copyPassword" class="btn-nc-outline h-100" style="padding:0; aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Copy to Clipboard">
                                         <i class="fa fa-copy"></i>
                                     </button>
-                                    <button type="button" id="regeneratePassword" class="btn-nc-outline" style="padding:0; width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Regenerate">
+                                    <button type="button" id="regeneratePassword" class="btn-nc-outline h-100" style="padding:0; aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center; border-radius:var(--nc-radius-sm); flex-shrink:0;" title="Regenerate">
                                         <i class="fa fa-sync-alt"></i>
                                     </button>
                                 </div>

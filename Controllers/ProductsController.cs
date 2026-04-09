@@ -16,7 +16,7 @@ namespace MvcMusic.Controllers
 {
     public class UpdateTableRequest
     {
-        public Dictionary<string, Dictionary<string, string>>? Changes { get; set; }
+        public Dictionary<string, Dictionary<string, object>>? Changes { get; set; }
     }
 
     public class ProductsController : Controller
@@ -42,10 +42,18 @@ namespace MvcMusic.Controllers
 
         // GET: /products/admin-products
         [Authorize(Roles = "Admin,SuperAdmin,StockStaff,ProductStaff,SalesStaff")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int? categoryId = null, int? brandId = null)
         {
-            var roles = _userManager.GetRolesAsync(_userManager.GetUserAsync(User).Result!).Result;
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
             ViewBag.UserRole = roles.FirstOrDefault() ?? "";
+
+            if (categoryId.HasValue) ViewBag.Category = await _context.Category.FindAsync(categoryId.Value);
+            if (brandId.HasValue) ViewBag.Brand = await _context.Brand.FindAsync(brandId.Value);
+
+            ViewBag.AllCategories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).OrderByDescending(c => c.Id).Select(c => new { c.Id, c.Name }).ToListAsync();
+            ViewBag.AllBrands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).OrderByDescending(b => b.Id).Select(b => new { b.Id, b.Name }).ToListAsync();
+
             return View("Index");
         }
 
@@ -78,8 +86,8 @@ namespace MvcMusic.Controllers
 
             var validationRules = ValidationHelper.GetValidationRules(typeof(Product));
             var products = await query.ToListAsync();
-            var categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
-            var brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
+            var categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).OrderByDescending(c => c.Id).ToListAsync();
+            var brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).OrderByDescending(b => b.Id).ToListAsync();
 
             // Determine what columns this role can update
             var isStockStaff   = User.IsInRole("StockStaff");
@@ -93,7 +101,7 @@ namespace MvcMusic.Controllers
             // Admin/SuperAdmin: all updatable
             bool stockUpdatable    = isAdminOrSuper || isStockStaff;
             bool productUpdatable  = isAdminOrSuper || isProductStaff;
-            bool priceUpdatable    = isAdminOrSuper;
+            bool priceUpdatable    = isAdminOrSuper || isSalesStaff;
 
             var columns = new List<object>
             {
@@ -104,14 +112,14 @@ namespace MvcMusic.Controllers
                     validation = validationRules.GetValueOrDefault("name")
                 },
                 new { 
-                    id = "category", 
+                    id = "categoryId", 
                     updatable = productUpdatable, 
                     type = "select", 
                     options = categories.Select(c => new { value = c.Id, label = c.Name }),
                     validation = validationRules.GetValueOrDefault("categoryid")
                 },
                 new { 
-                    id = "brand", 
+                    id = "brandId", 
                     updatable = productUpdatable, 
                     type = "select", 
                     options = brands.Select(b => new { value = b.Id, label = b.Name }),
@@ -134,21 +142,35 @@ namespace MvcMusic.Controllers
             };
 
             var rows = new Dictionary<string, object>();
+            var currentUserId = _userManager.GetUserId(User);
+
             foreach (var p in products)
             {
                 var imageUrl = p.ProductImages.OrderBy(img => img.SortOrder).FirstOrDefault()?.Url;
+                
+                // Calculate logs for this specific product
+                var searchPattern = $"\"productId\":{p.Id}";
+                var totalLogCount = await _context.ActivityLog
+                    .Where(l => l.Details != null && l.Details.Contains(searchPattern))
+                    .CountAsync();
+                var unseenCount = await _context.ActivityLog
+                    .Where(l => l.Details != null && l.Details.Contains(searchPattern))
+                    .CountAsync(l => !_context.ActivityLogSeenStatus.Any(s => s.ActivityLogId == l.Id && s.AdminUserId == currentUserId));
+
                 rows[p.Id.ToString()] = new {
                     id = p.Id,
                     image = new { image = imageUrl, isBanner = p.IsBanner },
                     name = p.Name,
-                    category = p.CategoryId,
+                    categoryId = p.CategoryId,
                     categoryLabel = p.Category?.Name ?? "Uncategorized",
-                    brand = p.BrandId,
+                    brandId = p.BrandId,
                     brandLabel = p.Brand?.Name ?? "No Brand",
                     price = p.Price,
                     stock = p.Stock,
                     status = p.Stock > 0 ? "Available" : "Sold Out",
                     recordStatus = p.RecordStatus.ToString(),
+                    logCount = totalLogCount,
+                    unseenCount = unseenCount,
                     _isExtra = !string.IsNullOrEmpty(includeIds) && (
                         (categoryId.HasValue && p.CategoryId != categoryId.Value) || 
                         (brandId.HasValue && p.BrandId != brandId.Value)
@@ -164,7 +186,7 @@ namespace MvcMusic.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin,StockStaff,ProductStaff")]
+        [Authorize(Roles = "Admin,SuperAdmin,StockStaff,ProductStaff,SalesStaff")]
         public async Task<IActionResult> UpdateTableData([FromBody] UpdateTableRequest request)
         {
             if (request == null || request.Changes == null) return BadRequest();
@@ -190,7 +212,7 @@ namespace MvcMusic.Controllers
 
                                 bool canEditProductData = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("ProductStaff");
                                 bool canEditStock       = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("StockStaff");
-                                bool canEditPrice       = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+                                bool canEditPrice       = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("SalesStaff");
 
                                 if (canEditProductData)
                                 {
@@ -325,8 +347,8 @@ namespace MvcMusic.Controllers
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
 
-            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
-            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).OrderByDescending(c => c.Id).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).OrderByDescending(b => b.Id).ToListAsync();
 
             product.ProductImages = product.ProductImages.OrderBy(p => p.SortOrder).ToList();
 
@@ -334,8 +356,8 @@ namespace MvcMusic.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
-        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,BannerImageUrl")] Product product, List<IFormFile>? productImages, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? imageOrder)
+        [Authorize(Roles = "Admin,SuperAdmin,ProductStaff,SalesStaff")]
+        public async Task<IActionResult> UpdateDetails(int id, [Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,BannerImageUrl")] Product product, List<IFormFile>? productImages, IFormFile? bannerImage, List<string>? existingImages, List<string>? imageUrls, string? deletedImages, string? imageOrder)
         {
             if (id != product.Id) return Json(new { success = false, message = "Id mismatch" });
 
@@ -355,6 +377,7 @@ namespace MvcMusic.Controllers
                     }
                     if (productImages != null) foreach (var file in productImages) { var filePath = await SaveFile(file); product.ProductImages.Add(new ProductImage { Url = filePath }); }
                     if (imageUrls != null) foreach (var url in imageUrls) if (!string.IsNullOrWhiteSpace(url)) product.ProductImages.Add(new ProductImage { Url = url });
+                    if (bannerImage != null) product.BannerImageUrl = await SaveFile(bannerImage);
 
                     var existingProduct = await _context.Product.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.Id == id);
                     if (existingProduct != null)
@@ -382,7 +405,7 @@ namespace MvcMusic.Controllers
 
                         if (!string.IsNullOrEmpty(imageOrder))
                         {
-                            var orderArray = imageOrder.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                            var orderArray = imageOrder.Split('|', StringSplitOptions.RemoveEmptyEntries);
                             for (int i = 0; i < orderArray.Length; i++)
                             {
                                 var img = existingProduct.ProductImages.FirstOrDefault(p => p.Url == orderArray[i]);
@@ -442,7 +465,8 @@ namespace MvcMusic.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return Json(new { success = false, message = ex.Message });
+                    string inner = ex.InnerException != null ? " | Inner: " + ex.InnerException.Message : "";
+                    return Json(new { success = false, message = "Server Error: " + ex.Message + inner });
                 }
             }
             var rawForm = " | Raw Form: " + string.Join(", ", Request.Form.Keys.Take(10));
@@ -457,15 +481,15 @@ namespace MvcMusic.Controllers
         [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
         public async Task<IActionResult> Create()
         {
-            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
-            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
+            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).OrderByDescending(c => c.Id).ToListAsync();
+            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).OrderByDescending(b => b.Id).ToListAsync();
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,SuperAdmin,ProductStaff")]
-        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription")] Product product, List<IFormFile>? productImages, List<string>? imageUrls, string? imageOrder)
+        public async Task<IActionResult> Create([Bind("Id,Name,CategoryId,BrandId,Price,Stock,Description,IsBanner,BannerDescription,BannerImageUrl")] Product product, List<IFormFile>? productImages, IFormFile? bannerImage, List<string>? imageUrls, string? imageOrder)
         {
             if (ModelState.IsValid)
             {
@@ -487,10 +511,12 @@ namespace MvcMusic.Controllers
                     }
                 }
 
+                if (bannerImage != null) product.BannerImageUrl = await SaveFile(bannerImage);
+
 
                 if (!string.IsNullOrEmpty(imageOrder))
                 {
-                    var orderArray = imageOrder.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var orderArray = imageOrder.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     for (int i = 0; i < orderArray.Length; i++)
                     {
                         var img = product.ProductImages.FirstOrDefault(p => p.Url == orderArray[i]);
@@ -510,14 +536,29 @@ namespace MvcMusic.Controllers
                     summary = $"Created product <a href='/products/details/{product.Id}' class='product-link'>{product.Name}</a>."
                 };
                 var jsonLog = JsonSerializer.Serialize(new List<object> { logItem });
-                await _logger.LogAsync(ActivityAction.CreateProduct, jsonLog, cId, cName, cRole, cFull);
-                TempData["Success"] = $"Product '{product.Name}' created successfully.";
-                return RedirectToAction(nameof(Index));
+                    await _logger.LogAsync(ActivityAction.CreateProduct, jsonLog, cId, cName, cRole, cFull);
+
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = true, message = $"Product '{product.Name}' created successfully.", id = product.Id });
+                    }
+
+                    TempData["Success"] = $"Product '{product.Name}' created successfully.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    var errors = ModelState.Where(x => x.Value.Errors.Count > 0)
+                                           .Select(x => $"{x.Key}: {string.Join(", ", x.Value.Errors.Select(e => e.ErrorMessage))}")
+                                           .ToList();
+                    return Json(new { success = false, message = "Validation failed", errors = errors });
+                }
+
+                ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).OrderByDescending(c => c.Id).ToListAsync();
+                ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).OrderByDescending(b => b.Id).ToListAsync();
+                return View(product);
             }
-            ViewBag.Categories = await _context.Category.Where(c => c.RecordStatus == RecordStatus.Active).ToListAsync();
-            ViewBag.Brands = await _context.Brand.Where(b => b.RecordStatus == RecordStatus.Active).ToListAsync();
-            return View(product);
-        }
 
 
 

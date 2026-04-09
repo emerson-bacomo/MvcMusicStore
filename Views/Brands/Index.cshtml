@@ -3,7 +3,7 @@
 }
 
 <div class="nc-page">
-    <div class="container-fluid px-4">
+    <div class="nc-container-fluid">
         <div class="nc-page-header">
             <div>
                 <h1 class="nc-page-title">Brand Management</h1>
@@ -25,7 +25,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content nc-card" style="border:1px solid var(--nc-border); background: #131822 !important; border-radius: 12px; overflow: hidden;">
             <div class="modal-header border-0 pb-0" style="padding: 1.5rem 1.5rem 0 1.5rem;">
-                <h5 class="modal-title nc-page-title fs-5"><i class="fa fa-tag me-2 text-primary"></i> Create New Brand</h5>
+                <h5 class="modal-title nc-page-title fs-5"><i class="fa fa-tag me-2" style="color: #9ac5f4;"></i> Create New Brand</h5>
                 <button type="button" class="ms-auto btn-close-custom" data-bs-dismiss="modal" aria-label="Close" style="background: transparent; border: none; color: var(--nc-text-muted); font-size: 1.2rem;">
                     <i class="fa fa-times"></i>
                 </button>
@@ -35,7 +35,7 @@
                 <div class="modal-body p-4">
                     <div class="mb-3" style="margin-bottom: 0 !important;">
                         <label class="form-label" style="color: var(--nc-text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Brand Name</label>
-                        <input type="text" name="name" class="nc-input" required placeholder="Enter brand name...">
+                        <input type="text" name="name" id="brandNameInput" class="nc-input" required placeholder="Enter brand name...">
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0 p-4">
@@ -48,6 +48,17 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('createBrandModal');
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', function () {
+                document.getElementById('brandNameInput').focus();
+            });
+        }
+    });
+</script>
 
 
 

@@ -191,7 +191,7 @@ namespace MvcMusic.Controllers
                 new { id = "details" }
             };
 
-            var justSeenIdsStr = TempData.Peek("JustSeenLogIds") as string;
+            var justSeenIdsStr = TempData["JustSeenLogIds"] as string;
             var justSeenIds = !string.IsNullOrEmpty(justSeenIdsStr) 
                 ? justSeenIdsStr.Split(',').Select(int.Parse).ToHashSet() 
                 : new HashSet<int>();

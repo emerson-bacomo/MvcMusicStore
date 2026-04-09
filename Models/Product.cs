@@ -25,7 +25,6 @@ namespace MvcMusic.Models
         [DataType(DataType.Currency)]
         public double Price { get; set; }
 
-        [Required]
         [Range(0, int.MaxValue, ErrorMessage = "Value cannot be negative.")]
         public int Stock { get; set; }
 

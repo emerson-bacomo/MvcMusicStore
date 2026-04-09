@@ -77,6 +77,7 @@ namespace MvcMusic.Hubs
                 timestamp = message.Timestamp,
                 customerName = sender?.FullName ?? sender?.UserName,
                 customerId = room?.CustomerId,
+                senderId = message.SenderId,
                 subject = room?.Subject,
                 isRead = message.IsRead
             };

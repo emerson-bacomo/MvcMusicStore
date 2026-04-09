@@ -112,6 +112,7 @@ namespace MvcMusic.Controllers
                     timestamp = message.Timestamp,
                     customerName = sender?.FullName ?? "New Customer",
                     customerId = user.Id,
+                    senderId = user.Id,
                     subject = room.Subject,
                     isRead = false
                 });

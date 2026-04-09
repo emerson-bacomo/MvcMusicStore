@@ -404,7 +404,7 @@ namespace MvcMusic.Controllers
             }
 
             allEmployees = allEmployees
-                .OrderBy(e => e.role).ThenBy(e => e.user.UserName)
+                .OrderByDescending(e => e.user.DateCreated)
                 .ToList();
 
             var columns = new List<object>
@@ -415,12 +415,15 @@ namespace MvcMusic.Controllers
                 new { id = "email", updatable = false },
                 new { id = "role", updatable = false },
                 new { id = "status", updatable = false },
+                new { id = "dateCreated", updatable = false, hidden = true },
                 new { id = "actions", updatable = false }
             };
 
             var currentAdminId = _userManager.GetUserId(User);
 
             var rows = allEmployees.ToDictionary(e => e.user.Id, e => {
+                var totalCount = _context.ActivityLog
+                    .Count(l => l.UserId == e.user.Id);
                 var unseenCount = _context.ActivityLog
                     .Where(l => l.UserId == e.user.Id)
                     .Where(l => l.Action != ActivityAction.Login && l.Action != ActivityAction.Logout)
@@ -439,7 +442,9 @@ namespace MvcMusic.Controllers
                     profilePicture = e.user.ProfilePicture,
                     firstName = string.IsNullOrEmpty(e.user.FirstName) ? "Employee" : e.user.FirstName,
                     recordStatus = e.user.RecordStatus.ToString(),
-                    unseenLogsCount = unseenCount
+                    logCount = totalCount,
+                    unseenLogsCount = unseenCount,
+                    dateCreated = e.user.DateCreated
                 };
             });
 

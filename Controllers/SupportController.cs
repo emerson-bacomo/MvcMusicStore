@@ -99,7 +99,7 @@ namespace MvcMusic.Controllers
                     id = r.Id,
                     subject = r.Subject,
                     customerName = r.Customer != null ? (r.Customer.FullName ?? r.Customer.UserName) : "User",
-                    unreadCount = r.Messages.Count(m => !m.IsRead && !_context.UserRoles.Any(ur => ur.UserId == m.SenderId)),
+                    unreadCount = r.Messages.Count(m => !m.IsRead && m.SenderId == r.CustomerId),
                     lastMessage = r.Messages.OrderByDescending(m => m.Timestamp).Select(m => m.Content).FirstOrDefault() ?? "No messages yet"
                 })
                 .ToListAsync();

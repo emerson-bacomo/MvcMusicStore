@@ -504,6 +504,18 @@ body.modal-open {
     padding: 0 1.5rem;
 }
 
+.nc-container-xl {
+    max-width: 1536px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.nc-container-fluid {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
 /* Text Utilities */
 .nc-text-primary {
     color: var(--nc-primary) !important;
@@ -596,6 +608,8 @@ input[type=number] {
     }
 
     .nc-container,
+    .nc-container-xl,
+    .nc-container-fluid,
     .container-fluid {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
@@ -1196,82 +1210,6 @@ input[type="password"] {
     -moz-appearance: none;
 }
 
-/* ── Change Tracking UI (Restored Logic) ─────────────────────────── */
-.nc-changed-indicator {
-    position: absolute;
-    left: -12px;
-    /* Floating look */
-    top: 10px;
-    bottom: 10px;
-    width: 3px;
-    background: #ffb74d;
-    border-radius: 6px;
-    cursor: pointer;
-    z-index: 100;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Expanded hit area for indicator */
-.nc-changed-indicator::after {
-    content: '';
-    position: absolute;
-    top: -5px;
-    bottom: -5px;
-    left: -10px;
-    right: -10px;
-}
-
-
-.nc-unified-category-anchor {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    z-index: 40;
-    white-space: nowrap;
-}
-
-
-.nc-pd-category-select-wrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
-.nc-pd-category-select {
-    appearance: none;
-    -webkit-appearance: none;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    padding: 0.5rem 2.5rem 0.5rem 1.25rem;
-    border-radius: 2rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.nc-pd-category-chevron {
-    position: absolute;
-    right: 1rem;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    pointer-events: none;
-}
-
-
-.nc-changed-indicator:hover {
-    width: 6px;
-    background: #ffa726;
-    box-shadow: 0 0 10px rgba(255, 183, 77, 0.4);
-}
-
-#indicator-CategoryId {
-    top: 5px;
-    bottom: 5px;
-}
-
 .ut-revert-cell-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1295,92 +1233,6 @@ input[type="password"] {
 
 .ut-revert-cell-btn i {
     font-size: 0.75rem;
-}
-
-
-
-
-.nc-indicator-gallery {
-    left: -12px;
-}
-
-.nc-indicator-stat-card {
-    left: -2px;
-    top: 15px !important;
-    bottom: 15px !important;
-    height: auto !important;
-    width: 3px !important;
-}
-
-.nc-indicator-banner-img {
-    left: -12px;
-    width: 3px !important;
-}
-
-.nc-changes-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: var(--nc-primary);
-    color: white;
-    font-size: 8px;
-    font-weight: 800;
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--nc-bg-card);
-    z-index: 100;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-}
-
-/* Layout Consistency Fixes */
-.nc-detail-card {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    /* Ensure 50/50 split remains stable */
-    gap: 4rem;
-    padding: 3rem;
-    background: var(--nc-bg-card);
-    border-radius: 3rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 2rem;
-}
-
-/* Prevent Price/Description Jumping */
-.nc-editable-span {
-    min-height: 1.2em;
-    display: inline-block;
-    transition: none !important;
-    /* Remove transitions during mode switch to prevent "growing" feel */
-    line-height: inherit;
-}
-
-.nc-description {
-    line-height: 1.5 !important;
-    padding: 0.75rem 0;
-    margin: 0;
-}
-
-.nc-description-edit {
-    line-height: 1.5 !important;
-    padding: 0.75rem 1rem !important;
-    min-height: calc(1.5em + 1.5rem) !important;
-    /* line-height + padding */
-    height: auto;
-    border-radius: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    width: 100%;
-    resize: none;
-    overflow: hidden;
 }
 
 /* NcSelect Components Styling */

@@ -8,6 +8,7 @@ export default class UpdatableTable {
         this.onSave = config.onSave;
         this.label = config.label || "";
         this.customFilters = config.customFilters || [];
+        this.onFilter = config.onFilter;
 
         this.data = config.initialData || null;
         this.rows = new Map();
@@ -193,7 +194,7 @@ export default class UpdatableTable {
                 keysToRemove.push(key);
             }
         }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
 
         this.localChanges.clear();
         this.invalidCells.clear();
@@ -222,6 +223,8 @@ export default class UpdatableTable {
                 this.sortConfig.key = value;
             } else if (key === "dir") {
                 this.sortConfig.direction = value;
+            } else if (key === "page") {
+                this.currentPage = parseInt(value, 10) || 1;
             } else {
                 this.filters[key] = value;
             }
@@ -264,13 +267,13 @@ export default class UpdatableTable {
                             </div>
                         </div>
                     </div>
-                    <div class="ut-action-container" style="position: relative;">
+                    <div class="ut-action-container" style="position: relative; display: none;">
                         <button class="ut-clear-btn" style="display:none;">
                             <i class="fa fa-undo me-2"></i> Clear Changes
                         </button>
                         <div class="ut-clear-popup ut-diff-modal" style="display:none;"></div>
                     </div>
-                    <div class="ut-action-container" style="position: relative;">
+                    <div class="ut-action-container" style="position: relative; display: none;">
                         <button class="ut-save-btn" style="display:none;">
                             <i class="fa fa-save me-2"></i> Save Changes
                         </button>
@@ -413,11 +416,11 @@ export default class UpdatableTable {
                 <select class="ut-input ut-select" style="padding:0.4rem 0.6rem; height:auto; background:rgba(255,255,255,0.05); border:1px solid var(--nc-border); width:100%; border-radius:4px;">
                     <option value="">All ${label}</option>
                     ${options
-                    .map(
-                        (opt) =>
-                            `<option value="${opt.value}" ${String(currentValue) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
-                    )
-                    .join("")}
+                        .map(
+                            (opt) =>
+                                `<option value="${opt.value}" ${String(currentValue) === String(opt.value) ? "selected" : ""}>${opt.label}</option>`,
+                        )
+                        .join("")}
                 </select>
             `;
 
@@ -476,7 +479,10 @@ export default class UpdatableTable {
                 if (colType === "select" && colOptions?.length) {
                     hasFilters = true;
                     const label = fDef.label || col.label || this.toLabelCase(col.id);
-                    container.appendChild(renderSelectSection(col.id, label, Array.from(colOptions), this.filters[col.id]));
+                    // If the column ID doesn't already end in 'Id', use the 'Id' suffix for the filter key
+                    // to match common backend parameter naming conventions (e.g. brand -> brandId)
+                    const filterKey = col.id.toLowerCase().endsWith("id") ? col.id : col.id + "Id";
+                    container.appendChild(renderSelectSection(filterKey, label, Array.from(colOptions), this.filters[filterKey]));
                 }
             });
         }
@@ -504,26 +510,23 @@ export default class UpdatableTable {
 
     updateUrl() {
         const url = new URL(window.location);
+        const coreParams = ["sort", "dir", "page", "status", "q", "_"];
 
-        // Pre-clear custom filter params and column select params so that
-        // selecting "All" (which deletes the key from this.filters) actually
-        // removes the URL parameter rather than leaving a stale value.
-        (this.customFilters || []).forEach((cf) => url.searchParams.delete(cf.id));
-        if (this.data) {
-            this.data.columns.forEach((col) => {
-                const fDef = this.fieldDefinitions[col.id] || {};
-                const colType = col.type || fDef.type;
-                if (colType === "select") url.searchParams.delete(col.id);
-            });
-        }
+        // 1. Identify what SHOULD be in the URL
+        const activeFilterKeys = Object.keys(this.filters).filter((k) => k !== "visibleColumns" && this.filters[k]);
+        const customFilterKeys = (this.customFilters || []).map((cf) => cf.id);
 
-        Object.entries(this.filters).forEach(([key, value]) => {
-            if (key === "visibleColumns") return;
-            if (value && value !== "false") {
-                url.searchParams.set(key, value);
-            } else {
+        // 2. Clear out any parameters that are no longer active or relevant.
+        // We delete anything that isn't a core param (sort, page, etc) and isn't currently an active filter.
+        Array.from(url.searchParams.keys()).forEach((key) => {
+            if (!coreParams.includes(key) && !activeFilterKeys.includes(key)) {
                 url.searchParams.delete(key);
             }
+        });
+
+        // 3. Sync current filters to URL
+        activeFilterKeys.forEach((key) => {
+            url.searchParams.set(key, this.filters[key]);
         });
 
         if (this.searchQuery) {
@@ -550,8 +553,15 @@ export default class UpdatableTable {
             url.searchParams.delete("dir");
         }
 
+        if (this.currentPage > 1) {
+            url.searchParams.set("page", this.currentPage);
+        } else {
+            url.searchParams.delete("page");
+        }
+
         window.history.replaceState({}, "", url);
         this.saveToLocalStorage();
+        if (this.onFilter) this.onFilter(this.filters, this.searchQuery, this.statusFilters);
     }
 
     renderColumnToggles() {
@@ -626,21 +636,45 @@ export default class UpdatableTable {
         this.renderTable();
     }
 
+    resetFilters() {
+        this.searchQuery = "";
+        const visibleCols = this.filters.visibleColumns;
+        this.filters = { visibleColumns: visibleCols };
+        this.statusFilters = { active: true, deleted: false };
+
+        const searchInput = this.container.querySelector(".ut-search-input");
+        if (searchInput) searchInput.value = "";
+
+        this.saveToLocalStorage();
+        this.updateUrl();
+        this.currentPage = 1;
+
+        // If the table was filtered by the backend (URL params), we must re-fetch the full dataset.
+        // fetchData() internally calls renderTable() and updateControls().
+        this.fetchData();
+    }
+
     async fetchData() {
         try {
             // Collect IDs with local changes to ensure they are fetched even if filtered out
             const localChangeIds = Array.from(this.localChanges.keys());
             const urlAttr = this.request.url || "";
-            const sep = urlAttr.includes("?") ? "&" : "?";
-            const finalUrl = urlAttr + (localChangeIds.length > 0 ? `${sep}includeIds=${localChangeIds.join(",")}` : "");
+            const baseUrl = urlAttr.split("?")[0];
+
+            // Construct fetch URL using CURRENT window location search (which has been synced by updateUrl)
+            // plus internal-only params like includeIds and a cache buster.
+            const params = new URLSearchParams(window.location.search);
+            if (localChangeIds.length > 0) params.set("includeIds", localChangeIds.join(","));
+            params.set("_", Date.now());
+
+            const finalUrl = `${baseUrl}?${params.toString()}`;
 
             let response;
             if (this.request.fetchFn) {
-                response = await this.request.fetchFn({ ...this.request, includeIds: localChangeIds });
+                const fetchParams = Object.fromEntries(params.entries());
+                response = await this.request.fetchFn({ ...this.request, ...fetchParams, includeIds: localChangeIds });
             } else if (urlAttr) {
-                const cacheBuster = `_=${Date.now()}`;
-                const finalUrlWithBuster = finalUrl + (finalUrl.includes("?") ? "&" : "?") + cacheBuster;
-                const res = await fetch(finalUrlWithBuster, {
+                const res = await fetch(finalUrl, {
                     method: this.request.type || "GET",
                     headers: { "Content-Type": "application/json" },
                 });
@@ -651,10 +685,10 @@ export default class UpdatableTable {
 
             this.data = response;
             const fetchedRows = response.rows || {};
-            const fetchedRowIds = new Set(Object.values(fetchedRows).map(r => String(r.id)));
+            const fetchedRowIds = new Set(Object.values(fetchedRows).map((r) => String(r.id)));
             // Universal row Map population
             const rowsArray = Array.isArray(fetchedRows) ? fetchedRows : Object.values(fetchedRows);
-            this.rows = new Map(rowsArray.map(r => [String(r.id), r]));
+            this.rows = new Map(rowsArray.map((r) => [String(r.id), r]));
 
             // Sync: Remove local changes for records that no longer exist in the backend
             if (localChangeIds.length > 0) {
@@ -692,17 +726,19 @@ export default class UpdatableTable {
         // 1. Exclude "Extra" rows immediately (they are only for diffing/sync)
         let processed = allRowsArray.filter((r) => !r._isExtra);
 
-        this.hasRecordStatus = processed[0].recordStatus;
-        if (this.hasRecordStatus) {
-            // Update counts (before status filters) based on non-extra rows
-            this.activeCount = processed.filter((r) => r.recordStatus !== "Deleted").length;
-            this.deletedCount = processed.filter((r) => r.recordStatus === "Deleted").length;
+        if (processed.length > 0) {
+            this.hasRecordStatus = !!processed[0].recordStatus;
+            if (this.hasRecordStatus) {
+                // Update counts (before status filters) based on non-extra rows
+                this.activeCount = processed.filter((r) => r.recordStatus !== "Deleted").length;
+                this.deletedCount = processed.filter((r) => r.recordStatus === "Deleted").length;
 
-            // 2. Status Filter
-            processed = processed.filter((r) => {
-                const isDeleted = r.recordStatus === "Deleted";
-                return isDeleted ? this.statusFilters.deleted : this.statusFilters.active;
-            });
+                // 2. Status Filter
+                processed = processed.filter((r) => {
+                    const isDeleted = r.recordStatus === "Deleted";
+                    return isDeleted ? this.statusFilters.deleted : this.statusFilters.active;
+                });
+            }
         }
 
         // 3. Search Filter (applies to merged local values)
@@ -726,7 +762,15 @@ export default class UpdatableTable {
             if (key === "visibleColumns") return;
             if (filterVal) {
                 processed = processed.filter((row) => {
-                    const cellVal = row[key];
+                    // Try to find the cell value:
+                    // 1. Precise match: row['brandId']
+                    // 2. ID Mapping: row['brand'] if key is 'brandId'
+                    let cellVal = row[key];
+                    if (cellVal === undefined && key.toLowerCase().endsWith("id")) {
+                        const baseKey = key.substring(0, key.length - 2);
+                        cellVal = row[baseKey];
+                    }
+
                     if (cellVal === undefined) return true; // Col might not exist in row
                     // Handle objects (like {id, name}) or primitives
                     if (cellVal && typeof cellVal === "object") {
@@ -835,9 +879,50 @@ export default class UpdatableTable {
 
         tbody.innerHTML = "";
         const processedRows = this.getProcessedRows();
-
         if (processedRows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="100%" class="ut-empty-msg">No records found matching your criteria.</td></tr>';
+            const urlParams = new URLSearchParams(window.location.search);
+            // Check for any parameter that isn't purely about pagination or sorting
+            const coreParams = ["sort", "dir", "page", "_"]; // _ is for cache busting
+            const hasUrlFilters = Array.from(urlParams.keys()).some((k) => !coreParams.includes(k));
+
+            const hasActiveFilters =
+                this.searchQuery.trim() !== "" ||
+                Object.keys(this.filters).some((k) => k !== "visibleColumns" && this.filters[k]) ||
+                !this.statusFilters.active ||
+                this.statusFilters.deleted ||
+                hasUrlFilters;
+
+            const containerId = this.container.id || this.container.getAttribute("id");
+
+            if (!hasActiveFilters) {
+                const itemType = (this.label || this.storagePrefix || "table").toLowerCase();
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="100%" class="ut-empty-state-cell">
+                            <div class="ut-empty-state">
+                                <i class="fa fa-folder-open mb-3"></i>
+                                <h3>No data available</h3>
+                                <p>There are currently no items to show in the ${itemType} table.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="100%" class="ut-empty-state-cell">
+                            <div class="ut-empty-state">
+                                <i class="fa fa-search-minus mb-3"></i>
+                                <h3>No results found</h3>
+                                <p>We couldn't find any results matching your filters or search query.</p>
+                                <button type="button" class="btn-nc-primary mt-3 d-inline-flex align-items-center" style="width: auto; padding: 1rem 2rem; font-size: 0.9rem;" onclick="window.updatableTables['${containerId}'].resetFilters()">
+                                    <i class="fa fa-undo me-2"></i> Reset All Filters
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
             this.renderPagination(0);
             return;
         }
@@ -1024,6 +1109,7 @@ export default class UpdatableTable {
             prevBtn.addEventListener("click", () => {
                 if (this.currentPage > 1) {
                     this.currentPage--;
+                    this.updateUrl();
                     this.renderTable();
                 }
             });
@@ -1032,13 +1118,15 @@ export default class UpdatableTable {
             nextBtn.addEventListener("click", () => {
                 if (this.currentPage < totalPages) {
                     this.currentPage++;
+                    this.updateUrl();
                     this.renderTable();
                 }
             });
         }
         numBtns.forEach((btn) => {
             btn.addEventListener("click", (e) => {
-                this.currentPage = parseInt(e.target.dataset.page, 10);
+                this.currentPage = parseInt(e.currentTarget.dataset.page, 10);
+                this.updateUrl();
                 this.renderTable();
             });
         });
@@ -1048,6 +1136,7 @@ export default class UpdatableTable {
                     let page = parseInt(pageInput.value, 10);
                     if (!isNaN(page) && page >= 1 && page <= totalPages) {
                         this.currentPage = page;
+                        this.updateUrl();
                         this.renderTable();
                     }
                 }
@@ -1186,9 +1275,11 @@ export default class UpdatableTable {
             }
 
             marker.style.display = "block";
-            marker.style.top = `${rowRect.top + rowRect.height / 2 + window.scrollY}px`;
-            // Position exactly -9px from the left edge of the table wrapper
-            marker.style.left = `${containerRect.left + window.scrollX - 2}px`;
+            const mWidth = marker.offsetWidth || 8;
+            const mHeight = marker.offsetHeight || 8;
+            marker.style.top = `${rowRect.top + rowRect.height / 2 - mHeight / 2 + window.scrollY}px`;
+            // Center horizontally on the left border (exactly half-in, half-out)
+            marker.style.left = `${containerRect.left + window.scrollX - mWidth / 2}px`;
         });
     }
 
@@ -1653,8 +1744,7 @@ export default class UpdatableTable {
         }
 
         const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Item";
-        let diffHtml =
-            `<table class="ut-diff-table"><tr><th>${entityName}</th><th>Field</th><th>Original</th><th>Current</th><th></th></tr>`;
+        let diffHtml = `<table class="ut-diff-table"><tr><th>${entityName}</th><th>Field</th><th>Original</th><th>Current</th><th></th></tr>`;
         for (const [id, changes] of this.localChanges) {
             const row = this.rows.get(id);
             if (!row) continue;
@@ -1667,15 +1757,16 @@ export default class UpdatableTable {
                 diffHtml += `
                     <tr class="ut-diff-data-row ${!firstForRow ? "ut-diff-row-internal" : ""}" data-row-id="${id}">
                         <td class="ut-diff-product-cell">
-                            ${firstForRow
-                        ? `
+                            ${
+                                firstForRow
+                                    ? `
                                 <div class="ut-diff-product-info">
                                     ${imgHtml}
                                     <span class="ut-diff-product-name" title="${name}">${name}</span>
                                 </div>
                             `
-                        : ""
-                    }
+                                    : ""
+                            }
                         </td>
                         <td class="ut-diff-field-cell">${label}</td>
                         <td class="ut-diff-old">${this.formatValue(row[colId], colId)}</td>
@@ -1782,15 +1873,16 @@ export default class UpdatableTable {
                 diffHtml += `
                     <tr class="${rowClass}" data-row-id="${id}">
                         <td class="ut-diff-product-cell">
-                            ${isFirst
-                        ? `
+                            ${
+                                isFirst
+                                    ? `
                                 <div class="ut-diff-product-info">
                                     ${imgHtml}
                                     <span class="ut-diff-product-name" title="${name}">${name}</span>
                                 </div>
                             `
-                        : ""
-                    }
+                                    : ""
+                            }
                         </td>
                         <td class="ut-diff-field-cell">${label}</td>
                         <td class="ut-diff-old">${this.formatValue(row[colId], colId)}</td>
@@ -1879,8 +1971,13 @@ export default class UpdatableTable {
 
     toLabelCase(str) {
         if (!str) return "";
-        const result = str.replace(/([A-Z])/g, " $1");
-        return result.charAt(0).toUpperCase() + result.slice(1);
+        // Strip technical "Id" or "id" suffixes from the display label
+        let cleanStr = str;
+        if (str.toLowerCase().endsWith("id") && str.length > 2) {
+            cleanStr = str.slice(0, -2);
+        }
+        const result = cleanStr.replace(/([A-Z])/g, " $1");
+        return result.charAt(0).toUpperCase() + result.slice(1).trim();
     }
 
     formatValue(val, colId = null, useHighlight = false) {
@@ -1942,7 +2039,9 @@ export default class UpdatableTable {
     }
 
     confirmRestore(rowId, url, element) {
-        const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Record";
+        const entityName = this.storagePrefix
+            ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1)
+            : "Record";
         window.showSidePopup(
             element,
             `Restore ${entityName}?`,
@@ -1979,7 +2078,9 @@ export default class UpdatableTable {
     }
 
     confirmDelete(rowId, url, element) {
-        const entityName = this.storagePrefix ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1) : "Record";
+        const entityName = this.storagePrefix
+            ? this.storagePrefix.charAt(0).toUpperCase() + this.storagePrefix.slice(1)
+            : "Record";
         window.showSidePopup(
             element,
             `Delete ${entityName}?`,

@@ -11,7 +11,6 @@ window.showSidePopup = function (
     extraClass = "",
     hideArrow = false,
 ) {
-
     const isAlreadyOpen = element?.classList.contains("ut-popup-active-trigger");
     window.closePopups();
     if (!element || isAlreadyOpen) return;
@@ -50,7 +49,7 @@ window.showSidePopup = function (
     popup.style.position = "absolute";
     popup.style.left = "-9999px";
     popup.style.top = "-9999px";
-    popup.style.visibility = "hidden";
+    popup.style.visibility = "visible";
     popup.style.display = "block";
     const isWide = rect.width > 200 || (extraClass && extraClass.includes("ut-popup-dropdown")); // Force dropdown logic for specific types
     const showOnLeft = rect.left > window.innerWidth / 2;
@@ -62,19 +61,19 @@ window.showSidePopup = function (
     popup.innerHTML = `
         <div class="ut-popup-content">
             <div class="ut-popup-header"><i class="fa ${icon}" style="color: ${iconColor}"></i><span>${title}</span></div>
-            ${customContent
-            ? customContent
-            : `
+            ${
+                customContent
+                    ? customContent
+                    : `
                 <div class="ut-popup-actions">
                     <button class="ut-popup-btn-cancel">Cancel</button>
                     <button class="ut-popup-btn-confirm ${btnExtraClass || ""}">${confirmText}</button>
                 </div>
             `
-        }
+            }
         </div>
         ${hideArrow ? "" : '<div class="ut-popup-arrow"></div>'}
     `;
-
 
     // Add unique identifier if provided via extraClass for re-render targeting
     if (extraClass && extraClass.includes("clear")) popup.setAttribute("data-popup-type", "clear");
@@ -133,10 +132,10 @@ window.showSidePopup = function (
         element.classList.remove("ut-trigger-hidden");
         window.closePopups();
     });
-    popup.querySelector(".ut-popup-btn-confirm")?.addEventListener("click", () => {
+    popup.querySelector(".ut-popup-btn-confirm")?.addEventListener("click", async () => {
         element.classList.remove("ut-popup-active-trigger");
         element.classList.remove("ut-trigger-hidden");
-        onConfirm();
+        await onConfirm();
         window.closePopups();
     });
 
@@ -165,9 +164,8 @@ window.closePopups = function () {
     // Cleanup Visual Portal
     document.getElementById("utPortalTrigger")?.remove();
     document.getElementById("ncModalPortalTrigger")?.remove();
-    document.querySelectorAll(".ut-trigger-hidden").forEach(el => el.classList.remove("ut-trigger-hidden"));
+    document.querySelectorAll(".ut-trigger-hidden").forEach((el) => el.classList.remove("ut-trigger-hidden"));
 };
-
 
 // Global delete confirmation
 window.confirmDelete = function (id, url, onDeleted, element = null) {

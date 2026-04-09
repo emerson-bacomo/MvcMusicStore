@@ -1,0 +1,493 @@
+@model MvcMusic.ViewModels.DemoViewModel
+@{
+    ViewData["Title"] = "Demo Options";
+}
+
+<div class="nc-page">
+    <div class="nc-container">
+        <div class="nc-page-header">
+            <div>
+                <div class="nc-breadcrumb"><i class="fa fa-flask"></i> Developer Tools</div>
+                <h1 class="nc-page-title">Demo Options</h1>
+                <p class="nc-page-subtitle">Configure and reset the application environment for testing purposes.</p>
+            </div>
+        </div>
+
+        @if (Model.LockInfo.IsLocked && Model.LockInfo.OwnerSessionId != ViewBag.UserIdentity)
+        {
+            <div class="py-5 text-center mt-5" style="animation: fadeIn 0.6s ease-out;">
+                <div class="mb-4">
+                    <i class="fa fa-lock" style="font-size: 5rem; color: var(--nc-primary); opacity: 0.2;"></i>
+                </div>
+                <h2 class="fw-800 mb-2" style="font-size: 2.5rem; letter-spacing: -0.02em;">Environment Locked</h2>
+                <p class="nc-text-muted mx-auto mb-4" style="max-width: 600px; font-size: 1.2rem; line-height: 1.6;">
+                    Someone else is currently testing and configuring the database. <br/>
+                    Please come back later or wait for the environment to be released.
+                </p>
+                <p class="mb-5" style="color: #ffb74dfa; font-size: 0.95rem; font-weight: 600;">
+                    <i class="fa fa-circle-exclamation me-2"></i> Note: Your changes may be reset by the current user
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/" class="btn-nc-outline px-5 py-3" style="border-radius: var(--nc-radius-sm);"><i class="fa fa-home me-2"></i> Go Home</a>
+                    <button type="button" onclick="window.location.reload()" class="btn-nc-primary px-5 py-3" style="border-radius: var(--nc-radius-sm);"><i class="fa fa-sync me-2"></i> Refresh Status</button>
+                </div>
+                <div class="mt-5 pt-4 border-top border-secondary opacity-50" style="max-width: 300px; margin: 0 auto;">
+                    <p class="small mb-0" id="lockTimer"><i class="fa fa-circle-notch fa-spin me-2"></i> Monitoring availability...</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="nc-card h-100">
+                        <div class="nc-card-body">
+                            <h3 class="nc-form-section-title text-danger-demo"><i class="fa fa-database me-2"></i> Reset Database</h3>
+                            <p class="mb-4 text-danger-demo" style="font-size: 0.9rem;">
+                                This action will completely wipe the existing database and re-seed it with the selected options below.
+                            </p>
+
+                            <form asp-action="Reset" method="post" id="resetForm">
+                                <div class="nc-form-section">
+                                    <label class="nc-form-check mb-3">
+                                        <input type="checkbox" asp-for="Options.SeedEmployees" id="seedEmployees" checked />
+                                        <div>
+                                            <div class="fw-bold">Seed Employees</div>
+                                            <div class="nc-text-muted small">Creates staff accounts with predefined roles.</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="nc-form-check mb-3">
+                                        <input type="checkbox" asp-for="Options.SeedCustomers" id="seedCustomers" checked />
+                                        <div>
+                                            <div class="fw-bold">Seed Customers</div>
+                                            <div class="nc-text-muted small">Creates sample customer accounts.</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="nc-form-check mb-3">
+                                        <input type="checkbox" asp-for="Options.SeedProducts" id="seedProducts" checked />
+                                        <div>
+                                            <div class="fw-bold">Seed Products</div>
+                                            <div class="nc-text-muted small">Seeds catalog, categories, and brands.</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="nc-form-check mb-4 ms-4" id="ordersOption">
+                                        <input type="checkbox" asp-for="Options.SeedOrders" id="seedOrders" checked />
+                                        <div>
+                                            <div class="fw-bold">Seed Orders</div>
+                                            <div class="nc-text-muted small">Generates purchase history.</div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn-demo-reset w-100 mt-2" id="resetBtn">
+                                    <i class="fa fa-trash-alt me-2"></i> Reset & Seed Database
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="nc-card h-100 preview-card">
+                        <div class="nc-card-body d-flex flex-column">
+                            <h3 class="nc-form-section-title"><i class="fa fa-eye me-2"></i> Data Previews</h3>
+                            
+                            <div class="preview-scroll-container" style="height: 550px; overflow-y: auto; overflow-x: hidden;">
+                                <!-- Employees Section -->
+                                <div class="preview-section mb-5" id="section-employees">
+                                    <h5 class="preview-table-header">Employees & Roles</h5>
+                                    <table class="table table-dark align-middle small">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Email</th>
+                                                <th>Role</th>
+                                                <th>Password</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="superadmin-row">
+                                                <td><code class="text-creds">@Model.SuperAdminPreview.UserName</code></td>
+                                                <td>@Model.SuperAdminPreview.Email</td>
+                                                <td>SuperAdmin</td>
+                                                <td><code class="text-creds">Password123</code></td>
+                                            </tr>
+                                            <tr class="info-row">
+                                                <td colspan="4" class="py-2 border-0">
+                                                    <div class="nc-alert-mini">
+                                                        <i class="fa fa-info-circle me-2"></i> SuperAdmin will always be seeded.
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @foreach (var emp in Model.EmployeesPreview)
+                                            {
+                                                <tr class="staff-row">
+                                                    <td><code class="text-creds">@emp.UserName</code></td>
+                                                    <td>@emp.Email</td>
+                                                    @{
+                                                        var role = emp.Email.Split('@')[0].Replace("stock", "Stock").Replace("product", "Product").Replace("sales", "Sales").Replace("customer", "Customer");
+                                                        if (role.EndsWith("staff")) role = role.Replace("staff", "Staff");
+                                                        if (role.ToLower() == "admin") role = "Admin";
+                                                    }
+                                                    <td>@role</td>
+                                                    <td><code class="text-creds">Password123</code></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Customers Section -->
+                                <div class="preview-section mb-5" id="section-customers">
+                                    <h5 class="preview-table-header">Customers</h5>
+                                    <table class="table table-dark align-middle small">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Username</th>
+                                                <th>Email</th>
+                                                <th>Password</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var cust in Model.CustomersPreview)
+                                            {
+                                                <tr>
+                                                    <td>@cust.FullName</td>
+                                                    <td><code class="text-creds">@cust.UserName</code></td>
+                                                    <td>@cust.Email</td>
+                                                    <td><code class="text-creds">Password123</code></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Products Section -->
+                                <div class="preview-section mb-5" id="section-products">
+                                    <h5 class="preview-table-header">Products (Sample)</h5>
+                                    <table class="table table-dark align-middle small">
+                                        <thead>
+                                            <tr>
+                                                <th>Product Name</th>
+                                                <th class="text-end">Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var prod in Model.ProductsPreview)
+                                            {
+                                                <tr>
+                                                    <td>@prod.Name</td>
+                                                    <td class="text-end">@MvcMusic.Utils.GlobalConfig.CurrencySymbol @prod.Price.ToString("N2")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Categories & Brands Grid -->
+                                <div class="row g-4 mb-5" id="section-meta">
+                                    <div class="col-md-6">
+                                        <h5 class="preview-table-header">Categories</h5>
+                                        <ul class="list-group list-group-flush bg-transparent">
+                                            @foreach (var cat in Model.CategoriesPreview)
+                                            {
+                                                <li class="list-group-item bg-transparent text-white border-secondary small py-1 px-0">@cat</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5 class="preview-table-header">Brands</h5>
+                                        <ul class="list-group list-group-flush bg-transparent">
+                                            @foreach (var brand in Model.BrandsPreview)
+                                            {
+                                                <li class="list-group-item bg-transparent text-white border-secondary small py-1 px-0">@brand</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Orders Section -->
+                                <div class="preview-section mb-3" id="section-orders">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="preview-table-header m-0">Orders (Sample)</h5>
+                                        <span class="nc-text-muted">* Randomized on generation</span>
+                                    </div>
+                                    <table class="table table-dark align-middle small">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Customer</th>
+                                                <th>Date</th>
+                                                <th class="text-end">Total</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var order in Model.OrdersPreview)
+                                            {
+                                                <tr>
+                                                    <td>#@order.Id</td>
+                                                    <td>@order.CustomerName</td>
+                                                    <td>@order.Date</td>
+                                                    <td class="text-end">@MvcMusic.Utils.GlobalConfig.CurrencySymbol @order.Total.ToString("N2")</td>
+                                                    <td><span class="text-info">@order.Status</span></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const seedProducts = $('#seedProducts');
+            const seedCustomers = $('#seedCustomers');
+            const seedOrders = $('#seedOrders');
+            const seedEmployees = $('#seedEmployees');
+            const ordersOption = $('#ordersOption');
+
+            const storageKey = 'nc-demo-options';
+
+            function updateUI() {
+                // Dependency logic
+                if (seedProducts.is(':checked') && seedCustomers.is(':checked')) {
+                    seedOrders.prop('disabled', false);
+                    ordersOption.css('opacity', '1');
+                } else {
+                    seedOrders.prop('checked', false);
+                    seedOrders.prop('disabled', true);
+                    ordersOption.css('opacity', '0.5');
+                }
+
+                // Visibility logic
+                if (seedEmployees.is(':checked')) $('.staff-row').show(); else $('.staff-row').hide();
+                if (seedCustomers.is(':checked')) $('#section-customers').show(); else $('#section-customers').hide();
+                if (seedProducts.is(':checked')) {
+                    $('#section-products').show();
+                    $('#section-meta').show();
+                } else {
+                    $('#section-products').hide();
+                    $('#section-meta').hide();
+                }
+                if (seedOrders.is(':checked')) $('#section-orders').show(); else $('#section-orders').hide();
+
+                // Save to localStorage
+                const options = {
+                    employees: seedEmployees.is(':checked'),
+                    customers: seedCustomers.is(':checked'),
+                    products: seedProducts.is(':checked'),
+                    orders: seedOrders.is(':checked')
+                };
+                localStorage.setItem(storageKey, JSON.stringify(options));
+            }
+
+            function loadOptions() {
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    try {
+                        const options = JSON.parse(saved);
+                        seedEmployees.prop('checked', options.employees);
+                        seedCustomers.prop('checked', options.customers);
+                        seedProducts.prop('checked', options.products);
+                        seedOrders.prop('checked', options.orders);
+                    } catch (e) { console.error('Error loading demo options', e); }
+                }
+            }
+
+            // Load saved preferences before initializing UI
+            loadOptions();
+
+            $('input[type="checkbox"]').on('change', updateUI);
+
+            $('#resetForm').on('submit', function() {
+                const btn = $('#resetBtn');
+                btn.prop('disabled', true);
+                btn.html('<i class="fa fa-spinner fa-spin me-2"></i> Resetting...');
+            });
+
+            updateUI();
+
+            @if (Model.LockInfo.IsLocked && Model.LockInfo.OwnerSessionId == ViewBag.UserIdentity)
+            {
+                <text>
+                setInterval(function() {
+                    $.post('@Url.Action("Heartbeat", "Demo")');
+                }, 60000); // 60s
+                </text>
+            }
+            else if (Model.LockInfo.IsLocked)
+            {
+                <text>
+                let localRemaining = @Model.LockInfo.RemainingSeconds;
+                
+                function formatTime(totalSeconds) {
+                    const mins = Math.floor(totalSeconds / 60);
+                    const secs = totalSeconds % 60;
+                    if (mins > 0) return mins + "m " + secs + "s";
+                    return secs + "s";
+                }
+
+                function updateTimerDisplay() {
+                    if (localRemaining > 0) {
+                        $('#lockTimer').html('<i class="fa fa-clock me-2"></i> Environment may be free in ~' + formatTime(localRemaining));
+                        localRemaining--;
+                    } else {
+                        $('#lockTimer').html('<i class="fa fa-circle-notch fa-spin me-2"></i> Checking availability...');
+                    }
+                }
+
+                updateTimerDisplay();
+                setInterval(updateTimerDisplay, 1000);
+
+                setInterval(function() {
+                    $.getJSON('@Url.Action("Status", "Demo")', function(data) {
+                        if (!data.isLocked || data.isOwner) {
+                            window.location.reload();
+                        } else {
+                            localRemaining = data.remainingSeconds;
+                        }
+                    });
+                }, 10000); // 10s sync
+                </text>
+            }
+        });
+    </script>
+}
+
+<style>
+    :root {
+        --nc-demo-red: #ff5858ff;
+        --nc-demo-red-glow: rgba(255, 138, 138, 0.15);
+    }
+
+    .text-danger-demo {
+        color: #ff8484ff !important;
+    }
+
+    .nc-form-check {
+        border-radius: 12px;
+        padding: 1rem;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        transition: var(--transition);
+    }
+    
+    .nc-form-check:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--nc-primary);
+    }
+
+    .btn-demo-reset {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        padding: 1rem 1.6rem;
+        background: var(--nc-demo-red);
+        color: #ffffffff !important;
+        border: none;
+        border-radius: var(--nc-radius-sm);
+        font-weight: 800;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(255, 138, 138, 0.3);
+    }
+
+    .btn-demo-reset:hover:not(:disabled) {
+        transform: translateY(-2px);
+        background: #ffaaaa;
+        box-shadow: 0 6px 20px rgba(255, 138, 138, 0.5);
+    }
+
+    .btn-demo-reset:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .preview-table-header {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--nc-primary);
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .preview-table-header::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, var(--nc-primary), transparent);
+        margin-left: 1rem;
+        opacity: 0.2;
+    }
+
+    .table-dark {
+        --bs-table-bg: transparent;
+        --bs-table-border-color: rgba(255,255,255,0.05);
+        color: #eee !important;
+        width: 100%;
+        table-layout: auto;
+    }
+
+    .table-dark thead th {
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 138, 138, 0.2);
+    }
+
+    .text-creds {
+        color: #d1edffff !important;
+        background: rgba(123, 171, 221, 0.05);
+        border: 1px solid rgba(123, 171, 221, 0.1);
+    }
+
+    .nc-alert-mini {
+        background: rgba(123, 171, 221, 0.08);
+        border-left: 3px solid var(--nc-primary);
+        padding: 0.6rem 1rem;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        color: var(--nc-text-muted);
+    }
+
+    /* Scrollbar Styling */
+    .preview-scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .preview-scroll-container::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.05);
+    }
+    .preview-scroll-container::-webkit-scrollbar-thumb {
+        background: rgba(123, 171, 221, 0.5);
+        border-radius: 10px;
+    }
+    .preview-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: var(--nc-primary);
+    }
+
+    .preview-section {
+        animation: slideUp 0.4s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>

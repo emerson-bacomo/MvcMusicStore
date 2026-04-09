@@ -64,6 +64,10 @@ window.ValidationEngine = {
     },
 
     validate(el) {
+        const field = el.name;
+        const customFields = ["Name", "Price", "Stock", "CategoryId", "BrandId", "BannerDescription", "BannerImageUrl", "IsBanner", "Gallery"];
+        if (customFields.includes(field)) return true;
+
         const value = el.value.trim();
         const errors = [];
 
@@ -147,7 +151,7 @@ window.ValidationEngine = {
         if (!label) return;
 
         let errorInline = label.querySelector(".nc-error-inline");
-        let errorPopup = label.querySelector(".nc-error-popup");
+        let errorPopup = parent.querySelector(".nc-error-popup");
 
         if (message) {
             if (!errorInline) {
@@ -158,7 +162,7 @@ window.ValidationEngine = {
             if (!errorPopup) {
                 errorPopup = document.createElement("div");
                 errorPopup.className = "nc-error-popup";
-                label.appendChild(errorPopup);
+                parent.appendChild(errorPopup);
             }
 
             // Map to concise message for inline display

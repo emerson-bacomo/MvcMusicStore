@@ -8,8 +8,16 @@ namespace MvcMusic.Data
 {
     public static partial class DataSeeder
     {
-        public static async Task SeedAllAsync(IServiceProvider serviceProvider)
+        public class SeedOptions
         {
+            public bool SeedProducts { get; set; } = true;
+            public bool SeedEmployees { get; set; } = true;
+            public bool SeedCustomers { get; set; } = true;
+            public bool SeedOrders { get; set; } = true;
+        }
+        public static async Task SeedAllAsync(IServiceProvider serviceProvider, SeedOptions? options = null)
+        {
+            options ??= new SeedOptions();
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<MvcMusicContext>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -20,10 +28,33 @@ namespace MvcMusic.Data
             logger.LogInformation("Starting data seeding process...");
 
             await SeedRolesAsync(roleManager, logger, activityLogger);
-            var superAdmin = await SeedEmployeesAsync(userManager, logger, activityLogger);
-            var customers = await SeedCustomersAsync(userManager, logger, activityLogger);
-            await SeedProductsAsync(context, logger, activityLogger, superAdmin);
-            await SeedOrdersAsync(context, customers, logger, activityLogger);
+            
+            // SuperAdmin is ALWAYS seeded
+            var superAdmin = await SeedSuperAdminAsync(userManager, logger, activityLogger);
+
+            if (options.SeedEmployees)
+            {
+                await SeedStaffAsync(userManager, logger, activityLogger, superAdmin);
+            }
+
+            if (options.SeedCustomers)
+            {
+                var customers = await SeedCustomersAsync(userManager, logger, activityLogger);
+                
+                if (options.SeedProducts)
+                {
+                    await SeedProductsAsync(context, logger, activityLogger, superAdmin);
+                    
+                    if (options.SeedOrders)
+                    {
+                        await SeedOrdersAsync(context, customers, logger, activityLogger);
+                    }
+                }
+            }
+            else if (options.SeedProducts)
+            {
+                await SeedProductsAsync(context, logger, activityLogger, superAdmin);
+            }
 
             logger.LogInformation("Data seeding process completed successfully.");
         }

@@ -2,24 +2,61 @@
     ViewData["Title"] = "Product Management";
     var userRole = ViewBag.UserRole as string;
     var canCreate = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("ProductStaff");
+    
+    var selectedCategory = ViewBag.Category as MvcMusic.Models.Category;
+    var selectedBrand = ViewBag.Brand as MvcMusic.Models.Brand;
+    
+    string pageTitle = "Product Management";
+    if (selectedCategory != null) pageTitle = $"Products — {selectedCategory.Name}";
+    else if (selectedBrand != null) pageTitle = $"Products — {selectedBrand.Name}";
+    ViewData["Title"] = pageTitle;
 }
 
 <div class="nc-page">
-    <div class="container-fluid px-4">
+    <div class="nc-container-fluid">
         <div class="nc-page-header">
             <div>
-                <div class="nc-breadcrumb"><i class="fa fa-guitar"></i> Admin Panel</div>
-                <h1 class="nc-page-title">Product Management</h1>
+                <h1 class="nc-page-title">
+                    @if (selectedCategory != null)
+                    {
+                        <span>Product Management - <span style="color:var(--nc-primary);font-size:1.4rem;">@selectedCategory.Name</span></span>
+                    }
+                    else if (selectedBrand != null)
+                    {
+                        <span>Product Management - <span style="color:var(--nc-primary);font-size:1.4rem;">@selectedBrand.Name</span></span>
+                    }
+                    else
+                    {
+                        @:Product Management
+                    }
+                </h1>
                 <p class="nc-page-subtitle">Manage your inventory, pricing, and showcase highlights.</p>
             </div>
-            @if (canCreate)
-            {
-                <div class="nc-page-actions">
-                    <a asp-action="Create" class="btn-nc-primary nc-btn-featured">
+            <div class="nc-page-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                @if (selectedCategory != null || selectedBrand != null)
+                {
+                    <a asp-action="Index" class="btn-nc-outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                        <i class="fa fa-globe me-2"></i> View All Products
+                    </a>
+                }
+                @if (canCreate)
+                {
+                    <a asp-action="Create" id="continue-draft-btn" class="btn-nc-outline" style="display: none; padding: 0.9rem 2rem !important; font-size: 1rem !important;">
+                        <i class="fa fa-file-pen me-2"></i> Continue Drafting
+                    </a>
+                    <a asp-action="Create" class="btn-nc-primary nc-btn-featured" onclick="localStorage.removeItem('product-create')">
                         <i class="fa fa-plus me-2"></i> Add New Product
                     </a>
-                </div>
-            }
+                    <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                            if (localStorage.getItem('product-create')) {
+                                const btn = document.getElementById('continue-draft-btn');
+                                if (btn) btn.style.display = 'inline-flex';
+                            }
+                        });
+                    </script>
+                }
+            </div>
         </div>
 
         <div id="products-table"></div>
@@ -41,6 +78,9 @@
             const isStockStaff = userRole === 'StockStaff';
             const isProductStaff = userRole === 'ProductStaff';
             const isSalesStaff = userRole === 'SalesStaff';
+            
+            const categories = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllCategories));
+            const brands = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AllBrands));
             
             const table = new UpdatableTable('#products-table', {
                 label: '',
@@ -83,26 +123,23 @@
                     name: { 
                         label: 'Product Name',
                         updatable: false,
-                        // updatable: isAdmin || isProductStaff
                     },
                     category: { 
                         label: 'Category', 
                         updatable: false,
-                        // updatable: isAdmin || isProductStaff, 
                         widthMinimum: '150px', 
                         cellClass: 'ut-min-w-fit' 
                     },
                     brand: { 
                         label: 'Brand', 
                         updatable: false,
-                        // updatable: isAdmin || isProductStaff, 
                         widthMinimum: '150px', 
                         cellClass: 'ut-min-w-fit' 
                     },
                     price: { 
                         label: 'Price', 
                         currency: true,
-                        updatable: isAdmin,
+                        updatable: isAdmin || isSalesStaff,
                         widthMinimum: '200px',
                         cellClass: 'ut-min-w-fit',
                         renderContent: (val) => `<span class="fw-bold">${parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`
@@ -136,7 +173,32 @@
                         renderContent: function(value, col, rowData) {
                             let links = `<a href="/Products/Details/${rowData.id}" class="nc-action-link" title="View"><i class="fa fa-eye"></i></a>`;
                             
-                            if (isAdmin || isProductStaff) {
+                             if (isAdmin || isProductStaff) {
+                                 if (isAdmin) {
+                                    // View Logs Link with Badge
+                                    const unseenCount = rowData.unseenCount || 0;
+                                    const logCount = rowData.logCount || 0;
+                                    const hasLogs = logCount > 0;
+                                 
+                                    links += `
+                                        <div class="position-relative d-inline-block">
+                                            <a href="${hasLogs ? `/activity-logs?productId=${rowData.id}` : 'javascript:void(0)'}" 
+                                                class="nc-action-link ${!hasLogs ? 'opacity-50' : ''}" 
+                                                title="${hasLogs ? 'View Logs' : 'No entries in log'}"
+                                                ${!hasLogs ? 'onclick="if(window.showToast) window.showToast(\'No entries in log\', \'info\')"' : ''}>
+                                                <i class="fa fa-list-check"></i>
+                                            </a>
+                                            ${unseenCount > 0 ? `
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" 
+                                                    title="Unseen logs"
+                                                    style="font-size: 0.6rem; padding: 0.2rem 0.35rem; z-index: 5; border: 1.5px solid #131822; transform: translate(-40%, -40%) !important;">
+                                                    ${unseenCount > 9 ? '9+' : unseenCount}
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    `;
+                                 }
+
                                 links += `<a href="/Products/Details/${rowData.id}#edit" class="nc-action-link" title="Edit"><i class="fa fa-pen"></i></a>`;
                             }
 
@@ -163,6 +225,32 @@
                 },
                 onSave: function() {
                     window.location.reload();
+                },
+                onFilter: function(filters, q, status) {
+                    const titleText = document.querySelector('.nc-page-title');
+                    if (!titleText) return;
+
+                    let newTitle = "Product Management";
+                    let isSpecial = false;
+
+                    if (filters.categoryId) {
+                        const cat = categories.find(c => String(c.Id) === String(filters.categoryId));
+                        const name = cat ? cat.Name : ('@Html.Raw(selectedCategory?.Name)' || filters.categoryId);
+                        newTitle = `Product Management - <span style="color:var(--nc-primary);font-size:1.4rem;">${name}</span>`;
+                        isSpecial = true;
+                    } else if (filters.brandId) {
+                        const brand = brands.find(b => String(b.Id) === String(filters.brandId));
+                        const name = brand ? brand.Name : ('@Html.Raw(selectedBrand?.Name)' || filters.brandId);
+                        newTitle = `Product Management - <span style="color:var(--nc-primary);font-size:1.4rem;">${name}</span>`;
+                        isSpecial = true;
+                    }
+
+                    titleText.innerHTML = newTitle;
+
+                    const viewAllBtn = document.querySelector('a.btn-nc-outline i.fa-globe')?.parentElement;
+                    if (viewAllBtn) {
+                        viewAllBtn.style.display = isSpecial ? 'inline-flex' : 'none';
+                    }
                 }
             });
         });

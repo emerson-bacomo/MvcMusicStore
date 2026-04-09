@@ -8,8 +8,12 @@ using MvcMusic.Utils;
 using MvcMusic.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Environment.IsDevelopment() 
+    ? builder.Configuration.GetConnectionString("MvcMusicContext")
+    : Environment.GetEnvironmentVariable("CONNECTION_STRING") ?? builder.Configuration.GetConnectionString("MvcMusicContext");
+
 builder.Services.AddDbContext<MvcMusicContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("MvcMusicContext") ?? throw new InvalidOperationException("Connection string 'MvcMusicContext' not found.")));
+    options.UseSqlServer(connectionString ?? throw new InvalidOperationException("Connection string not found.")));
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
@@ -54,7 +58,15 @@ else
 }
 
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddSingleton<IDemoLockService, DemoLockService>();
 builder.Services.AddSignalR();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 var app = builder.Build();
 
@@ -77,6 +89,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -5,12 +5,20 @@
     var categories = ViewBag.Categories as List<MvcMusic.Models.Category> ?? new List<MvcMusic.Models.Category>();
     var brands = ViewBag.Brands as List<MvcMusic.Models.Brand> ?? new List<MvcMusic.Models.Brand>();
     var isCreate = ViewData["IsCreate"] as bool? ?? false;
+    }
+
+<link rel="stylesheet" href="~/css/UpdatableTable.css" />
+
+@{
     
     int unseenCount = 0;
+    int totalLogCount = 0;
     if (!isCreate && Model != null)
     {
         var currentAdminId = UserManager.GetUserId(User);
         var searchPattern = $"\"productId\":{Model.Id}";
+        totalLogCount = DbContext.ActivityLog
+            .Count(l => l.Details != null && l.Details.Contains(searchPattern));
         unseenCount = DbContext.ActivityLog
             .Where(l => l.Details != null && l.Details.Contains(searchPattern))
             .Count(l => !DbContext.ActivityLogSeenStatus.Any(s => s.ActivityLogId == l.Id && s.AdminUserId == currentAdminId));
@@ -18,14 +26,13 @@
 }
 
 <div class="nc-detail-container @(isCreate ? "nc-edit-mode" : "")" id="productDetailContainer" data-product-id="@(isCreate ? "0" : Model.Id)" data-is-create="@isCreate.ToString().ToLower()">
-    <!-- Admin Action Toolbar (Sibling) -->
     @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("ProductStaff"))
     {
         <div class="nc-gutter-actions">
             @if (isCreate)
             {
                 <div class="flex-row gap-3" style="display: flex;">
-                    <a href="javascript:history.back()" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #fff; width: auto; padding: 0 1.5rem; text-decoration: none;" title="Cancel">
+                    <a href="javascript:localStorage.removeItem('product-create'); history.back()" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #fff; width: auto; padding: 0 1.5rem; text-decoration: none;" title="Cancel">
                         <i class="fa fa-times me-2"></i> Cancel
                     </a>
                     <button type="button" onclick="if(window.editor) window.editor.forceSubmitCreate(); else document.getElementById('inPlaceEditForm').submit();" class="nc-gutter-btn btn-save" style="background: var(--nc-primary); color: white; width: auto; padding: 0 1.5rem;" title="Save Product">
@@ -38,6 +45,24 @@
                 <!-- DISPLAY MODE: Delete then Edit -->
                 @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                 {
+                    <div class="position-relative d-inline-block nc-read-only-hide">
+                        <a href="@(totalLogCount > 0 ? $"/activity-logs?productId={Model.Id}" : "javascript:void(0)")" 
+                           class="nc-gutter-btn btn-clear @(totalLogCount == 0 ? "opacity-50" : "")" 
+                           style="background: rgba(255,255,255,0.05); color: #fff; text-decoration: none;" 
+                           title="@(totalLogCount > 0 ? "View Logs" : "No entries in log")"
+                           @(totalLogCount == 0 ? "onclick=\"if(window.showToast) window.showToast('No entries in log', 'info')\"" : "")>
+                            <i class="fa fa-list-check"></i>
+                        </a>
+                        @if (unseenCount > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" 
+                                title="Unseen logs"
+                                style="font-size: 0.6rem; padding: 0.25rem 0.4rem; z-index: 5; border: 2px solid #131822; transform: translate(-30%, -30%) !important;">
+                                @(unseenCount > 9 ? "9+" : unseenCount.ToString())
+                            </span>
+                        }
+                    </div>
+                    
                     <span id="productStatusToggle">
                         @if (Model.RecordStatus == MvcMusic.Models.RecordStatus.Deleted)
                         {
@@ -52,18 +77,6 @@
                             </button>
                         }
                     </span>
-                    <div class="position-relative d-inline-block nc-read-only-hide">
-                        <a href="/activity-logs?productId=@Model.Id" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #fff; text-decoration: none;" title="View Logs">
-                            <i class="fa fa-list-check"></i>
-                        </a>
-                        @if (unseenCount > 0)
-                        {
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" 
-                                style="font-size: 0.6rem; padding: 0.25rem 0.4rem; z-index: 5; border: 2px solid #131822; transform: translate(-30%, -30%) !important;">
-                                @(unseenCount > 9 ? "9+" : unseenCount.ToString())
-                            </span>
-                        }
-                    </div>
                 }
 
                 <button type="button" id="enterEditMode" class="nc-gutter-btn btn-edit nc-read-only-hide" title="Edit Product">
@@ -82,9 +95,8 @@
                         </button>
                     </template>
                 }
-                
                 <!-- EDIT MODE: Revert, Save, then Exit -->
-                <div class="nc-editable-actions flex-row gap-3">
+                <div class="nc-editable-actions" style="gap: 1.25rem;">
                     <div class="nc-action-wrapper position-relative">
                         <button type="button" id="clearEditorChangesGutter" class="nc-gutter-btn btn-clear" style="background: rgba(255,255,255,0.05); color: #ffb74d;" title="Clear Changes">
                             <i class="fa fa-undo"></i>
@@ -112,13 +124,13 @@
         {
             <input type="hidden" name="Id" value="@Model.Id" />
         }
-        <input type="hidden" name="imageOrder" id="imageOrderInput" value="@string.Join(",", (Model.ProductImages ?? new List<MvcMusic.Models.ProductImage>()).OrderBy(p => p.SortOrder).Select(p => p.Url))" />
+        <input type="hidden" name="imageOrder" id="imageOrderInput" value="@string.Join("|", (Model.ProductImages ?? new List<MvcMusic.Models.ProductImage>()).OrderBy(p => p.SortOrder).Select(p => p.Url))" />
         <input type="hidden" name="deletedImages" id="deletedImagesInput" value="[]" />
 
         <div class="nc-detail-card">
             <!-- Visual Section -->
             <div class="d-flex flex-column gap-2">
-                <div class="w-100 position-relative overflow-hidden nc-visual-stack" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 15px 50px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.15);">
+                <div class="w-100 position-relative nc-visual-stack" style="aspect-ratio: 1; border-radius: 2rem; box-shadow: 0 15px 50px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.15);">
                     <div id="productCarousel" class="carousel slide h-100 nc-main-image-wrapper">
                         <div class="carousel-inner h-100" id="carouselTrack">
                             @if (Model.ProductImages != null && Model.ProductImages.Count > 0)
@@ -141,11 +153,6 @@
                                 </div>
                             }
                         </div>
-                        
-                        <div class="nc-main-image-placeholder h-100 w-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.03);">
-                            <i class="fa fa-music fa-4x opacity-20"></i>
-                        </div>
-
                         @if (Model.ProductImages != null && Model.ProductImages.Count > 1)
                         {
                             <button class="carousel-control-prev nc-img-nav" type="button" data-bs-target="#productCarousel" data-bs-slide="prev" style="left: 1.5rem; opacity: 1;">
@@ -157,36 +164,39 @@
                         }
                     </div>
 
-                    <!-- Category Pills -->
-                    <div class="nc-read-only-hide nc-unified-category-anchor">
-                        <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
-                    </div>
-                    <div class="nc-editable nc-unified-category-anchor">
-                        <div class="position-relative d-inline-block">
-                            <div id="indicator-CategoryId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('CategoryId', 'Category', this)"></div>
-                            <div class="nc-pd-category-select-wrapper">
+                    <!-- Category Anchor (Simplified) -->
+                    <div class="nc-unified-category-anchor nc-editable-wrapper" data-field="CategoryId" style="margin-bottom: 0;">
+                        <div class="nc-read-only">
+                            <a href="@Url.Action("Index", "Home", new { category = Model.Category?.Name })#catalog-section" class="nc-image-badge" style="text-decoration:none;">@(Model.Category?.Name ?? "Uncategorized")</a>
+                        </div>
+                        <div class="nc-input-edit">
+                            <div class="position-relative d-inline-block nc-pd-category-select-wrapper">
+                                <div id="indicator-CategoryId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('CategoryId', 'Category', this)"></div>
                                 <select name="CategoryId" class="nc-pd-category-select" onchange="editor.trackFieldChange('CategoryId', this.value)" data-initial-value="@Model.CategoryId" required data-val-required="Product Category is required.">
-                                    <option value="" selected="@(Model.CategoryId == null ? "selected" : null)" style="display:none;">Select Category...</option>
+                                    <option value="" selected="@(Model.CategoryId == null ? "selected" : null)" style="display:none;">Select Category</option>
                                     @foreach(var c in categories) {
                                         <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
                                     }
                                 </select>
-                                <label class="nc-pd-floating-label" style="opacity:0; pointer-events:none; width:0; height:0; margin:0; padding:0; overflow:visible; position:absolute; z-index:9999;"></label>
-                                <i class="fa fa-chevron-down nc-pd-category-chevron"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Upload Zone & Overlay -->
-                    <div class="nc-editable nc-visual-edit-overlay w-100 d-flex flex-column justify-content-center" style="position: absolute; inset: 5rem 0 0 0; padding: 0 2rem 2rem 2rem; gap: 1rem;">
-                        <div class="nc-upload-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
-                            <i class="fa fa-upload"></i>
-                            <span>Drag & Drop or Click to Upload</span>
-                            <input type="file" name="productImages" id="fileInput" multiple accept="image/*" style="display: none;" onchange="editor.handleFileSelect(event)" />
-                        </div>
-                        <div class="nc-url-input-group mt-2">
-                            <input type="url" id="newImageUrlInput" class="nc-input" placeholder="Paste Image URL..." />
-                            <button type="button" class="btn-nc-primary" style="width: 48px; height: auto; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--nc-primary); color: #fff; border: none; box-shadow: 0 8px 20px rgba(123, 171, 221, 0.3);" onclick="editor.addImageUrl()"><i class="fa fa-plus"></i></button>
+                    <div class="nc-editable-wrapper w-100 h-100" data-field="Gallery" style="margin-bottom: 0; position: absolute; inset: 0;">
+                        <div class="nc-read-only h-100 w-100" style="pointer-events: none;"></div>
+                        <div class="nc-input-edit h-100 w-100">
+                            <div class="nc-visual-edit-overlay w-100 d-flex flex-column justify-content-center h-100" style="padding: 5rem 2rem 2rem 2rem; gap: 1rem;">
+                                <div class="nc-upload-zone" onclick="document.getElementById('fileInput').click()" id="dropZone">
+                                    <i class="fa fa-upload"></i>
+                                    <span>Drag & Drop or Click to Upload</span>
+                                    <input type="file" name="productImages" id="fileInput" multiple accept="image/*" style="display: none;" onchange="editor.handleFileSelect(event)" />
+                                </div>
+                                <div class="nc-url-input-group mt-2">
+                                    <input type="url" id="newImageUrlInput" class="nc-input" placeholder="Paste Image URL..." />
+                                    <button type="button" class="btn-nc-primary" style="width: 48px; height: auto; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--nc-primary); color: #fff; border: none; box-shadow: 0 8px 20px rgba(123, 171, 221, 0.3);" onclick="editor.addImageUrl()"><i class="fa fa-plus" style="font-size: 1.25rem; transform: translateX(1px); margin-top: 1px;"></i></button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -228,12 +238,12 @@
                                         </span>
                                     </div>
                                     <div class="nc-input-edit">
-                                        <input type="number" name="Stock" value="@Model.Stock" class="nc-pd-stock-input nc-stat-field" oninput="editor.trackFieldChange('Stock', this.value)" data-initial-value="@Model.Stock" required data-val-required="Stock is required." min="0" />
+                                        <input type="number" name="Stock" value="@(Model.Id == 0 && Model.Stock == 0 ? "" : Model.Stock.ToString())" class="nc-pd-stock-input nc-stat-field" oninput="editor.trackFieldChange('Stock', this.value)" data-initial-value="@Model.Stock" required data-val-required="Stock is required." min="0" />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="nc-meta-stat">
+                        <div class="nc-meta-stat nc-read-only-invisible">
                             <div class="nc-meta-stat-icon"><i class="fa fa-star"></i></div>
                             <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Product Rating</span>
@@ -242,7 +252,7 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="nc-meta-stat">
+                        <div class="nc-meta-stat nc-read-only-invisible">
                             <div class="nc-meta-stat-icon"><i class="fa fa-shopping-cart"></i></div>
                             <div class="d-flex flex-column justify-content-between">
                                 <span class="nc-meta-stat-label">Sales Performance</span>
@@ -264,7 +274,7 @@
                         <div class="nc-input-edit position-relative">
                             <div id="indicator-BrandId" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('BrandId', 'Brand', this)"></div>
                             <select name="BrandId" id="edit-brand" class="nc-detail-brand nc-pd-select nc-pd-brand-select" onchange="editor.trackFieldChange('BrandId', this.value)" data-initial-value="@Model.BrandId" required data-val-required="Brand is required.">
-                                <option value="" selected="@(Model.BrandId == null ? "selected" : null)" style="display:none;">Select Brand...</option>
+                                <option value="" selected="@(Model.BrandId == null ? "selected" : null)" style="display:none;">Select Brand</option>
                                 @foreach(var b in brands) {
                                     <option value="@b.Id" selected="@(b.Id == Model.BrandId ? "selected" : null)">@b.Name</option>
                                 }
@@ -275,7 +285,7 @@
 
                     <div class="nc-editable-wrapper nc-stack-grid" style="margin-bottom: 2rem;" data-field="Name">
                         <div class="nc-read-only">
-                            <h1 class="nc-detail-name nc-editable-span nc-pd-sync-span" style="margin:0; padding: 0.5rem 0.75rem 0.5rem 1rem; border: 1px solid transparent;">@Model.Name</h1>
+                            <h1 class="nc-detail-name nc-editable-span nc-pd-sync-span" style="margin:0; border: 1.5px solid transparent;">@Model.Name</h1>
                         </div>
                         <div class="nc-input-edit position-relative">
                             <div id="indicator-Name" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Name', 'Product Name', this)"></div>
@@ -300,7 +310,7 @@
                                 <div id="indicator-Price" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('Price', 'Price', this)"></div>
                                 <div style="display: flex; align-items: center; width: 100%;">
                                     <span class="nc-currency-sign nc-currency-edit">@GlobalConfig.CurrencySymbol</span>
-                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@Model.Price" class="nc-pd-select nc-price-input" oninput="editor.trackFieldChange('Price', this.value)" data-initial-value="@Model.Price" required data-val-required="Price is required." min="0.01" />
+                                    <input type="number" step="0.01" name="Price" id="edit-price" value="@(Model.Id == 0 && Model.Price == 0 ? "" : Model.Price.ToString())" class="nc-pd-select nc-price-input" oninput="editor.trackFieldChange('Price', this.value)" data-initial-value="@Model.Price" required data-val-required="Price is required." min="0.01" />
                                 </div>
                             </div>
                         </div>
@@ -338,7 +348,7 @@
                                         <div id="indicator-IsBanner" class="nc-changed-indicator" style="display: none;" onclick="editor.showRevertPopup('IsBanner', 'Featured Status', this)"></div>
                                         <label class="d-flex align-items-center nc-checkbox-label" style="gap: 0.75rem; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 0.75rem; width: max-content;">
                                             <input type="checkbox" name="IsBanner" value="true" @(Model.IsBanner ? "checked" : "") style="width: 1.25rem; height: 1.25rem; accent-color: var(--nc-primary); cursor: pointer;" data-initial-value="@(Model.IsBanner ? "true" : "false")" onchange="editor.trackFieldChange('IsBanner', this.checked)" />
-                                            <span style="margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">Active as Banner</span>
+                                            <span style="margin: 0; white-space: nowrap; font-size: 0.85rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em;">Feature as Home Banner</span>
                                         </label>
                                     </div>
                                 </div>
@@ -369,6 +379,11 @@
                                     }
                                 </div>
                                 <div class="nc-editable nc-editable-block" style="margin-top: 0.5rem;">
+                                    <div class="nc-upload-zone" onclick="document.getElementById('bannerFileInput').click()" id="bannerDropZone" style="padding: 1rem 0;">
+                                        <i class="fa fa-upload"></i>
+                                        <span>Drop/Click Banner</span>
+                                        <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" />
+                                    </div>
                                     @if(!string.IsNullOrEmpty(Model.BannerImageUrl)) {
                                         <div class="mb-2" id="bannerPreviewContainerEdit">
                                             <img src="@Model.BannerImageUrl" class="nc-banner-preview" id="currentBannerPreviewEdit" onclick="openFullscreen(this.src)" />
@@ -378,13 +393,8 @@
                                             <img src="" class="nc-banner-preview" id="currentBannerPreviewEdit" onclick="openFullscreen(this.src)" />
                                         </div>
                                     }
-                                    <div class="nc-upload-zone" onclick="document.getElementById('bannerFileInput').click()" id="bannerDropZone" style="padding: 1rem 0;">
-                                        <i class="fa fa-upload"></i>
-                                        <span>Drop/Click Banner</span>
-                                        <input type="file" name="bannerImage" id="bannerFileInput" accept="image/*" style="display:none;" />
-                                    </div>
                                     <div class="nc-url-input-group mt-2">
-                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" value="@Model.BannerImageUrl" class="nc-input" placeholder="Banner URL..." />
+                                        <input type="url" name="BannerImageUrl" id="bannerUrlInput" oninput="editor.trackFieldChange('BannerImageUrl', this.value)" value="@Model.BannerImageUrl" class="nc-input" placeholder="Banner URL..." />
                                         <label for="bannerUrlInput" class="nc-pd-floating-label" style="display:none;">Banner Image URL</label>
                                     </div>
                                 </div>
@@ -409,7 +419,7 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn-nc-outline" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn-nc-primary px-4" onclick="document.getElementById('inPlaceEditForm').submit()">
+                    <button type="button" class="btn-nc-primary px-4" onclick="if(window.editor) window.editor.saveChanges(this); else document.getElementById('inPlaceEditForm').submit();">
                         <i class="fa fa-save me-1"></i> Apply Changes
                     </button>
                 </div>
@@ -425,8 +435,67 @@
 </div>
 
 
+    <!-- Image URL Edit Modal -->
+    <div class="modal fade" id="editImageUrlModal" tabindex="-1" aria-hidden="true" style="z-index: 100000;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background: #1a1f2c; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem;">
+                    <h5 class="modal-title fw-bold" style="color: #fff;"><i class="fa fa-link me-2 text-primary"></i> Update Image Link</h5>
+                    <button type="button" class="btn-close btn-close-white opacity-50" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding: 1rem 2rem 2rem;">
+                    <div class="nc-pd-floating-group nc-static-placeholder mb-4">
+                        <input type="url" id="editImageUrlInput" class="nc-pd-floating-control" placeholder=" " style="background: rgba(255,255,255,0.05); color: #fff; border-radius: 12px; padding-top: 1.5rem; border: 1.5px solid rgba(255,255,255,0.1);"/>
+                        <label for="editImageUrlInput" class="nc-pd-floating-label"><span class="nc-label-text">Image Link</span></label>
+                    </div>
+                    <p class="text-white-50 small mb-0">Updating this URL will refresh the preview immediately.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 0 2rem 2rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn py-2 px-4 rounded-3" data-bs-dismiss="modal" style="background: rgba(255,255,255,0.05); color: #fff; border: 1.5px solid rgba(255,255,255,0.1);">Cancel</button>
+                    <button type="button" id="confirmEditImageUrl" class="btn btn-primary py-2 px-4 rounded-3 fw-bold" style="background: var(--nc-primary); border: none;">Update URL</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <style>
+    /* ── Portal Transition CSS (ValidationEngine Support) ── */
+    .nc-error-popup-portal {
+        position: absolute !important;
+        z-index: 2147483647 !important;
+        pointer-events: none;
+        transform: translateX(-50%) translateY(calc(-100% - 12px)) scale(0.9);
+        transform-origin: center bottom;
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #1a0505;
+        color: #ff9999;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        min-width: 300px;
+        max-width: 500px;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        line-height: 1.6;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 100, 100, 0.3);
+    }
+    .nc-error-popup-portal.show {
+        transform: translateX(-50%) translateY(calc(-100% - 12px)) scale(1) !important;
+        opacity: 1 !important;
+    }
+    .nc-error-popup-portal::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 8px;
+        border-style: solid;
+        border-color: #1a0505 transparent transparent transparent;
+    }
+
     /* Ensure the options use dark mode to avoid gray/white text issues on Windows native dropdowns */
     .nc-pd-select, .nc-pd-category-select {
         color-scheme: dark;
@@ -459,15 +528,15 @@
     }
 
     .nc-input {
-        background: rgba(255, 255, 255, 0.05) !important;
-        border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
-        color: #fff !important;
-        padding: 0.7rem 1.25rem !important;
-        font-size: 0.95rem !important;
-        width: 100% !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        outline: none !important;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: #fff;
+        padding: 0.7rem 1.25rem;
+        font-size: 0.95rem;
+        width: 100% ;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) ;
+        outline: none ;
     }
 
     .nc-input:focus {
@@ -511,7 +580,7 @@
 
     .nc-detail-card {
         display: grid;
-        grid-template-columns: 1.25fr 1fr; /* Slightly wider left side */
+        grid-template-columns: repeat(2, minmax(0, 1fr)); /* Uniform 50/50 split */
         gap: 5rem;
         background: rgba(30, 35, 45, 0.4);
         backdrop-filter: blur(25px);
@@ -560,25 +629,6 @@
     .nc-gutter-btn.btn-delete:hover { background: #ef5350; color: #fff !important; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(239, 83, 80, 0.4); }
     .nc-gutter-btn.btn-success:hover { background: #66bb6a; color: #fff !important; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(102, 187, 106, 0.4); }
     .nc-gutter-btn.btn-clear:hover, .nc-gutter-btn.nc-btn-cancel-edit:hover { transform: translateY(-4px); }
-
-    .nc-changes-badge {
-        position: absolute;
-        top: -6px;
-        right: -6px;
-        width: 22px;
-        height: 22px;
-        background: #ffb74d;
-        color: #000;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-        font-size: 0.75rem;
-        border: 2px solid #11141aff;
-        z-index: 10;
-        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
 
     /* ── Info Section Base Stacking ────────────────────────────────────────── */
     .nc-detail-info {
@@ -818,33 +868,37 @@
         box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
     }
 
-    .nc-detail-name, .nc-detail-name-edit {
-        font-size: var(--nc-font-name);
-        font-weight: 900;
-        line-height: 1.2;
-        margin: 0;
-        padding: 0;
-        border: none;
-        background: none;
-        color: #fff;
-        width: 100%;
-        font-family: inherit;
-        display: block;
-        min-height: 1.2em;
+    /* Specialized sync for Product Name: Force absolute parity between H1 and Textarea */
+    h1.nc-detail-name, 
+    textarea.nc-detail-name-edit {
+        font-size: var(--nc-font-name) !important;
+        font-weight: 900 !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+        padding: 0.5rem 0.75rem 0.5rem 1rem !important;
+        border: 1.5px solid transparent !important;
+        background: none !important;
+        color: #fff !important;
+        width: 100% !important;
+        font-family: inherit !important;
+        display: block !important;
+        min-height: 1.2em !important;
+        box-sizing: border-box !important;
+        transition: border-color 0.2s, background 0.2s !important;
     }
-
-    .nc-detail-name-edit {
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 0.75rem;
-        padding: 0.5rem 0.75rem 0.5rem 1rem;
-        resize: none;
-        overflow: hidden;
-        min-height: 1.2em;
-        transition: all 0.3s;
-        line-height: 1.2;
+    
+    textarea.nc-detail-name-edit {
+        background: rgba(255,255,255,0.08) !important;
+        border-color: rgba(255,255,255,0.15) !important;
+        border-radius: 0.75rem !important;
+        resize: none !important;
+        overflow: hidden !important;
     }
-    .nc-detail-name-edit:focus { border-color: var(--nc-primary); outline: none; background: rgba(255,255,255,0.12); }
+    textarea.nc-detail-name-edit:focus { 
+        border-color: var(--nc-primary) !important; 
+        outline: none !important; 
+        background: rgba(255,255,255,0.12) !important; 
+    }
 
 
     /* ── Stock editable wrapper: CSS grid stacking + visibility toggle = zero layout shift ── */
@@ -1021,6 +1075,8 @@
         width: 100%; height: 100%;
         background: #0f141e;
         transition: opacity 0.5s ease;
+        border-radius: 2rem;
+        overflow: hidden;
     }
 
     .nc-carousel-track {
@@ -1045,6 +1101,7 @@
         object-fit: cover; /* Fully covering */
         transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         cursor: zoom-in;
+        border-radius: 2rem;
     }
 
     .nc-carousel-slide:hover .nc-main-image { transform: scale(1.05); }
@@ -1167,13 +1224,14 @@
         top: 0; right: 0;
         display: none;
         flex-direction: row;
-        gap: 4px;
-        padding: 4px;
+        gap: 6px;
+        padding: 6px;
         background: rgba(14, 18, 26, 0.75);
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(12px);
         opacity: 0;
         transition: opacity 0.3s;
-        border-bottom-left-radius: 1.2rem;
+        border-bottom-left-radius: 0.8rem;
+        border-top-right-radius: 1.5rem; /* Match parent .nc-gallery-item radius exactly */
         z-index: 5;
     }
     .nc-edit-mode .nc-item-actions { display: flex; opacity: 0; pointer-events: none; }
@@ -1564,4 +1622,644 @@
         font-family: sans-serif !important;
         font-size: 1rem !important;
     }
+
+.nc-floating-control.is-invalid,
+.nc-pd-floating-control.is-invalid,
+.nc-price-input.is-invalid,
+.nc-pd-stock-input.is-invalid,
+.nc-description-edit.is-invalid,
+#newImageUrlInput.is-invalid,
+#bannerUrlInput.is-invalid,
+.nc-floating-control.is-invalid:focus,
+.nc-pd-floating-control.is-invalid:focus,
+.nc-price-input.is-invalid:focus,
+.nc-pd-stock-input.is-invalid:focus,
+.nc-description-edit.is-invalid:focus,
+#newImageUrlInput.is-invalid:focus,
+#bannerUrlInput.is-invalid:focus {
+    border: 1.5px solid var(--nc-error) !important;
+    border-color: var(--nc-error) !important;
+    background: rgba(var(--nc-error-rgb), 0.02) !important;
+    box-shadow: 0 0 0 4px rgba(var(--nc-error-rgb), 0.15) !important;
+}
+
+.nc-pd-category-select.is-invalid {
+    background-color: var(--nc-error) !important;
+    border-color: var(--nc-error) !important;
+    box-shadow: 0 0px 4px var(--nc-error) !important;
+}
+
+.nc-pd-brand-select.is-invalid {
+    border-color: var(--nc-error) !important;
+    color: var(--nc-error) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23e57373' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") !important;
+}
+
+.nc-input-edit:has(.nc-price-input.is-invalid) .nc-currency-sign {
+    color: var(--nc-error) !important;
+}
+
+.nc-floating-control.is-invalid~.nc-floating-label,
+.nc-pd-floating-control.is-invalid~.nc-pd-floating-label {
+    color: var(--nc-error) !important;
+    pointer-events: auto;
+}
+
+.nc-error-inline {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--nc-error);
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: default;
+    pointer-events: none;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.nc-error-inline::before {
+    content: "\f06a";
+    /* fa-exclamation-circle */
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", "FontAwesome";
+    font-weight: 900;
+}
+
+/* Error Popup Tooltip - Localized logic will override */
+.nc-error-popup {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50% !important;
+    transform: translateX(-50%) translateY(10px) scale(0.9);
+    transform-origin: center bottom;
+    background: #1a0505;
+    color: #ff9999;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    min-width: 250px;
+    max-width: 400px;
+    pointer-events: none;
+    white-space: pre-wrap;
+    /* For multi-line errors */
+    overflow-wrap: break-word;
+    /* To wrap on max-width */
+    line-height: 2;
+    opacity: 0;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 100, 100, 0.2);
+    z-index: 2000;
+}
+
+/* Arrow for tooltip */
+.nc-error-popup::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--nc-error) transparent transparent transparent;
+}
+
+/* Whole label is the popup trigger */
+.nc-floating-label:hover .nc-error-popup,
+.nc-pd-floating-label:hover .nc-error-popup,
+.nc-show-all-errors .nc-error-popup,
+.nc-error-popup.show {
+    opacity: 1;
+    /* Keep the base transform (scale 0.85 + translateY) if not floating */
+}
+
+/* State: Label is floating (already at scale 0.85)
+   We set scale to 1 here so the effective scale remains 0.85 */
+nc-floating-input.nc-is-focused .nc-error-popup,
+nc-floating-input.nc-has-content .nc-error-popup,
+.nc-floating-control:focus~.nc-floating-label .nc-error-popup,
+.nc-floating-control:not(:placeholder-shown)~.nc-floating-label .nc-error-popup {
+    /* Label has shifted left by 0.75rem, so we remove the translateX here to keep the absolute position stable */
+    transform: translateY(0) translateX(0) scale(1);
+}
+
+/* Password Toggle Support (Unified Flex Stack) */
+/* The password toggle is now exclusively styled as a flex member within the stack (see .nc-password-toggle at EOF) */
+
+/* Auto-resizing Textarea Support */
+textarea.nc-floating-control {
+    min-height: 100px;
+    resize: none;
+    overflow-y: hidden;
+}
+
+/* ─── Product-Detail Floating Controls ──────────────────────────────────────
+   Larger, context-aware variants for the product detail in-place editor.
+   All inputs and their paired display spans share the same CSS variables
+   so padding is always in perfect sync.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+    --nc-pd-pad-x: 1.1rem;
+    --nc-pd-pad-y: 0.9rem;
+    /* Extra top padding added when a floating label is present so the label
+       doesn't overlap the text value. Label floats to -0.7em above the border. */
+    --nc-pd-pad-y-top: 1.6rem;
+}
+
+/* Wrapper – matches nc-floating-group but without the bottom margin
+   so we can control spacing at the call-site. */
+.nc-pd-floating-group {
+    position: relative;
+    width: 100%;
+}
+
+/* The actual editable control (input, textarea, select) */
+.nc-pd-floating-control {
+    width: 100%;
+    padding: var(--nc-pd-pad-y-top) var(--nc-pd-pad-x) var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    font-size: inherit;
+    /* inherit from host element (h1, p, etc.) */
+    color: var(--nc-text-primary);
+    background: var(--nc-bg-card);
+    /* Detail page uses card background */
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    outline: none;
+    resize: none;
+    overflow-y: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    box-sizing: border-box;
+}
+
+.nc-pd-floating-control:focus {
+    border-color: var(--nc-primary);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 4px rgba(var(--nc-primary-rgb), 0.1);
+}
+
+/* Floating label inside nc-pd-floating-group */
+.nc-pd-floating-label {
+    position: absolute;
+    top: var(--nc-pd-pad-y);
+    left: var(--nc-pd-pad-x);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nc-text-muted);
+    pointer-events: none;
+    white-space: nowrap;
+    transform: none;
+    transition: color 0.2s, opacity 0.15s, background 0.2s;
+    /* Hidden in view mode – shown only when the page is in edit mode */
+    opacity: 0;
+    pointer-events: none;
+    background: var(--nc-input-bg, var(--nc-bg-card));
+    padding: 0 8px;
+}
+
+/* Show label only in edit mode */
+.nc-edit-mode .nc-pd-floating-label {
+    opacity: 0.25;
+}
+
+/* Password Toggle (Stack Member) */
+.nc-password-toggle {
+    flex: 0 0 50px;
+    background: transparent;
+    border: none;
+    /* Border is now on container */
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    color: var(--nc-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    transition: all 0.2s;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    height: auto;
+    /* Inherit from stack height */
+}
+
+.nc-password-toggle:hover {
+    color: var(--nc-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Synchronized focus state for the whole stack */
+nc-floating-input.nc-is-focused .nc-floating-control {
+    border-color: var(--nc-primary);
+}
+
+nc-floating-input.nc-is-focused .nc-password-toggle {
+    border-color: var(--nc-primary);
+}
+
+.nc-pd-floating-control:focus~.nc-pd-floating-label {
+    color: var(--nc-primary);
+    opacity: 1;
+}
+
+/* ─── Sync span – read-only display element ──────────────────────────────────
+   Apply .nc-pd-sync-span to every nc-editable-span so it occupies the same
+   box dimensions as .nc-pd-floating-control in read-only mode.
+   For spans that sit INSIDE a floating-group additionally add:
+     padding-top: var(--nc-pd-pad-y-top);  (compensate for the label area)
+   ─────────────────────────────────────────────────────────────────────────── */
+.nc-pd-sync-span {
+    display: block;
+    padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    border: 1.5px solid transparent;
+    /* reserve the same border width */
+    border-radius: 12px;
+    box-sizing: border-box;
+    line-height: inherit;
+    width: 100%;
+}
+
+/* When the span is inside a floating group it needs the label clearance – but only in edit mode */
+.nc-edit-mode .nc-pd-floating-group .nc-pd-sync-span {
+    padding-top: var(--nc-pd-pad-y-top);
+}
+
+/* Select controls in product-detail – styled like nc-pd-floating-control
+   but kept at their natural height (no label area since they show a value). */
+.nc-pd-select {
+    padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    background: var(--nc-bg-card);
+    /* Detail page uses card background */
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    outline: none;
+    color: var(--nc-text-primary);
+    font-size: inherit;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.nc-pd-select:focus {
+    border-color: var(--nc-primary);
+    box-shadow: 0 0 0 4px rgba(var(--nc-primary-rgb), 0.1);
+}
+
+/* Paired span for selects / number inputs (no floating label) */
+.nc-pd-sync-span-plain {
+    display: block;
+    padding: var(--nc-pd-pad-y) var(--nc-pd-pad-x);
+    border: 1.5px solid transparent;
+    border-radius: 12px;
+    box-sizing: border-box;
+    line-height: inherit;
+}
+
+.nc-form-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Final Localized Indicators & Layout Stability Overrides */
+.nc-indicator-gallery { left: -12px; }
+.nc-indicator-stat-card {
+    left: -2px;
+    top: 15px !important;
+    bottom: 15px !important;
+    height: auto !important;
+    width: 3px !important;
+}
+.nc-indicator-banner-img {
+    left: -12px;
+    width: 3px !important;
+}
+
+/* Fixed Layout Stability: Prevent shifts during mode switches */
+.nc-editable-span {
+    min-height: 1.2em;
+    display: inline-block;
+}
+
+.nc-select-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+
+
+.nc-select-container.open .nc-select-trigger {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-color: var(--nc-select-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nc-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1f2c;
+    border: 1px solid var(--nc-select-primary);
+    border-top: none;
+    border-bottom-left-radius: var(--nc-select-radius);
+    border-bottom-right-radius: var(--nc-select-radius);
+    z-index: 4000;
+    opacity: 0;
+    visibility: hidden;
+    display: none;
+    overflow: hidden;
+    /* CRITICAL: Clips the inner scrollbar track to the border-radius */
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.nc-select-container.open .nc-select-dropdown {
+    opacity: 1;
+    visibility: visible;
+    display: block;
+    transform: translateY(0);
+}
+
+.nc-select-options-list {
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    padding-left: 8px;
+    /* Balance the 8px scrollbar on the right to keep text centered */
+}
+
+/* Reset selection for option text alignment */
+.nc-option {
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    color: white;
+    /* High contrast */
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.nc-option:hover {
+    background: rgba(123, 171, 221, 0.1);
+    color: var(--nc-select-primary);
+}
+
+.nc-option.selected {
+    background: rgba(123, 171, 221, 0.15);
+    color: var(--nc-select-primary);
+    font-weight: 700;
+}
+
+/* Scrollbar styling for NcSelect */
+.nc-select-options-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nc-select-options-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.nc-select-options-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.nc-pd-category-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* ── Change Tracking UI (Restored Logic) ─────────────────────────── */
+.nc-changed-indicator {
+    position: absolute;
+    left: -12px;
+    /* Floating look */
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    background: #ffb74d;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expanded hit area for indicator */
+.nc-changed-indicator::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    left: -10px;
+    right: -10px;
+}
+
+.nc-changed-indicator:hover {
+    width: 6px;
+    background: #ffa726;
+    box-shadow: 0 0 10px rgba(255, 183, 77, 0.4);
+}
+
+#indicator-CategoryId {
+    top: 5px;
+    bottom: 5px;
+}
+
+.revert-cell-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.revert-cell-btn:hover {
+    background: rgba(255, 183, 77, 0.15);
+    border-color: #ffb74d;
+    color: #ffb74d;
+    transform: scale(1.05);
+}
+
+.revert-cell-btn i {
+    font-size: 0.75rem;
+}
+
+
+/* ── Change Tracking UI (Restored Logic) ─────────────────────────── */
+.nc-changed-indicator {
+    position: absolute;
+    left: -12px;
+    /* Floating look */
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    background: #ffb74d;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expanded hit area for indicator */
+.nc-changed-indicator::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    left: -10px;
+    right: -10px;
+}
+
+
+.nc-unified-category-anchor {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 40;
+    white-space: nowrap;
+}
+
+
+.nc-pd-category-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nc-pd-category-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.5rem 2.5rem 0.5rem 1.25rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.nc-changed-indicator:hover {
+    width: 6px;
+    background: #ffa726;
+    box-shadow: 0 0 10px rgba(255, 183, 77, 0.4);
+}
+
+#indicator-CategoryId {
+    top: 5px;
+    bottom: 5px;
+}
+
+
+.nc-indicator-gallery {
+    left: -12px;
+}
+
+.nc-indicator-stat-card {
+    left: -2px;
+    top: 15px !important;
+    bottom: 15px !important;
+    height: auto !important;
+    width: 3px !important;
+}
+
+.nc-indicator-banner-img {
+    left: -12px;
+    width: 3px !important;
+}
+
+.nc-changes-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(30%, -30%) !important;
+    background: var(--nc-primary);
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--nc-bg-card);
+    z-index: 100;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+
+/* Layout Consistency Fixes */
+.nc-detail-card {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    /* Ensure 50/50 split remains stable */
+    gap: 4rem;
+    padding: 3rem;
+    background: var(--nc-bg-card);
+    border-radius: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+/* Prevent Price/Description Jumping */
+.nc-editable-span {
+    min-height: 1.2em;
+    display: inline-block;
+    transition: none !important;
+    /* Remove transitions during mode switch to prevent "growing" feel */
+    line-height: inherit;
+}
+
+.nc-description {
+    line-height: 1.5 !important;
+    padding: 0.75rem 0;
+    margin: 0;
+}
+
+.nc-description-edit {
+    line-height: 1.5 !important;
+    padding: 0.75rem 1rem !important;
+    min-height: calc(1.5em + 1.5rem) !important;
+    /* line-height + padding */
+    height: auto;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+}
 </style>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.showToast) {
+                window.showToast("There were errors saving the product. Please check the highlighted fields.", "error");
+            }
+        });
+    </script>
+}

@@ -63,9 +63,7 @@
 }
 
 <div class="nc-page">
-    @* Content starts here *@
-    <div class="container-fluid px-4 mx-auto" style="max-width: 1600px;">
-        <!-- Banner Carousel -->
+    <div class="nc-container-xl">
         @if (bannerProducts.Any())
         {
             <div class="home-carousel-wrapper">
@@ -177,15 +175,24 @@
         <div id="homeCatalogContainer">
             @if (!Model.Any())
             {
+                var hasFilters = !string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(currentCategory) || !string.IsNullOrEmpty(currentBrand);
                 <div class="text-center py-5" style="color: var(--nc-text-muted);">
                     <i class="fa fa-guitar d-block mb-3" style="font-size: 3rem;"></i>
-                    <p style="font-size: 1rem;">No instruments found matching your criteria.</p>
-                    <button type="button" id="homeViewAll" 
-                       class="btn-nc-outline d-inline-block mt-3" 
-                       style="
-                           padding: 0.6rem 1.2rem; 
-                           border-radius: var(--nc-radius-sm);
-                       ">View All</button>
+                    @if (hasFilters)
+                    {
+                        <p style="font-size: 1rem;">No instruments found matching your criteria.</p>
+                        <button type="button" id="homeViewAll" 
+                           class="btn-nc-outline d-inline-block mt-3" 
+                           style="
+                               padding: 0.6rem 1.2rem; 
+                               border-radius: var(--nc-radius-sm);
+                           ">View All</button>
+                    }
+                    else
+                    {
+                        <p style="font-size: 1.1rem; font-weight: 600;">The stage is quiet... for now.</p>
+                        <p class="small opacity-75">Our collection is currently empty, but new instruments are arriving soon. Stay tuned!</p>
+                    }
                 </div>
             }
             else
@@ -204,7 +211,6 @@
             }
         </div>
     </div>
-</div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {

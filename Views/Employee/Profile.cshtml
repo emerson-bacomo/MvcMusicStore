@@ -11,23 +11,31 @@
         <div style="margin-bottom:1rem;"></div>
 
         <div class="row gx-4">
-            <div class="col-lg-4 mb-4">
-                <div class="nc-card">
-                    <div class="nc-card-body p-4 text-center">
-                        <div style="margin-bottom:1.5rem;">
-                            @if (!string.IsNullOrEmpty(employee.ProfilePicture))
-                            {
-                                <img src="@employee.ProfilePicture" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--nc-border);padding:4px;" />
-                            }
-                            else
-                            {
-                                <div style="width:120px;height:120px;border-radius:50%;background:rgba(123,171,221,0.15);color:var(--nc-primary);display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:800;border:3px solid var(--nc-border);margin:0 auto;">
-                                    @((employee.FirstName?.FirstOrDefault() ?? employee.UserName?.FirstOrDefault() ?? '?').ToString().ToUpper())
-                                </div>
-                            }
-                        </div>
-                        <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.25rem;">@(string.IsNullOrWhiteSpace(employee.FullName.Trim()) ? employee.UserName : employee.FullName)</h2>
-                        <div class="nc-text-secondary mb-3" style="font-size:0.9rem;">@employee.Email</div>
+            @if (employee == null)
+            {
+                <div class="col-12">
+                    <div class="alert alert-danger">Employee data not found.</div>
+                </div>
+            }
+            else
+            {
+                <div class="col-lg-4 mb-4">
+                    <div class="nc-card">
+                        <div class="nc-card-body p-4 text-center">
+                            <div style="margin-bottom:1.5rem;">
+                                @if (employee != null && !string.IsNullOrEmpty(employee.ProfilePicture))
+                                {
+                                    <img src="@employee.ProfilePicture" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--nc-border);padding:4px;" />
+                                }
+                                else
+                                {
+                                    <div style="width:120px;height:120px;border-radius:50%;background:rgba(123,171,221,0.15);color:var(--nc-primary);display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:800;border:3px solid var(--nc-border);margin:0 auto;">
+                                        @((employee?.FirstName?.FirstOrDefault() ?? employee?.UserName?.FirstOrDefault() ?? '?').ToString().ToUpper())
+                                    </div>
+                                }
+                            </div>
+                            <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.25rem;">@(string.IsNullOrWhiteSpace(employee?.FullName?.Trim()) ? employee?.UserName : employee?.FullName)</h2>
+                            <div class="nc-text-secondary mb-3" style="font-size:0.9rem;">@employee?.Email</div>
                         
                         <div style="display:inline-block;padding:0.3rem 1rem;border-radius:100px;font-size:0.8rem;font-weight:700;margin-bottom:2rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
                             Role: @role
@@ -59,7 +67,7 @@
                                 {
                                     <form asp-action="Restore" asp-route-id="@employee.Id" method="post">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-success w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                        <button type="submit" class="btn-nc-success w-100">
                                             <i class="fa fa-trash-restore me-2"></i> Restore Account
                                         </button>
                                     </form>
@@ -68,7 +76,7 @@
                                 {
                                     <form asp-action="Delete" asp-route-id="@employee.Id" method="post" onsubmit="return confirm('Are you sure you want to delete this employee?');">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-outline-danger w-100" style="font-size:0.9rem;font-weight:600;padding:0.75rem;">
+                                        <button type="submit" class="btn-nc-danger w-100">
                                             <i class="fa fa-trash me-2"></i> Delete Employee
                                         </button>
                                     </form>
@@ -98,23 +106,52 @@
                                 <table class="nc-table align-middle">
                                     <thead style="position: sticky; top: 0; background: var(--nc-bg-card); z-index: 10;">
                                         <tr>
-                                            <th>Timestamp</th>
-                                            <th>Action</th>
-                                            <th>Details</th>
+                                            <th style="width: 25%;">Timestamp</th>
+                                            <th style="width: 20%;">Action</th>
+                                            <th style="width: 55%;">Details</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach (var log in Model)
                                         {
                                             <tr>
-                                                <td class="nc-text-muted text-nowrap" style="font-size:0.85rem;">@log.Timestamp.ToString("MMM d, yyyy HH:mm:ss")</td>
-                                                <td style="font-weight:700;">
-                                                    <span class="badge" style="background: rgba(123, 171, 221, 0.15); color: var(--nc-primary); border: 1px solid rgba(123, 171, 221, 0.3);">
+                                                <td>
+                                                    <div class="log-timestamp">
+                                                        <span>@log.Timestamp.ToString("MMM d, yyyy")</span>
+                                                        <span class="time-part">@log.Timestamp.ToString("HH:mm:ss")</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="log-action-badge">
                                                         @log.Action
                                                     </span>
                                                 </td>
-                                                <td class="nc-text-secondary" style="font-size:0.9rem;">
-                                                    @Html.Raw(log.Details)
+                                                <td>
+                                                    <div class="log-details">
+                                                        @{
+                                                            var details = log.Details ?? "";
+                                                            if (details.Trim().StartsWith("{") || details.Trim().StartsWith("["))
+                                                            {
+                                                                try {
+                                                                    using var doc = System.Text.Json.JsonDocument.Parse(details);
+                                                                    if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                                                    {
+                                                                        var first = doc.RootElement.EnumerateArray().FirstOrDefault();
+                                                                        if (first.ValueKind == System.Text.Json.JsonValueKind.Object && first.TryGetProperty("summary", out var s))
+                                                                        {
+                                                                            details = s.GetString() ?? "Data modification";
+                                                                            if (doc.RootElement.GetArrayLength() > 1) details += $" (and {doc.RootElement.GetArrayLength() - 1} more)";
+                                                                        }
+                                                                    }
+                                                                    else if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object && doc.RootElement.TryGetProperty("summary", out var s2))
+                                                                    {
+                                                                        details = s2.GetString() ?? "Data modification";
+                                                                    }
+                                                                } catch { }
+                                                            }
+                                                        }
+                                                        @Html.Raw(details)
+                                                    </div>
                                                 </td>
                                             </tr>
                                         }
@@ -125,6 +162,7 @@
                     </div>
                 </div>
             </div>
+            }
         </div>
     </div>
 </div>
@@ -141,6 +179,97 @@
         .nc-profile-name { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
         .nc-profile-role { color: var(--nc-primary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
         
+        .btn-nc-danger {
+            background: rgba(229, 115, 115, 0.1);
+            color: var(--nc-error);
+            border: 1px solid rgba(229, 115, 115, 0.3);
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 0.75rem;
+            border-radius: var(--nc-radius-sm);
+            transition: var(--transition);
+        }
+        .btn-nc-danger:hover {
+            background: var(--nc-error);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 115, 115, 0.3);
+        }
+
+        .btn-nc-success {
+            background: rgba(129, 199, 132, 0.1);
+            color: var(--nc-success);
+            border: 1px solid rgba(129, 199, 132, 0.3);
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 0.75rem;
+            border-radius: var(--nc-radius-sm);
+            transition: var(--transition);
+        }
+        .btn-nc-success:hover {
+            background: var(--nc-success);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
+        }
+
+        /* Activity Log Enhanced Styling */
+        .log-timestamp {
+            font-size: 0.82rem;
+            color: var(--nc-text-muted);
+            white-space: nowrap;
+        }
+        .log-timestamp .time-part {
+            color: rgba(255, 255, 255, 0.3);
+            margin-left: 0.4rem;
+        }
+        .log-action-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            background: rgba(123, 171, 221, 0.1);
+            color: var(--nc-primary);
+            border: 1px solid rgba(123, 171, 221, 0.2);
+            white-space: nowrap;
+        }
+        .log-details {
+            font-size: 0.85rem;
+            color: var(--nc-text-muted);
+            line-height: 1.5;
+            max-width: 450px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .nc-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .nc-table th {
+            text-align: left;
+            padding: 1rem 0.75rem;
+            color: var(--nc-text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--nc-border);
+        }
+        .nc-table td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid rgba(122, 171, 221, 0.05);
+            vertical-align: middle;
+        }
+        .nc-table tr:hover td {
+            background: rgba(122, 171, 221, 0.02);
+        }
+
         @@media (max-width: 992px) {
             .nc-profile-layout { grid-template-columns: 1fr; }
         }
