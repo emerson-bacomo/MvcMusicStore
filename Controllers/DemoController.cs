@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MvcMusic.Data;
@@ -8,6 +9,7 @@ using MvcMusic.Utils;
 
 namespace MvcMusic.Controllers
 {
+    [Authorize(Roles = "SuperAdmin")]
     public class DemoController : Controller
     {
         private readonly MvcMusicContext _context;
@@ -25,10 +27,6 @@ namespace MvcMusic.Controllers
 
         public IActionResult Index()
         {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                return RedirectToAction("Index", "Home");
-            }
 
             var sessionId = GetSessionId();
             _lockService.TryClaim(sessionId);

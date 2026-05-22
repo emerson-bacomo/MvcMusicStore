@@ -6,6 +6,7 @@
 @{
     ViewData["Title"] = "Account Settings";
     var isCustomer = User.IsInRole("Customer");
+    var isSuperAdmin = User.IsInRole("SuperAdmin");
 }
 
 <div class="nc-page">
@@ -53,37 +54,40 @@
                     </div>
 
                     <!-- Security Section -->
-                    <div class="mb-5">
-                        <h5 class="mb-4" style="font-weight: 700; color: var(--nc-secondary); border-bottom: 1px solid var(--nc-border); padding-bottom: 0.75rem;">
-                            <i class="fa fa-shield-alt me-2"></i> Security & Password
-                        </h5>
-                        <p class="mb-4" style="font-size: 0.85rem; color: var(--nc-text-muted);">
-                            Leave these fields blank if you do not wish to change your password.
-                        </p>
+                    @if (!isSuperAdmin)
+                    {
+                        <div class="mb-5">
+                            <h5 class="mb-4" style="font-weight: 700; color: var(--nc-secondary); border-bottom: 1px solid var(--nc-border); padding-bottom: 0.75rem;">
+                                <i class="fa fa-shield-alt me-2"></i> Security & Password
+                            </h5>
+                            <p class="mb-4" style="font-size: 0.85rem; color: var(--nc-text-muted);">
+                                Leave these fields blank if you do not wish to change your password.
+                            </p>
 
-                        <div class="nc-floating-group nc-password-wrapper">
-                            <input asp-for="CurrentPassword" class="nc-floating-control" type="password" placeholder=" " data-label="Current Password" autocomplete="current-password" />
-                            <label class="nc-floating-label" asp-for="CurrentPassword">Current Password</label>
-                        </div>
+                            <div class="nc-floating-group nc-password-wrapper">
+                                <input asp-for="CurrentPassword" class="nc-floating-control" type="password" placeholder=" " data-label="Current Password" autocomplete="current-password" />
+                                <label class="nc-floating-label" asp-for="CurrentPassword">Current Password</label>
+                            </div>
 
-                        <div class="nc-floating-group nc-password-wrapper">
-                            <input asp-for="NewPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " 
-                                   data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
-                                   data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
-                                   data-val-password-lowercase="@IdentityOptions.Value.Password.RequireLowercase.ToString().ToLower()"
-                                   data-val-password-digit="@IdentityOptions.Value.Password.RequireDigit.ToString().ToLower()"
-                                   data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()"
-                                   data-label="New Password" autocomplete="new-password" />
-                            <label class="nc-floating-label" asp-for="NewPassword">New Password</label>
-                        </div>
+                            <div class="nc-floating-group nc-password-wrapper">
+                                <input asp-for="NewPassword" class="nc-floating-control nc-password-strength" type="password" placeholder=" " 
+                                       data-val-password-min="@IdentityOptions.Value.Password.RequiredLength"
+                                       data-val-password-uppercase="@IdentityOptions.Value.Password.RequireUppercase.ToString().ToLower()"
+                                       data-val-password-lowercase="@IdentityOptions.Value.Password.RequireLowercase.ToString().ToLower()"
+                                       data-val-password-digit="@IdentityOptions.Value.Password.RequireDigit.ToString().ToLower()"
+                                       data-val-password-special="@IdentityOptions.Value.Password.RequireNonAlphanumeric.ToString().ToLower()"
+                                       data-label="New Password" autocomplete="new-password" />
+                                <label class="nc-floating-label" asp-for="NewPassword">New Password</label>
+                            </div>
 
-                        <div class="nc-floating-group nc-password-wrapper">
-                            <input asp-for="ConfirmPassword" class="nc-floating-control" type="password" placeholder=" " 
-                                   data-compare="#NewPassword" data-val-equalto="Passwords do not match."
-                                   data-label="Confirm Password" autocomplete="new-password" />
-                            <label class="nc-floating-label" asp-for="ConfirmPassword">Confirm Password</label>
+                            <div class="nc-floating-group nc-password-wrapper">
+                                <input asp-for="ConfirmPassword" class="nc-floating-control" type="password" placeholder=" " 
+                                       data-compare="#NewPassword" data-val-equalto="Passwords do not match."
+                                       data-label="Confirm Password" autocomplete="new-password" />
+                                <label class="nc-floating-label" asp-for="ConfirmPassword">Confirm Password</label>
+                            </div>
                         </div>
-                    </div>
+                    }
 
                     <div class="d-flex justify-content-end gap-3 pt-3 border-top" style="border-color: var(--nc-border) !important;">
                         <a asp-action="Index" class="btn-nc-outline px-4">Cancel</a>

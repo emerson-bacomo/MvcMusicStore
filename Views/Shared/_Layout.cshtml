@@ -128,14 +128,7 @@
                             <i class="fa fa-home me-1"></i> Home
                         </a>
                     </li>
-                    @if (User.Identity?.IsAuthenticated != true)
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Demo" ? "active" : "")" asp-controller="Demo" asp-action="Index">
-                                <i class="fa fa-flask me-1"></i> Demo
-                            </a>
-                        </li>
-                    }
+
                     @if (User.Identity?.IsAuthenticated == true)
                     {
 
@@ -450,9 +443,6 @@
                 else
                 {
                     <div class="d-flex flex-column gap-2 mt-3">
-                        <a class="nc-mobile-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Demo" ? "active" : "")" asp-controller="Demo" asp-action="Index">
-                            <i class="fa fa-flask me-2"></i> Demo Options
-                        </a>
                         <a class="btn-nc-outline text-center" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">Login</a>
                         <a class="btn-nc-primary text-center" asp-controller="Account" asp-action="Register" asp-route-returnUrl="@returnUrl">Register</a>
                     </div>

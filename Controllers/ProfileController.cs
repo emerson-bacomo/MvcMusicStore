@@ -81,6 +81,12 @@ namespace MvcMusic.Controllers
             // 3. Update Password
             if (!string.IsNullOrEmpty(model.NewPassword))
             {
+                if (User.IsInRole("SuperAdmin"))
+                {
+                    ModelState.AddModelError("CurrentPassword", "SuperAdmin password cannot be changed.");
+                    return View(model);
+                }
+
                 if (string.IsNullOrEmpty(model.CurrentPassword))
                 {
                     ModelState.AddModelError("CurrentPassword", "Current password is required to change password.");
